@@ -1,50 +1,123 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+## Sync Impact Report
+- Version: 1.0.0 (Initial ratification from template)
+- Principles: 5 core principles ratified
+  - I. Test-First Development (NEW)
+  - II. API-First Design (NEW)
+  - III. Observable Systems (NEW)
+  - IV. Contract Testing (NEW)
+  - V. Semantic Versioning (NEW)
+- Added sections: None (template structure retained)
+- Templates requiring updates: spec-template.md, plan-template.md, tasks-template.md
+- Status: ✅ Updated
+-->
+
+# DISINFO_SCANNER Constitution
+
+A YouTube comment data management system MVP designed to collect and query video comment records, with future capability to detect coordinated negative campaigns.
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Test-First Development
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every feature begins with tests written **before** implementation. This project enforces a strict Red-Green-Refactor cycle:
+- **Red**: Write tests for desired behavior (tests fail initially)
+- **Green**: Implement minimal code to pass tests
+- **Refactor**: Improve code while keeping tests passing
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**Rationale**: TDD ensures correctness, reduces bugs in production, and creates living documentation through test cases. For a system handling real YouTube data, reliability is non-negotiable.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+---
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. API-First Design
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+All functionality is exposed through clear, well-documented APIs before UI or internal implementation details are finalized.
+- Every feature MUST have a defined contract (REST endpoint, CLI interface, or library function signature)
+- APIs MUST support both human-readable and structured (JSON) output
+- Error responses MUST include actionable context (not just error codes)
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Rationale**: API-first design decouples components, enables independent testing, and simplifies future extensions (e.g., adding web UI or analytics without touching data collection logic).
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+---
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. Observable Systems
+
+All systems MUST produce structured logs and maintain traceability for debugging and monitoring.
+- Text-based I/O ensures debuggability: stdout for results, stderr for errors
+- Structured logging (JSON-formatted logs) required for all operations
+- Every request/operation MUST include a unique trace ID for audit trails
+- Data collection operations MUST log source, timestamp, and record count
+
+**Rationale**: As this system grows to detect campaigns, observability is critical for understanding what data was collected, when, and from which sources. This enables post-hoc analysis of potential attacks.
+
+---
+
+### IV. Contract Testing
+
+Service boundaries MUST be validated through contract tests, not implementation details.
+- New API contracts MUST have contract tests before implementation
+- Contract changes MUST update existing contract tests and trigger integration tests
+- Inter-service communication (if applicable) MUST be tested at service boundaries
+- Shared schemas (e.g., comment data structure) MUST have contract tests
+
+**Rationale**: Contract testing ensures different components (YouTube API client, data store, analysis engine) can be swapped or updated independently without breaking the overall system.
+
+---
+
+### V. Semantic Versioning
+
+All releases follow MAJOR.MINOR.PATCH versioning with clear breaking-change documentation.
+- **MAJOR**: Backward-incompatible changes (API signature changes, data schema migrations)
+- **MINOR**: New functionality added in backward-compatible manner
+- **PATCH**: Bug fixes, internal improvements, no API changes
+
+**Rationale**: Clear versioning prevents silent failures when code updates cause incompatibility, critical for a system that may be integrated with external tools or dashboards.
+
+---
+
+## Development Quality Standards
+
+To support these principles, the following standards apply:
+
+### Code Review Requirements
+- All PRs MUST demonstrate test coverage (red tests → passing tests)
+- Reviewers MUST verify API contracts are unchanged or properly versioned
+- Breaking changes MUST include migration documentation
+
+### Data Integrity Standards
+- Comment data MUST be immutable once stored (no overwrites; use versioning for corrections)
+- All data modifications MUST be logged with timestamp, operator, and reason
+- Exports MUST include metadata (export date, record count, schema version)
+
+### Documentation Obligations
+- Every API endpoint MUST have usage examples (curl/Python/etc.)
+- Deployment procedures MUST include rollback instructions
+- Schema changes MUST include migration scripts
+
+---
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This Constitution is the supreme document governing DISINFO_SCANNER development. All PRs, feature branches, and design decisions MUST comply with these principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+### Amendment Process
+1. Propose amendment with rationale and impact analysis
+2. Discuss with team; require consensus on principle changes
+3. Update this document with new version and ratification date
+4. Trigger review of dependent templates (spec, plan, tasks) within 24 hours
+5. Create follow-up issues for any required refactoring
+
+### Compliance Review
+- Project leads MUST audit principle compliance during weekly sync meetings
+- All PRs MUST be reviewed for constitutional alignment before merge
+- Violations SHOULD be caught at code review stage; escalate if needed
+
+### Runtime Development Guidance
+For implementation details and workflow specifics, see `.specify/` directory structure:
+- Feature specifications: `.specify/templates/spec-template.md`
+- Implementation plans: `.specify/templates/plan-template.md`
+- Task breakdowns: `.specify/templates/tasks-template.md`
+
+---
+
+**Version**: 1.0.0 | **Ratified**: 2025-11-15 | **Last Amended**: 2025-11-15
