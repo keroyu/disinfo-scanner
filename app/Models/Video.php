@@ -15,6 +15,10 @@ class Video extends Model
 
     protected $fillable = ['video_id', 'channel_id', 'title', 'youtube_url', 'published_at'];
 
+    protected $casts = [
+        'published_at' => 'datetime',
+    ];
+
     public function channel()
     {
         return $this->belongsTo(Channel::class, 'channel_id');

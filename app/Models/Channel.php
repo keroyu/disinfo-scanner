@@ -15,6 +15,11 @@ class Channel extends Model
 
     protected $fillable = ['channel_id', 'channel_name', 'video_count', 'comment_count', 'first_import_at', 'last_import_at'];
 
+    protected $casts = [
+        'first_import_at' => 'datetime',
+        'last_import_at' => 'datetime',
+    ];
+
     public function videos()
     {
         return $this->hasMany(Video::class, 'channel_id');

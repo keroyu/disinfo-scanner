@@ -15,6 +15,10 @@ class Comment extends Model
 
     protected $fillable = ['comment_id', 'video_id', 'author_channel_id', 'text', 'like_count', 'published_at'];
 
+    protected $casts = [
+        'published_at' => 'datetime',
+    ];
+
     public function video()
     {
         return $this->belongsTo(Video::class, 'video_id');
