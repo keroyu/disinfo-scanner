@@ -22,10 +22,16 @@ class CommentController extends Controller
     {
         $query = Comment::with(['video.channel', 'author']);
 
-        // Apply keyword search filter
+        // Apply keyword search filter (video title, commenter, content)
         if ($request->filled('search')) {
             $keyword = $request->input('search');
             $query->filterByKeyword($keyword);
+        }
+
+        // Apply channel search filter
+        if ($request->filled('search_channel')) {
+            $channelKeyword = $request->input('search_channel');
+            $query->filterByChannel($channelKeyword);
         }
 
         // Apply date range filter

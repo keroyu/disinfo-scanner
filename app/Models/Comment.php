@@ -49,6 +49,16 @@ class Comment extends Model
     }
 
     /**
+     * Filter comments by channel name
+     */
+    public function scopeFilterByChannel(Builder $query, string $channelKeyword): Builder
+    {
+        return $query->whereHas('video.channel', function (Builder $q) use ($channelKeyword) {
+            $q->where('channel_name', 'like', '%' . $channelKeyword . '%');
+        });
+    }
+
+    /**
      * Filter comments by date range (inclusive)
      */
     public function scopeFilterByDateRange(Builder $query, $fromDate, $toDate): Builder

@@ -10,17 +10,33 @@
 
     <!-- Search and Filter Section -->
     <form method="GET" action="{{ route('comments.index') }}" class="bg-white rounded-lg shadow-md p-6 mb-6 space-y-4">
-        <!-- Search Field -->
-        <div>
-            <label for="search" class="block text-sm font-medium text-gray-700">Search Comments</label>
-            <input
-                type="text"
-                id="search"
-                name="search"
-                value="{{ request('search', '') }}"
-                placeholder="Search by video title, commenter, or content..."
-                class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            >
+        <!-- Search Fields Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Search Comments -->
+            <div>
+                <label for="search" class="block text-sm font-medium text-gray-700">Search Comments</label>
+                <input
+                    type="text"
+                    id="search"
+                    name="search"
+                    value="{{ request('search', '') }}"
+                    placeholder="Search by video title, commenter, or content..."
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+
+            <!-- Search Channel -->
+            <div>
+                <label for="search_channel" class="block text-sm font-medium text-gray-700">Search Channel</label>
+                <input
+                    type="text"
+                    id="search_channel"
+                    name="search_channel"
+                    value="{{ request('search_channel', '') }}"
+                    placeholder="Search by channel name..."
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
         </div>
 
         <!-- Date Range Filter -->
