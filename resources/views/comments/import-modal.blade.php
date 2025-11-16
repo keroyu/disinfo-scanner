@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentVideoId = extractVideoId(videoUrl);
 
             // Check if video exists or fetch metadata
+            console.log('Fetching metadata for:', videoUrl);
             const response = await fetch('{{ route("youtube-import.metadata") }}', {
                 method: 'POST',
                 headers: {
@@ -202,6 +203,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     video_url: videoUrl
                 })
             });
+
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers.get('content-type'));
+
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('Response not OK:', text.substring(0, 500));
+                throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+            }
 
             const data = await response.json();
 
@@ -223,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showLoading(false);
             }
         } catch (error) {
+            console.error('Metadata fetch error:', error);
             showError('獲取視頻信息失敗: ' + error.message);
             showLoading(false);
         }
