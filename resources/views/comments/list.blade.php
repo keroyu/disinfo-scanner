@@ -197,7 +197,14 @@
 
                                 <!-- Comment Content Cell -->
                                 <td class="px-4 py-3">
-                                    <div class="text-sm text-gray-700 break-words">{{Str::limit($comment->text, 150)}}</div>
+                                    <div
+                                        class="text-sm text-gray-700 break-words cursor-pointer hover:text-blue-600 hover:underline transition-colors"
+                                        onclick="openCommentModal(this)"
+                                        data-comment-text="{{ $comment->text }}"
+                                        title="Click to view full comment"
+                                    >
+                                        {{Str::limit($comment->text, 150)}}
+                                    </div>
                                 </td>
 
                                 <!-- Likes Cell (Hidden on Tablet) -->
@@ -229,6 +236,40 @@
     </form>
 </div>
 
+<!-- Comment Modal -->
+<div id="commentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">完整留言</h2>
+            <button
+                onclick="closeCommentModal()"
+                class="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Close"
+            >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <div id="modalCommentText" class="text-gray-700 whitespace-pre-wrap break-words text-sm leading-relaxed"></div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="border-t border-gray-200 p-4 flex justify-end">
+            <button
+                onclick="closeCommentModal()"
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+                關閉
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Link to Channel List -->
 <div class="mt-6 text-center">
     <a
@@ -256,5 +297,30 @@ function handleSort(sortKey) {
     // Submit the form
     document.querySelector('form').submit();
 }
+
+function openCommentModal(element) {
+    const fullText = element.getAttribute('data-comment-text');
+    document.getElementById('modalCommentText').textContent = fullText;
+    document.getElementById('commentModal').classList.remove('hidden');
+}
+
+function closeCommentModal() {
+    document.getElementById('commentModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside the modal content
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('commentModal');
+    if (event.target === modal) {
+        closeCommentModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeCommentModal();
+    }
+});
 </script>
 @endsection
