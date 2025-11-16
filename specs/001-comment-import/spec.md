@@ -54,28 +54,38 @@ Out of scope for MVP:
 
 ---
 
-### User Story 2: Import Comments via Web Interface (Priority: P1)
+### User Story 2: Import Comments via Web Interface with Video Metadata & Confirmation (Priority: P1)
 
 **Actor**: System administrator
 
-**Scenario**: I can paste either a urtubeapi URL or YouTube video URL into a web form, and the system automatically fetches, imports comments, and asks for channel tagging when needed.
+**Scenario**: I can paste either a urtubeapi URL or YouTube video URL into a web form. The system automatically scrapes video metadata (title, channel name), displays the extraction results along with tag selection, and only writes data to the database after I confirm everything is correct.
 
-**Why this priority**: Core MVP functionality delivering primary user value.
+**Why this priority**: Core MVP functionality delivering primary user value. Two-step confirmation prevents incomplete or invalid data insertion.
 
-**Independent Test**: Provide a valid URL (either format), verify comments are correctly imported with proper deduplication and channel detection. Testable without query interface.
+**Independent Test**: Provide a valid URL (either format), verify:
+1. Video metadata (title, channel name) is correctly scraped and displayed
+2. Confirmation interface shows all extracted data and tag options
+3. Data is only written to database after user confirmation
+4. Comments are correctly imported with proper deduplication and channel detection
 
 **Acceptance Scenarios**:
 
 1. **Given** import page loaded, **When** I paste a urtubeapi URL, **Then** the system correctly identifies it as urtubeapi format
 2. **Given** import page loaded, **When** I paste a YouTube URL (standard/short/mobile/with parameters), **Then** the system correctly identifies it as YouTube format
 3. **Given** YouTube URL provided, **When** I click "開始匯入", **Then** system displays "正在解析 YouTube 影片..." loading indicator
-4. **Given** YouTube parsing in progress, **When** system completes parsing, **Then** videoId and channelId are extracted and system begins importing comments
-5. **Given** urtubeapi URL with valid JSON, **When** system fetches data, **Then** all comment fields are correctly imported to database
-6. **Given** new channel not in database, **When** system detects it during import, **Then** import pauses and tag selection modal appears
-7. **Given** tag selection modal open, **When** I select one or more tags and click "確認並繼續匯入", **Then** tags are saved and import continues
-8. **Given** tag selection modal open, **When** I click "取消匯入", **Then** import is cancelled and modal closes
-9. **Given** completed import, **When** I view results, **Then** I see statistics: 成功匯入 X 則留言, 新增: X 筆, 更新: X 筆, 跳過: X 筆
+4. **Given** YouTube parsing in progress, **When** system completes parsing, **Then** system scrapes video title and channel name from YouTube page
+5. **Given** video metadata scraped successfully, **When** urtubeapi data is fetched, **Then** system displays confirmation interface with:
+   - 📹 Video Title (from scraping)
+   - 📺 Channel Name (from scraping)
+   - 💬 Comment Count (from API)
+   - Tag selection modal for new channels
+6. **Given** confirmation interface displayed, **When** I review the extracted video metadata and tags, **Then** all information is clearly shown with proper formatting
+7. **Given** all information confirmed, **When** I click "確認並寫入資料", **Then** system writes all data to database and shows import statistics
+8. **Given** confirmation interface displayed, **When** I click "取消匯入", **Then** import is cancelled, no data is written, and modal closes
+9. **Given** data written to database, **When** import completes, **Then** I see statistics: 成功匯入 X 則留言, 新增: X 筆, 更新: X 筆, 跳過: X 筆
 10. **Given** duplicate comments in database, **When** import runs again, **Then** duplicates are detected and skipped (0% duplication rate)
+11. **Given** new channel detected, **When** confirmation interface appears, **Then** tag selection is required before writing data
+12. **Given** tag selection required, **When** I click "確認並寫入資料" without selecting tags, **Then** error message "請至少選擇一個標籤" appears and data is not written
 
 ---
 
@@ -93,8 +103,8 @@ Out of scope for MVP:
 
 1. **Given** new channel detected during import, **When** system triggers tag selection, **Then** modal appears with channel ID and channel name
 2. **Given** tag selection modal open, **When** I see the five tag options, **Then** each tag displays its label, color code, and checkbox
-3. **Given** no tags selected, **When** I click "確認並繼續匯入", **Then** error message "請至少選擇一個標籤" appears in red
-4. **Given** one or more tags selected, **When** I click "確認並繼續匯入", **Then** tags are saved to channel_tags table with correct relationships
+3. **Given** no tags selected, **When** I click "確認並寫入資料", **Then** error message "請至少選擇一個標籤" appears in red
+4. **Given** one or more tags selected, **When** I click "確認並寫入資料", **Then** tags are saved to channel_tags table with correct relationships
 5. **Given** existing channel in database, **When** importing a new video from that channel, **Then** tag selection modal does not appear (only new channels are tagged)
 6. **Given** tag selection complete, **When** viewing channel list later, **Then** saved tags display correctly with assigned colors
 
@@ -158,10 +168,28 @@ Out of scope for MVP:
 
 - **FR-011**: System MUST fetch JSON data from urtubeapi endpoint via HTTP GET with 30-second timeout
 - **FR-012**: System MUST validate JSON structure and verify required fields (videoId, channelId, comments array, comment fields)
-- **FR-013**: System MUST insert video records with: videoId (unique), title, channel_id, channel_name, published_at, created_at
+
+**Video Metadata Scraping** (NEW)
+
+- **FR-012a**: System MUST scrape YouTube page to extract video title when YouTube URL is provided
+- **FR-012b**: System MUST scrape YouTube page to extract channel name (uploader) when YouTube URL is provided
+- **FR-012c**: System MUST display scraped video title and channel name in confirmation interface before data is written
+- **FR-012d**: System MUST use web scraping library (e.g., Goutte + DomCrawler) to parse YouTube HTML/metadata
+- **FR-012e**: System MUST handle scraping failures gracefully (timeout, network error, parsing error) with clear user message
+
+**Confirmation & Data Writing** (NEW)
+
+- **FR-012f**: System MUST NOT write any data to database until user confirms in confirmation interface
+- **FR-012g**: System MUST display confirmation interface showing: Video Title, Channel Name, Comment Count, and tag selection (if new channel)
+- **FR-012h**: System MUST provide "確認並寫入資料" button to proceed with database write after confirmation
+- **FR-012i**: System MUST provide "取消匯入" button to cancel import without writing any data
+- **FR-012j**: If tag selection is required (new channel), system MUST require tags to be selected before "確認並寫入資料" is enabled
+- **FR-012k**: If "取消匯入" is clicked, system MUST discard all extracted data and return to import page without database changes
+
+- **FR-013**: System MUST insert video records with: videoId (unique), title (from scraping), channel_id, channel_name (from scraping), published_at, created_at
 - **FR-014**: System MUST insert comment records with: comment_id (unique), video_id (FK), author_channel_id, text, like_count, published_at, created_at
 - **FR-015**: System MUST insert author records with: author_channel_id (unique), name, profile_url, created_at
-- **FR-016**: System MUST detect if channel is new; if new, pause import and request tag selection; if existing, continue without tagging prompt
+- **FR-016**: System MUST detect if channel is new; if new, display tag selection in confirmation interface; if existing, skip tag selection
 - **FR-017**: System MUST detect duplicate comments by comment_id and skip reimport, marking them in results summary
 - **FR-018**: System MUST detect duplicate authors by author_channel_id and reuse existing records (no duplicates)
 
@@ -181,11 +209,22 @@ Out of scope for MVP:
 - **FR-027**: System MUST display instructional text explaining two input methods (urtubeapi and YouTube URLs)
 - **FR-028**: System MUST provide single text input field with sufficient width for long URLs
 - **FR-029**: System MUST provide "開始匯入" button to trigger import
-- **FR-030**: System MUST display loading indicator with animated spinner and status text during import ("正在解析 YouTube 影片...", "正在匯入留言...")
+- **FR-030**: System MUST display loading indicator with animated spinner and status text during import ("正在解析 YouTube 影片...", "正在抓取影片資訊...", "正在匯入留言...")
 - **FR-031**: System MUST use AJAX to prevent page reload during import
+
+**Confirmation Interface** (NEW)
+
+- **FR-031a**: System MUST display confirmation interface after metadata scraping and API data fetch complete
+- **FR-031b**: Confirmation interface MUST show extracted video metadata: Title, Channel Name, Comment Count
+- **FR-031c**: Confirmation interface MUST include tag selection checkboxes if new channel is detected
+- **FR-031d**: Confirmation interface MUST provide "確認並寫入資料" button to proceed with database write (disabled if tags required but not selected)
+- **FR-031e**: Confirmation interface MUST provide "取消匯入" button to abort import without writing any data
+- **FR-031f**: Confirmation interface MUST display clearly formatted data review section with icons and proper spacing
+- **FR-031g**: When tags are required but not selected, "確認並寫入資料" button MUST be visually disabled (grayed out) and show tooltip "請選擇至少一個標籤"
+
 - **FR-032**: System MUST display import results with statistics: total processed, newly added, updated, skipped, errors
 - **FR-033**: System MUST provide tag selection modal with centered overlay and semi-transparent background
-- **FR-034**: System MUST provide "確認並繼續匯入" and "取消匯入" buttons in modal
+- **FR-034**: System MUST provide "確認並寫入資料" and "取消匯入" buttons in confirmation interface (replacing old "確認並繼續匯入")
 - **FR-035**: System MUST display error message in red when less than one tag is selected
 - **FR-036**: System MUST provide channel list page showing all imported channels with: channel ID, name, tags (badges), comment count, last import time
 - **FR-037**: System MUST use Tailwind CSS for all styling
@@ -239,6 +278,21 @@ Out of scope for MVP:
 - **SC-007**: Comment-to-video and comment-to-author relationships are correctly preserved (no orphaned records)
 - **SC-008**: YouTube URL conversion correctly extracts videoId and channelId; system successfully imports comments from YouTube URLs
 - **SC-009**: Import operation completes within 5-10 seconds for typical payloads (500 comments)
+
+**Video Metadata Scraping**
+- **SC-009a**: Video title is correctly scraped from YouTube page and displayed in confirmation interface
+- **SC-009b**: Channel name (uploader) is correctly scraped from YouTube page and displayed in confirmation interface
+- **SC-009c**: Scraped metadata matches actual YouTube page content with 100% accuracy
+- **SC-009d**: Scraping failures are handled gracefully with user-friendly error messages (no data written on scraping failure)
+
+**Confirmation Interface & Two-Step Process**
+- **SC-009e**: Confirmation interface displays after metadata scraping and API data fetch complete
+- **SC-009f**: Confirmation interface shows Video Title, Channel Name, and Comment Count before database write
+- **SC-009g**: NO data is written to database until user clicks "確認並寫入資料" button
+- **SC-009h**: Clicking "取消匯入" button cancels import without writing any data to database
+- **SC-009i**: New channel detection triggers tag selection in confirmation interface
+- **SC-009j**: "確認並寫入資料" button is disabled (visually grayed out) if tags are required but not selected
+- **SC-009k**: Tag selection is properly persisted to database when user confirms in confirmation interface
 
 **Channel Tagging**
 - **SC-010**: New channels trigger tag selection modal; modal displays correctly with all five tag options
@@ -371,7 +425,7 @@ Out of scope for MVP:
 - Tag selection section: instruction text + five checkboxes (stacked vertically)
 - Each tag checkbox: colored dot/badge + label + checkbox input
 - Error message area: red text below checkboxes (shown when validation fails)
-- Button section: two buttons at bottom ("確認並繼續匯入" primary, "取消匯入" secondary)
+- Button section: two buttons at bottom ("確認並寫入資料" primary, "取消匯入" secondary)
 
 **Colors for Tags**
 - 泛綠: `bg-green-500` text-white
@@ -439,6 +493,15 @@ Out of scope for MVP:
 | Cannot extract channelId from page | "無法從 YouTube 頁面取得頻道資訊，請改用 urtubeapi 網址" |
 | YouTube request timeout | "無法訪問 YouTube，請檢查網路連線或稍後再試" |
 
+### Video Metadata Scraping Errors
+
+| Scenario | User Message |
+|----------|--------------|
+| Cannot extract video title from page | "無法取得影片標題，但您可以繼續確認並匯入資料" |
+| Cannot extract channel name from page | "無法取得頻道名稱，但您可以繼續確認並匯入資料" |
+| Scraping timeout | "抓取影片資訊逾時，請稍後再試" |
+| Scraping network error | "無法抓取影片資訊，請檢查網路連線或稍後再試" |
+
 ### Import Errors
 
 | Scenario | User Message |
@@ -448,6 +511,13 @@ Out of scope for MVP:
 | Invalid JSON response | "資料格式異常，無法匯入" |
 | Missing required JSON fields | "資料格式異常，無法匯入" |
 | Database write error | "系統錯誤，請聯繫管理員" |
+
+### Confirmation Interface Errors
+
+| Scenario | User Message |
+|----------|--------------|
+| No tags selected when required | "請至少選擇一個標籤" (displayed in red, "確認並寫入資料" button disabled) |
+| User clicks "取消匯入" | Import cancelled, no data written, confirmation interface closes |
 
 ### Tag Selection Errors
 
@@ -477,34 +547,42 @@ Feature is complete when:
 4. ✓ Indexes created on critical columns (author_channel_id, videoId, channel_id)
 5. ✓ Five default tags pre-populated with codes, colors, descriptions
 
-### Functionality (14 criteria)
+### Functionality (18 criteria)
 6. ✓ urtubeapi URLs correctly parsed and validated
 7. ✓ YouTube URLs (all four formats) correctly parsed and validated
 8. ✓ YouTube page source parsed to extract channelId
 9. ✓ Both URL types successfully import comments to database
 10. ✓ Duplicate comments are detected and skipped on re-import
-11. ✓ New channels trigger tag selection modal
-12. ✓ Existing channels skip tag selection on re-import
-13. ✓ Tag selection correctly saved to database
-14. ✓ Channel list displays all imported channels with correct data
-15. ✓ Statistics displayed accurately (added, updated, skipped counts)
-16. ✓ Import results summary shows proper statistics
-17. ✓ Modal can be cancelled to abort import
-18. ✓ AJAX prevents page reload during import
-19. ✓ Loading states displayed with spinner and status text
+11. ✓ Video title is scraped from YouTube page
+12. ✓ Channel name (uploader) is scraped from YouTube page
+13. ✓ Scraped metadata displays in confirmation interface before database write
+14. ✓ Confirmation interface shows Video Title, Channel Name, and Comment Count
+15. ✓ NO data written to database until user confirms
+16. ✓ Clicking "取消匯入" cancels import without database write
+17. ✓ New channels trigger tag selection in confirmation interface
+18. ✓ Tag selection required in confirmation interface before writing data
+19. ✓ Tag selection correctly saved to database
+20. ✓ Existing channels skip tag selection on re-import
+21. ✓ Channel list displays all imported channels with correct data
+22. ✓ Statistics displayed accurately (added, updated, skipped counts)
+23. ✓ Import results summary shows proper statistics
+24. ✓ AJAX prevents page reload during import
+25. ✓ Loading states displayed with spinner and status text
 
-### User Interface (5 criteria)
-20. ✓ All pages styled with Tailwind CSS
-21. ✓ Import page displays clear layout and instructions
-22. ✓ Channel list page responsive on desktop and tablet
-23. ✓ Tag selection modal centered with overlay
-24. ✓ Tags displayed as color-coded badges
+### User Interface (6 criteria)
+26. ✓ All pages styled with Tailwind CSS
+27. ✓ Import page displays clear layout and instructions
+28. ✓ Confirmation interface displays extracted metadata clearly
+29. ✓ Confirmation interface displays tag selection checkboxes for new channels
+30. ✓ Channel list page responsive on desktop and tablet
+31. ✓ Tags displayed as color-coded badges
 
-### Error Handling (4 criteria)
-25. ✓ All error scenarios handled with appropriate user messages
-26. ✓ Error messages are user-friendly (no jargon)
-27. ✓ Errors logged with detail for debugging
-28. ✓ System does not crash on errors; gracefully handles failures
+### Error Handling (5 criteria)
+32. ✓ All error scenarios handled with appropriate user messages
+33. ✓ Metadata scraping failures handled gracefully with user-friendly messages
+34. ✓ Error messages are user-friendly (no jargon)
+35. ✓ Errors logged with detail for debugging
+36. ✓ System does not crash on errors; gracefully handles failures
 
 ---
 
@@ -515,6 +593,7 @@ Feature is complete when:
 - JSON validation logic
 - Data transformation (API response → database models)
 - Tag selection validation
+- YouTube metadata scraping logic (title and channel extraction)
 
 **Integration Tests**
 - End-to-end import flow with real urtubeapi response
@@ -523,15 +602,28 @@ Feature is complete when:
 - Channel detection (new vs. existing)
 - Tag selection and database persistence
 - Modal trigger conditions
+- Video metadata scraping from YouTube pages
+- Two-step confirmation flow (scrape → confirm → write)
+- Confirmation interface displays correct scraped metadata
+- Cancellation flow (確認並寫入資料 vs 取消匯入)
+- Database write only occurs after explicit confirmation
 
 **Manual Testing**
 - Import from multiple urtubeapi URLs
 - Import from multiple YouTube URL formats
 - Verify data integrity in database post-import
 - Test YouTube URL parsing with page source extraction
-- Manual channel tag selection and persistence
+- Test video title and channel name scraping accuracy
+- Verify confirmation interface displays after metadata scraping
+- Review confirmation interface shows all extracted data (title, channel, comment count)
+- Test tag selection in confirmation interface for new channels
+- Test "確認並寫入資料" button (success and error cases)
+- Test "取消匯入" button (verify no data written)
+- Verify button state changes (enabled/disabled) based on tag selection
+- Manual channel tag selection and persistence after confirmation
 - Channel list display accuracy
-- Error scenario validation (network failures, invalid data)
-- Responsive design on various screen sizes
-- Modal animations and interactions
+- Error scenario validation (network failures, invalid data, scraping failures)
+- Test confirmation cancellation leaves no partial data in database
+- Responsive design on various screen sizes (desktop, tablet)
+- Modal/confirmation interface animations and interactions
 
