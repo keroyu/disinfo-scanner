@@ -181,20 +181,27 @@ class ImportService
 
             // Step 5: Execute database write in transaction
             // IMPORTANT: Add $importId to use clause - it's needed for selectTagsForChannel()
-            DB::transaction(function () use ($models, $apiData, $channelId, $isNewChannel, $tags, $importId, &$stats) {
+            // Use cached metadata from pendingImport instead of API (API doesn't return title/name)
+            DB::transaction(function () use ($models, $apiData, $channelId, $isNewChannel, $tags, $importId, $pendingImport, &$stats) {
                 // Ensure channel exists
+                // Use cached channel_name from pendingImport (from web scraping), not API
                 $channel = Channel::firstOrCreate(
                     ['channel_id' => $channelId],
                     [
-                        'channel_name' => $apiData['channelTitle'] ?? null,
+                        'channel_name' => $pendingImport['channel_name'] ?? null,
                         'first_import_at' => now(),
                     ]
                 );
 
                 // Insert or update video
+                // Use cached video_title from pendingImport (from web scraping), not API
+                $videoData = $models->video->toArray();
+                if ($pendingImport['video_title']) {
+                    $videoData['title'] = $pendingImport['video_title'];
+                }
                 $video = Video::updateOrCreate(
                     ['video_id' => $models->video->video_id],
-                    $models->video->toArray()
+                    $videoData
                 );
 
                 // Insert authors
@@ -302,10 +309,15 @@ class ImportService
         ];
 
         // Insert data
-        DB::transaction(function () use ($models, $apiData, $channelId, &$stats) {
+        DB::transaction(function () use ($models, $apiData, $channelId, $pendingImport, &$stats) {
+            // Use cached video_title from pendingImport (from web scraping), not API
+            $videoData = $models->video->toArray();
+            if ($pendingImport['video_title']) {
+                $videoData['title'] = $pendingImport['video_title'];
+            }
             $video = Video::updateOrCreate(
                 ['video_id' => $models->video->video_id],
-                $models->video->toArray()
+                $videoData
             );
 
             foreach ($models->authors as $author) {
@@ -329,10 +341,11 @@ class ImportService
 
             $stats['newly_added'] = $newComments;
 
-            // Update channel
+            // Update channel with cached metadata
             $channel = Channel::find($channelId);
             if ($channel) {
                 $channel->update([
+                    'channel_name' => $pendingImport['channel_name'] ?? $channel->channel_name,
                     'last_import_at' => now(),
                     'comment_count' => Comment::where('video_id', $models->video->video_id)->count(),
                 ]);
