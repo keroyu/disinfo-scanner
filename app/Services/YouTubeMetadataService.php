@@ -23,12 +23,13 @@ class YouTubeMetadataService
     }
 
     /**
-     * Scrape video title and channel name from YouTube page
+     * Scrape video title, channel name, and published date from YouTube page
      *
      * @param string $videoId YouTube video ID
      * @return array {
      *     'videoTitle' => string|null,
      *     'channelName' => string|null,
+     *     'publishedAt' => string|null (ISO 8601 date),
      *     'scrapingStatus' => 'success'|'partial'|'failed'
      * }
      */
@@ -42,6 +43,7 @@ class YouTubeMetadataService
 
             $videoTitle = $this->extractVideoTitle($html);
             $channelName = $this->extractChannelName($html);
+            $publishedAt = $this->extractPublishedDate($html);
 
             // Determine scraping status
             if ($videoTitle && $channelName) {
@@ -55,6 +57,7 @@ class YouTubeMetadataService
             return [
                 'videoTitle' => $videoTitle,
                 'channelName' => $channelName,
+                'publishedAt' => $publishedAt,
                 'scrapingStatus' => $scrapingStatus,
             ];
         } catch (GuzzleException $e) {
@@ -66,6 +69,7 @@ class YouTubeMetadataService
             return [
                 'videoTitle' => null,
                 'channelName' => null,
+                'publishedAt' => null,
                 'scrapingStatus' => 'failed',
             ];
         } catch (\Throwable $e) {
@@ -78,6 +82,7 @@ class YouTubeMetadataService
             return [
                 'videoTitle' => null,
                 'channelName' => null,
+                'publishedAt' => null,
                 'scrapingStatus' => 'failed',
             ];
         }
@@ -154,6 +159,37 @@ class YouTubeMetadataService
             return null;
         } catch (\Throwable $e) {
             Log::debug('Failed to extract channel name', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Extract published date from HTML using meta tags
+     *
+     * @param string $html HTML content from YouTube page
+     * @return string|null ISO 8601 date string
+     */
+    protected function extractPublishedDate(string $html): ?string
+    {
+        try {
+            $crawler = new Crawler($html);
+
+            // Try itemprop="datePublished" meta tag (common in YouTube structured data)
+            $publishedDate = $crawler->filter('meta[itemprop="datePublished"]')->attr('content');
+            if ($publishedDate) {
+                return $publishedDate; // Usually already in ISO 8601 format
+            }
+
+            // Fallback: search for uploadDate in JSON-LD schema
+            if (preg_match('/"uploadDate":"([^"]+)"/', $html, $matches)) {
+                return $matches[1];
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::debug('Failed to extract published date', [
                 'error' => $e->getMessage(),
             ]);
             return null;

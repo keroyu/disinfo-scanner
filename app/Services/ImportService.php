@@ -77,11 +77,12 @@ class ImportService
             $metadata['channel_name'] = $apiData['channelTitle'] ?? null;
             $metadata['comment_count'] = count($apiData['comments'] ?? []);
 
-            // Step 4: Scrape video metadata (title, channel name) from YouTube
+            // Step 4: Scrape video metadata (title, channel name, published date) from YouTube
             // This is optional and gracefully degrades if it fails
             // Works for both YouTube URLs and urtubeapi (since API provides videoId)
             $scrapedMetadata = $this->youTubeMetadataService->scrapeMetadata($videoId);
             $metadata['video_title'] = $scrapedMetadata['videoTitle'];
+            $metadata['published_at'] = $scrapedMetadata['publishedAt'];
 
             // If we couldn't get channel name from API, try scraped version
             if (!$metadata['channel_name'] && $scrapedMetadata['channelName']) {
@@ -94,6 +95,7 @@ class ImportService
                 'scraping_status' => $scrapedMetadata['scrapingStatus'],
                 'has_title' => !is_null($scrapedMetadata['videoTitle']),
                 'has_channel' => !is_null($scrapedMetadata['channelName']),
+                'has_published_at' => !is_null($scrapedMetadata['publishedAt']),
                 'url_type' => $urlType,
             ]);
 
@@ -107,7 +109,8 @@ class ImportService
                 $channelId,
                 $metadata['channel_name'],
                 $metadata['video_title'],
-                $metadata['comment_count']
+                $metadata['comment_count'],
+                $metadata['published_at']
             );
 
             $metadata['import_id'] = $importId;
@@ -194,15 +197,23 @@ class ImportService
                 );
 
                 // Insert or update video
-                // Use cached video_title from pendingImport (from web scraping), not API
+                // Use cached video_title and published_at from pendingImport (from web scraping), not API
                 $videoData = $models->video->toArray();
                 if ($pendingImport['video_title']) {
                     $videoData['title'] = $pendingImport['video_title'];
                 }
+                if ($pendingImport['published_at']) {
+                    $videoData['published_at'] = $pendingImport['published_at'];
+                }
+                $videoCreated = false;
                 $video = Video::updateOrCreate(
                     ['video_id' => $models->video->video_id],
                     $videoData
                 );
+                // Check if this is a new video (wasn't in database before)
+                if ($video->wasRecentlyCreated) {
+                    $videoCreated = true;
+                }
 
                 // Insert authors
                 foreach ($models->authors as $author) {
@@ -232,11 +243,15 @@ class ImportService
                     $this->channelTaggingService->selectTagsForChannel($importId, $channelId, $tags);
                 }
 
-                // Update channel timestamps
-                $channel->update([
+                // Update channel timestamps and increment video_count if new video
+                $updateData = [
                     'last_import_at' => now(),
                     'comment_count' => Comment::where('video_id', $models->video->video_id)->count(),
-                ]);
+                ];
+                if ($videoCreated) {
+                    $updateData['video_count'] = $channel->video_count + 1;
+                }
+                $channel->update($updateData);
             });
 
             // Step 6: Clear pending import from cache
@@ -310,15 +325,23 @@ class ImportService
 
         // Insert data
         DB::transaction(function () use ($models, $apiData, $channelId, $pendingImport, &$stats) {
-            // Use cached video_title from pendingImport (from web scraping), not API
+            // Use cached video_title and published_at from pendingImport (from web scraping), not API
             $videoData = $models->video->toArray();
             if ($pendingImport['video_title']) {
                 $videoData['title'] = $pendingImport['video_title'];
             }
+            if ($pendingImport['published_at']) {
+                $videoData['published_at'] = $pendingImport['published_at'];
+            }
+            $videoCreated = false;
             $video = Video::updateOrCreate(
                 ['video_id' => $models->video->video_id],
                 $videoData
             );
+            // Check if this is a new video (wasn't in database before)
+            if ($video->wasRecentlyCreated) {
+                $videoCreated = true;
+            }
 
             foreach ($models->authors as $author) {
                 Author::updateOrCreate(
@@ -341,14 +364,18 @@ class ImportService
 
             $stats['newly_added'] = $newComments;
 
-            // Update channel with cached metadata
+            // Update channel with cached metadata and increment video_count if new video
             $channel = Channel::find($channelId);
             if ($channel) {
-                $channel->update([
+                $updateData = [
                     'channel_name' => $pendingImport['channel_name'] ?? $channel->channel_name,
                     'last_import_at' => now(),
                     'comment_count' => Comment::where('video_id', $models->video->video_id)->count(),
-                ]);
+                ];
+                if ($videoCreated) {
+                    $updateData['video_count'] = $channel->video_count + 1;
+                }
+                $channel->update($updateData);
             }
         });
 
