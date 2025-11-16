@@ -156,7 +156,15 @@ class YouTubeMetadataService
         try {
             $crawler = new Crawler($html);
 
-            // Strategy 1: Look for ytInitialData JSON in script tag
+            // Strategy 1: Look for <link itemprop="name" content="XXX"> - Most reliable
+            if (preg_match('/<link\s+itemprop="name"\s+content="([^"]+)"/', $html, $matches)) {
+                $value = html_entity_decode($matches[1]);
+                if (!empty($value)) {
+                    return $value;
+                }
+            }
+
+            // Strategy 2: Look for ytInitialData JSON in script tag
             // This contains structured data with channel name
             if (preg_match('/var ytInitialData = ({.*?});/', $html, $matches)) {
                 try {
@@ -187,7 +195,7 @@ class YouTubeMetadataService
                 }
             }
 
-            // Strategy 2: Look for channel name in og:site_name or similar meta tags
+            // Strategy 3: Look for channel name in og:site_name or similar meta tags
             $channelMetaElements = $crawler->filterXPath('//meta[@property="og:site_name"]/@content');
             if (count($channelMetaElements) > 0) {
                 $value = $channelMetaElements->getNode(0)->nodeValue;
@@ -196,7 +204,7 @@ class YouTubeMetadataService
                 }
             }
 
-            // Strategy 3: Look for channel link in HTML
+            // Strategy 4: Look for channel link in HTML
             // Find pattern: /channel/UCXX or /@username
             if (preg_match('/\/(@[a-zA-Z0-9_-]+|channel\/UC[a-zA-Z0-9_-]{22})/', $html, $matches)) {
                 // This is a channel identifier, not a name - use regex to find actual name
@@ -206,12 +214,12 @@ class YouTubeMetadataService
                 }
             }
 
-            // Strategy 4: Look for channel name in common YouTube page elements
+            // Strategy 5: Look for channel name in common YouTube page elements
             if (preg_match('/title="([^"]+)"\s*href="\/channel\/UC[a-zA-Z0-9_-]{22}"/', $html, $matches)) {
                 return $matches[1];
             }
 
-            // Strategy 5: Search for attribute patterns (channel name in attributes)
+            // Strategy 6: Search for attribute patterns (channel name in attributes)
             if (preg_match('/"title"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"\s*\}\s*,\s*"navigationEndpoint"[^}]*"channelId"/', $html, $matches)) {
                 return $matches[1];
             }
