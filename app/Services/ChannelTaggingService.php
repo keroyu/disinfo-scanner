@@ -19,20 +19,23 @@ class ChannelTaggingService
 
     /**
      * Create pending import record
+     * Extended to accept optional metadata fields (video_title, comment_count)
      */
-    public function createPendingImport($videoId, $channelId, $channelName): string
+    public function createPendingImport($videoId, $channelId, $channelName, ?string $videoTitle = null, ?int $commentCount = null): string
     {
         $importId = (string) Str::uuid();
 
-        // Store in cache/session for 5 minutes
+        // Store in cache/session for 10 minutes
         cache()->put("import_{$importId}", [
             'import_id' => $importId,
             'video_id' => $videoId,
             'channel_id' => $channelId,
             'channel_name' => $channelName,
+            'video_title' => $videoTitle,
+            'comment_count' => $commentCount,
             'status' => 'pending_tags',
             'created_at' => now(),
-        ], now()->addMinutes(5));
+        ], now()->addMinutes(10));
 
         return $importId;
     }

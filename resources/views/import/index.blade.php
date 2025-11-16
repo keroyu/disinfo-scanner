@@ -63,31 +63,67 @@
     </div>
 </div>
 
-<!-- Tag Selection Modal (hidden initially) -->
-<div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 animate-fade-in">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">新頻道標籤設定</h2>
+<!-- Confirmation Modal (hidden initially) -->
+<div id="confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6 animate-fade-in">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">確認匯入資料</h2>
 
-        <div class="mb-4 p-4 bg-blue-50 rounded">
-            <p class="text-sm text-gray-600">檢測到新頻道</p>
-            <p id="modal-channel-id" class="font-mono text-sm text-gray-900 mt-1"></p>
-            <p id="modal-channel-name" class="text-sm text-gray-700 mt-1"></p>
+        <!-- Metadata Section -->
+        <div class="mb-6 space-y-4">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd"></path>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">影片名稱</p>
+                    <p id="modal-video-title" class="font-medium text-gray-900 mt-0.5">(正在載入...)</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a4 4 0 00-4-4l-3.25-4.063A7 7 0 0018 8v1h-2a3 3 0 00-3 3v5h2v1h-6v-1h2v-5a2 2 0 014 0v1h2v-1a4 4 0 00-4-4H9.75L6.5 7.938A7 7 0 0016 8z"></path>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">頻道名稱</p>
+                    <p id="modal-channel-name" class="font-medium text-gray-900 mt-0.5">(正在載入...)</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"></path>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">留言數量</p>
+                    <p id="modal-comment-count" class="font-medium text-gray-900 mt-0.5">(正在載入...)</p>
+                </div>
+            </div>
         </div>
 
-        <div class="mb-4">
-            <p class="text-sm font-medium text-gray-700 mb-3">請選擇標籤（至少選擇一個）：</p>
-            <div id="tags-container" class="space-y-2">
+        <hr class="my-6">
+
+        <!-- Tag Selection Section (visible only for new channels) -->
+        <div id="tags-section" class="hidden mb-6">
+            <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded">
+                <p class="text-sm text-amber-900 font-medium">⚠ 檢測到新頻道，請選擇標籤</p>
+                <p class="text-sm text-amber-700 mt-1">請至少選擇一個標籤以便分類</p>
+            </div>
+
+            <p class="text-sm font-medium text-gray-700 mb-3">選擇標籤：</p>
+            <div id="tags-container" class="space-y-2 max-h-48 overflow-y-auto">
                 <!-- Tags will be populated here -->
             </div>
             <div id="tag-error" class="hidden text-red-600 text-sm mt-2">請至少選擇一個標籤</div>
         </div>
 
-        <div class="flex gap-3">
+        <!-- Action Buttons -->
+        <div class="flex gap-3 pt-4">
             <button
                 id="modal-confirm"
-                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                確認並繼續匯入
+                確認並寫入資料
             </button>
             <button
                 id="modal-cancel"
@@ -124,14 +160,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusSection = document.getElementById('status-section');
     const resultsSection = document.getElementById('results-section');
     const errorSection = document.getElementById('error-section');
-    const tagModal = document.getElementById('tag-modal');
+    const confirmationModal = document.getElementById('confirmation-modal');
+    const tagsSection = document.getElementById('tags-section');
     const tagsContainer = document.getElementById('tags-container');
     const modalConfirm = document.getElementById('modal-confirm');
     const modalCancel = document.getElementById('modal-cancel');
     const tagError = document.getElementById('tag-error');
 
     let currentImportId = null;
+    let currentRequiresTags = false;
     let currentChannelId = null;
+    let availableTags = [];
     let selectedTags = [];
 
     // Load available tags
@@ -141,19 +180,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (data.success) {
-                tagsContainer.innerHTML = '';
-                data.data.forEach(tag => {
-                    const label = document.createElement('label');
-                    label.className = 'flex items-center p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50';
-                    label.innerHTML = `
-                        <input type="checkbox" class="tag-checkbox" value="${tag.code}" data-id="${tag.tag_id}">
-                        <span class="ml-3 flex items-center gap-2">
-                            <span class="inline-block w-3 h-3 rounded-full" style="background-color: var(--color-${tag.color})"></span>
-                            <span class="font-medium">${tag.name}</span>
-                        </span>
-                    `;
-                    tagsContainer.appendChild(label);
-                });
+                availableTags = data.data;
+                renderTagsContainer();
 
                 // Add CSS variables for tag colors
                 const colorMap = {
@@ -177,6 +205,63 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Render tags in the container
+    function renderTagsContainer() {
+        tagsContainer.innerHTML = '';
+        availableTags.forEach(tag => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50';
+            label.innerHTML = `
+                <input type="checkbox" class="tag-checkbox" value="${tag.code}" data-id="${tag.tag_id}">
+                <span class="ml-3 flex items-center gap-2">
+                    <span class="inline-block w-3 h-3 rounded-full" style="background-color: var(--color-${tag.color})"></span>
+                    <span class="font-medium">${tag.name}</span>
+                </span>
+            `;
+            tagsContainer.appendChild(label);
+        });
+    }
+
+    // Show confirmation modal with metadata
+    function showConfirmationModal(importData) {
+        statusSection.classList.add('hidden');
+        confirmationModal.classList.remove('hidden');
+
+        // Populate metadata
+        document.getElementById('modal-video-title').textContent = importData.video_title || '(未能擷取標題)';
+        document.getElementById('modal-channel-name').textContent = importData.channel_name || '(未知頻道)';
+        document.getElementById('modal-comment-count').textContent = `${importData.comment_count} 則`;
+
+        // Show/hide tag section based on requires_tags
+        if (importData.requires_tags) {
+            tagsSection.classList.remove('hidden');
+            selectedTags = [];
+            document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
+            tagError.classList.add('hidden');
+            // Disable confirm button if new channel and no tags selected
+            updateConfirmButtonState();
+        } else {
+            tagsSection.classList.add('hidden');
+            // Enable confirm button for existing channels
+            modalConfirm.disabled = false;
+        }
+
+        currentImportId = importData.import_id;
+        currentChannelId = importData.channel_id;
+        currentRequiresTags = importData.requires_tags;
+    }
+
+    // Update confirm button state based on tag requirements
+    function updateConfirmButtonState() {
+        if (!currentRequiresTags) {
+            modalConfirm.disabled = false;
+            return;
+        }
+
+        const selectedCount = document.querySelectorAll('.tag-checkbox:checked').length;
+        modalConfirm.disabled = selectedCount === 0;
+    }
+
     // Form submission
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -190,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide previous sections
         resultsSection.classList.add('hidden');
         errorSection.classList.add('hidden');
-        tagModal.classList.add('hidden');
+        confirmationModal.classList.add('hidden');
 
         // Show status
         statusSection.classList.remove('hidden');
@@ -209,21 +294,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (response.status === 202) {
-                // New channel - show modal
-                statusSection.classList.add('hidden');
-                currentImportId = data.data.import_id;
-                currentChannelId = data.data.channel_id;
-                document.getElementById('modal-channel-id').textContent = data.data.channel_id;
-                document.getElementById('modal-channel-name').textContent = data.data.channel_name || '(未命名)';
-                tagModal.classList.remove('hidden');
-                selectedTags = [];
-                document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
-                tagError.classList.add('hidden');
-            } else if (response.ok) {
-                // Success
-                statusSection.classList.add('hidden');
-                showResults(data.data.stats);
-                urlInput.value = '';
+                // Show confirmation modal with metadata
+                showConfirmationModal(data.data);
             } else {
                 showError(data.message);
                 statusSection.classList.add('hidden');
@@ -236,20 +308,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Modal confirm
+    // Modal confirm button
     modalConfirm.addEventListener('click', async () => {
-        selectedTags = Array.from(document.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value);
+        // Collect selected tags if required
+        if (currentRequiresTags) {
+            selectedTags = Array.from(document.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value);
 
-        if (selectedTags.length === 0) {
-            tagError.classList.remove('hidden');
-            return;
+            if (selectedTags.length === 0) {
+                tagError.classList.remove('hidden');
+                return;
+            }
         }
 
         modalConfirm.disabled = true;
         tagError.classList.add('hidden');
 
         try {
-            const response = await fetch('/api/tags/select', {
+            const response = await fetch('/api/import/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -257,31 +332,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     import_id: currentImportId,
-                    channel_id: currentChannelId,
-                    tags: selectedTags
+                    tags: currentRequiresTags ? selectedTags : null
                 })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                tagModal.classList.add('hidden');
+                confirmationModal.classList.add('hidden');
                 showResults(data.data.stats);
                 urlInput.value = '';
             } else {
                 showError(data.message);
             }
         } catch (error) {
-            showError('標籤選擇失敗：' + error.message);
+            showError('確認匯入失敗：' + error.message);
         } finally {
             modalConfirm.disabled = false;
         }
     });
 
-    // Modal cancel
-    modalCancel.addEventListener('click', () => {
-        tagModal.classList.add('hidden');
+    // Modal cancel button
+    modalCancel.addEventListener('click', async () => {
+        // Optionally call cancel API to clear cache
+        try {
+            await fetch('/api/import/cancel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    import_id: currentImportId
+                })
+            });
+        } catch (error) {
+            console.error('Failed to call cancel API:', error);
+        }
+
+        confirmationModal.classList.add('hidden');
         urlInput.value = '';
+    });
+
+    // Track tag selection for button state
+    tagsContainer.addEventListener('change', (e) => {
+        if (e.target.classList.contains('tag-checkbox')) {
+            updateConfirmButtonState();
+        }
     });
 
     // Helper functions

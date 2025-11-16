@@ -15,7 +15,8 @@ class ImportController extends Controller
     }
 
     /**
-     * POST /api/import - Start import process
+     * POST /api/import - Prepare import process (metadata scraping, no database write)
+     * Always returns HTTP 202 (Accepted) with confirmation data
      */
     public function store(Request $request)
     {
@@ -24,42 +25,28 @@ class ImportController extends Controller
         ]);
 
         try {
-            $result = $this->importService->import($request->url);
+            // Use prepareImport instead of import - this is read-only, no tags needed
+            $result = $this->importService->prepareImport($request->url);
 
-            if ($result->requires_tags) {
-                // New channel detected, need tagging
-                return response()->json([
-                    'success' => true,
-                    'message' => '檢測到新頻道，請先設定標籤',
-                    'data' => [
-                        'import_id' => $result->import_id,
-                        'channel_id' => $result->channel_id,
-                        'channel_name' => $result->channel_name,
-                        'requires_tags' => true,
-                    ]
-                ], 202);
-            }
-
-            // Existing channel, import completed
+            // Return 202 Accepted with metadata for confirmation interface
             return response()->json([
                 'success' => true,
-                'message' => '成功匯入',
+                'message' => '影片資料已載入，請確認後匯入',
                 'data' => [
-                    'stats' => [
-                        'newly_added' => $result->newly_added,
-                        'updated' => $result->updated,
-                        'skipped' => $result->skipped,
-                        'total_processed' => $result->total_processed,
-                    ],
-                    'new_channel' => false,
+                    'import_id' => $result->import_id,
+                    'video_id' => $result->video_id,
+                    'channel_id' => $result->channel_id,
+                    'video_title' => $result->video_title,
+                    'channel_name' => $result->channel_name,
+                    'comment_count' => $result->comment_count,
+                    'requires_tags' => $result->requires_tags,
                 ]
-            ], 200);
+            ], 202);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
                 'error' => 'import_error',
-                'trace_id' => $e->getMessage() === '無法訪問 YouTube，請檢查網路連線或稍後再試' ? null : null,
             ], match (true) {
                 str_contains($e->getMessage(), '請輸入') => 400,
                 str_contains($e->getMessage(), '網址') => 400,

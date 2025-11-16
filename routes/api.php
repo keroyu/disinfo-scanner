@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 
 // Import endpoints
 Route::post('/import', [\App\Http\Controllers\ImportController::class, 'store']);
+Route::post('/import/confirm', [\App\Http\Controllers\ImportConfirmationController::class, 'confirm']);
+Route::post('/import/cancel', [\App\Http\Controllers\ImportConfirmationController::class, 'cancel']);
 
 // Tag selection endpoints
 Route::post('/tags/select', [\App\Http\Controllers\TagSelectionController::class, 'store']);

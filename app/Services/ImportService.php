@@ -14,6 +14,7 @@ class ImportService
 {
     protected $urlParsingService;
     protected $youTubePageService;
+    protected $youTubeMetadataService;
     protected $urtubeapiService;
     protected $dataTransformService;
     protected $duplicateDetectionService;
@@ -23,6 +24,7 @@ class ImportService
     {
         $this->urlParsingService = new UrlParsingService();
         $this->youTubePageService = new YouTubePageService();
+        $this->youTubeMetadataService = new YouTubeMetadataService();
         $this->urtubeapiService = new UrtubeapiService();
         $this->dataTransformService = new DataTransformService();
         $this->duplicateDetectionService = new DuplicateDetectionService();
@@ -30,23 +32,24 @@ class ImportService
     }
 
     /**
-     * Main import orchestration method
+     * Prepare import: Parse URL, scrape metadata, fetch API data, cache for confirmation
+     * NO database writes - read-only operation
+     *
+     * @param string $url YouTube or urtubeapi URL
+     * @return object {import_id, video_id, channel_id, video_title, channel_name, comment_count, requires_tags}
      */
-    public function import($url): object
+    public function prepareImport(string $url): object
     {
         $traceId = (string) Str::uuid();
-        $stats = [
+        $metadata = [
             'trace_id' => $traceId,
             'import_id' => null,
             'video_id' => null,
             'channel_id' => null,
+            'video_title' => null,
             'channel_name' => null,
+            'comment_count' => 0,
             'requires_tags' => false,
-            'newly_added' => 0,
-            'updated' => 0,
-            'skipped' => 0,
-            'errors' => 0,
-            'total_processed' => 0,
         ];
 
         try {
@@ -59,58 +62,122 @@ class ImportService
                 $watchUrl = $this->youTubePageService->getWatchUrl($videoId);
                 $pageHtml = $this->youTubePageService->fetchPageSource($watchUrl);
                 $channelId = $this->youTubePageService->extractChannelIdFromSource($pageHtml);
-                $channelName = null; // Will be extracted from urtubeapi
             } else {
                 // urtubeapi format
                 $extracted = $this->urlParsingService->extractFromUrtubeapiUrl($url);
                 $videoId = $extracted['videoId'];
                 $channelId = $extracted['channelId'];
-                $channelName = null;
             }
 
-            // Step 3: Fetch comment data from urtubeapi
+            $metadata['video_id'] = $videoId;
+            $metadata['channel_id'] = $channelId;
+
+            // Step 3: Fetch comment data from urtubeapi (determines comment count)
             $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
+            $metadata['channel_name'] = $apiData['channelTitle'] ?? null;
+            $metadata['comment_count'] = count($apiData['comments'] ?? []);
 
-            $stats['video_id'] = $videoId;
-            $stats['channel_id'] = $channelId;
-            $stats['channel_name'] = $apiData['channelTitle'] ?? null;
-            $stats['total_processed'] = count($apiData['comments'] ?? []);
+            // Step 4: Scrape video metadata (title, channel name) from YouTube
+            // This is optional and gracefully degrades if it fails
+            if ($urlType === 'youtube') {
+                $scrapedMetadata = $this->youTubeMetadataService->scrapeMetadata($videoId);
+                $metadata['video_title'] = $scrapedMetadata['videoTitle'];
 
-            // Step 4: Check if channel is new
-            $isNewChannel = $this->channelTaggingService->isNewChannel($channelId);
+                // If we couldn't get channel name from API, try scraped version
+                if (!$metadata['channel_name'] && $scrapedMetadata['channelName']) {
+                    $metadata['channel_name'] = $scrapedMetadata['channelName'];
+                }
 
-            if ($isNewChannel) {
-                // Step 4a: Create pending import and ask for tags
-                $importId = $this->channelTaggingService->createPendingImport(
-                    $videoId,
-                    $channelId,
-                    $apiData['channelTitle'] ?? null
-                );
-
-                $stats['import_id'] = $importId;
-                $stats['requires_tags'] = true;
-
-                // Log this import start
-                Log::info('Import paused for tagging', [
+                Log::info('Metadata scraping completed', [
                     'trace_id' => $traceId,
-                    'import_id' => $importId,
-                    'channel_id' => $channelId,
-                    'channel_name' => $stats['channel_name'],
+                    'video_id' => $videoId,
+                    'scraping_status' => $scrapedMetadata['scrapingStatus'],
+                    'has_title' => !is_null($scrapedMetadata['videoTitle']),
                 ]);
-
-                return (object) $stats;
             }
 
-            // Step 5: Transform data
+            // Step 5: Check if channel is new
+            $isNewChannel = $this->channelTaggingService->isNewChannel($channelId);
+            $metadata['requires_tags'] = $isNewChannel;
+
+            // Step 6: Create pending import for later confirmation
+            $importId = $this->channelTaggingService->createPendingImport(
+                $videoId,
+                $channelId,
+                $metadata['channel_name'],
+                $metadata['video_title'],
+                $metadata['comment_count']
+            );
+
+            $metadata['import_id'] = $importId;
+
+            Log::info('Import preparation completed', [
+                'trace_id' => $traceId,
+                'import_id' => $importId,
+                'channel_id' => $channelId,
+                'requires_tags' => $isNewChannel,
+            ]);
+
+            return (object) $metadata;
+        } catch (\Exception $e) {
+            Log::error('Import preparation failed', [
+                'trace_id' => $traceId,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Confirm import: Write cached import data to database atomically
+     * Wraps all writes in a database transaction
+     *
+     * @param string $importId UUID from prepareImport
+     * @param array|null $tags Optional tag codes for new channels
+     * @return object {newly_added, updated, skipped, total_processed}
+     */
+    public function confirmImport(string $importId, ?array $tags = null): object
+    {
+        $traceId = (string) Str::uuid();
+        $stats = [
+            'newly_added' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'total_processed' => 0,
+        ];
+
+        try {
+            // Step 1: Retrieve pending import from cache
+            $pendingImport = $this->channelTaggingService->getPendingImport($importId);
+
+            if (!$pendingImport) {
+                throw new \Exception('匯入不存在或已過期');
+            }
+
+            $videoId = $pendingImport['video_id'];
+            $channelId = $pendingImport['channel_id'];
+
+            // Step 2: Validate tags for new channels
+            $isNewChannel = $this->channelTaggingService->isNewChannel($channelId);
+            if ($isNewChannel && (empty($tags) || !is_array($tags))) {
+                throw new \Exception('請至少選擇一個標籤');
+            }
+
+            // Step 3: Fetch fresh API data
+            $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
             $models = $this->dataTransformService->transformToModels($apiData);
 
-            // Step 6: Detect duplicates
+            // Step 4: Detect duplicates
             $commentIds = array_map(fn($c) => $c['commentId'], $apiData['comments']);
             $dupStats = $this->duplicateDetectionService->detectDuplicateComments($commentIds);
             $stats['skipped'] = $dupStats['duplicate_count'];
+            $stats['total_processed'] = count($apiData['comments']);
 
-            // Step 7: Insert data into database
-            DB::transaction(function () use ($models, $apiData, $channelId, &$stats) {
+            // Step 5: Execute database write in transaction
+            DB::transaction(function () use ($models, $apiData, $channelId, $isNewChannel, $tags, &$stats) {
                 // Ensure channel exists
                 $channel = Channel::firstOrCreate(
                     ['channel_id' => $channelId],
@@ -149,6 +216,11 @@ class ImportService
 
                 $stats['newly_added'] = $newComments;
 
+                // Attach tags to channel if new channel
+                if ($isNewChannel && !empty($tags)) {
+                    $this->channelTaggingService->selectTagsForChannel($importId, $channelId, $tags);
+                }
+
                 // Update channel timestamps
                 $channel->update([
                     'last_import_at' => now(),
@@ -156,9 +228,12 @@ class ImportService
                 ]);
             });
 
-            // Log successful import
-            Log::info('Import completed', [
+            // Step 6: Clear pending import from cache
+            $this->channelTaggingService->clearPendingImport($importId);
+
+            Log::info('Import confirmed and completed', [
                 'trace_id' => $traceId,
+                'import_id' => $importId,
                 'channel_id' => $channelId,
                 'newly_added' => $stats['newly_added'],
                 'skipped' => $stats['skipped'],
@@ -166,9 +241,9 @@ class ImportService
 
             return (object) $stats;
         } catch (\Exception $e) {
-            $stats['errors'] = 1;
-            Log::error('Import failed', [
+            Log::error('Import confirmation failed', [
                 'trace_id' => $traceId,
+                'import_id' => $importId,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -176,6 +251,25 @@ class ImportService
 
             throw $e;
         }
+    }
+
+    /**
+     * Main import orchestration method
+     * For backward compatibility: delegates to prepareImport() + confirmImport()
+     * For new channels, requires tags before confirmation
+     */
+    public function import($url): object
+    {
+        // Step 1: Prepare import (read-only)
+        $prepared = $this->prepareImport($url);
+
+        // Step 2: If new channel, return early - caller must provide tags
+        if ($prepared->requires_tags) {
+            return $prepared;
+        }
+
+        // Step 3: If existing channel, auto-confirm without tags
+        return $this->confirmImport($prepared->import_id, null);
     }
 
     /**
