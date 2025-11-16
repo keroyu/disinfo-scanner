@@ -28,7 +28,6 @@ class DataTransformService
             'video_id' => $videoId,
             'channel_id' => $channelId,
             'title' => $apiJson['videoTitle'] ?? null,
-            'youtube_url' => "https://www.youtube.com/watch?v={$videoId}",
             'published_at' => null,
         ]);
 

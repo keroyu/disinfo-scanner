@@ -13,7 +13,7 @@ class Video extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['video_id', 'channel_id', 'title', 'youtube_url', 'published_at'];
+    protected $fillable = ['video_id', 'channel_id', 'title', 'published_at'];
 
     protected $casts = [
         'published_at' => 'datetime',
