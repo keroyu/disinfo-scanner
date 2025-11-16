@@ -52,10 +52,19 @@ class UrtubeapiService
 
     /**
      * Validate JSON structure from urtubeapi
+     * Supports both old format and new format from API
      */
     public function validateJsonStructure(array $data): bool
     {
-        $required = ['videoId', 'channelId', 'videoTitle', 'channelTitle', 'comments'];
+        // Check for new API format with 'result' and 'authors'
+        if (isset($data['result']) && is_array($data['result'])) {
+            // Transform new format to expected format
+            $this->transformNewFormat($data);
+            return true;
+        }
+
+        // Check for old format with 'comments' directly
+        $required = ['videoId', 'channelId'];
 
         foreach ($required as $field) {
             if (!isset($data[$field])) {
@@ -63,23 +72,44 @@ class UrtubeapiService
             }
         }
 
-        // Validate comments array
-        if (!is_array($data['comments'])) {
-            throw new UrtubeapiException('資料格式異常，無法匯入');
-        }
+        // If comments array exists, validate it
+        if (isset($data['comments'])) {
+            if (!is_array($data['comments'])) {
+                throw new UrtubeapiException('資料格式異常，無法匯入');
+            }
 
-        // Validate first comment structure if exists
-        if (!empty($data['comments'])) {
-            $comment = $data['comments'][0];
-            $commentRequired = ['commentId', 'author', 'authorChannelId', 'text'];
+            // Validate first comment structure if exists
+            if (!empty($data['comments'])) {
+                $comment = $data['comments'][0];
+                $commentRequired = ['commentId', 'author', 'authorChannelId', 'text'];
 
-            foreach ($commentRequired as $field) {
-                if (!isset($comment[$field])) {
-                    throw new UrtubeapiException('資料格式異常，無法匯入');
+                foreach ($commentRequired as $field) {
+                    if (!isset($comment[$field])) {
+                        throw new UrtubeapiException('資料格式異常，無法匯入');
+                    }
                 }
             }
         }
 
         return true;
+    }
+
+    /**
+     * Transform new API format to expected format
+     */
+    protected function transformNewFormat(array &$data): void
+    {
+        // Extract comments from 'result' field
+        if (isset($data['result']) && is_array($data['result'])) {
+            $data['comments'] = $data['result'];
+        }
+
+        // Add default values for missing fields
+        if (!isset($data['videoTitle'])) {
+            $data['videoTitle'] = null;
+        }
+        if (!isset($data['channelTitle'])) {
+            $data['channelTitle'] = null;
+        }
     }
 }
