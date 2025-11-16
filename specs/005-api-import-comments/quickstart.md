@@ -1,407 +1,524 @@
 # Quickstart: YouTube API Comments Import
 
-**Feature**: YouTube API Comments Import
-**Branch**: `005-api-import-comments`
-**Date**: 2025-11-17
+**Feature**: `005-api-import-comments`
+**Target Audience**: Developers, QA testers, feature integrators
+**Estimated Setup Time**: 15 minutes
 
 ---
 
-## Feature Overview
+## Overview
 
-The YouTube API Comments Import feature enables users to import YouTube comments directly via the YouTube Data API v3 (not the existing urtubeapi service). It supports:
-
-- **New Videos** (Clarification 2025-11-16-007): Capture metadata via existing "匯入" dialog, then import comments
-- **Existing Videos** (Clarification 2025-11-16-001): Incremental updates fetching only new comments
-- **Reply Comments** (Clarification 2025-11-16-006): Recursive import of all reply levels (all nesting depths)
-- **Preview Mode** (Clarifications 2025-11-16-001, 2025-11-16-002): Review up to 5 sample comments WITHOUT database persistence
-- **Smart Metadata Updates** (Clarifications 2025-11-16-003, 2025-11-16-004): Update only changed fields on channel/video records
+This guide walks through:
+1. **Setup**: Installing dependencies and configuring YouTube API key
+2. **Development**: Running tests and implementing the service
+3. **Testing**: Manual testing of the import workflow
+4. **Integration**: Connecting to the existing comments interface
 
 ---
 
-## Clarifications Checklist
+## Prerequisites
 
-**All clarifications from spec.md incorporated**:
-
-- ✅ **2025-11-16-001**: Preview shows 5 comments (no limit, but show 5 samples)
-- ✅ **2025-11-16-002**: Preview comments NOT saved to DB until confirm
-- ✅ **2025-11-16-003**: Channel fields updated: `comment_count` (all), `last_import_at` (all), `updated_at` (all); Initialize `video_count`, `first_import_at`, `created_at` for NEW channels only
-- ✅ **2025-11-16-004**: Video fields updated: `updated_at` (all); Initialize `video_id`, `title`, `published_at`, `created_at` for NEW videos; Set `channel_id` for NEW channels
-- ✅ **2025-11-16-005**: Cancellation: Close dialog, no DB changes; If import interrupted, next import uses incremental logic to handle partial state
-- ✅ **2025-11-16-006**: Reply comments: Import ALL levels recursively (comment → reply → reply-to-reply → ...)
-- ✅ **2025-11-16-007**: New video workflow: Input URL → Check DB → If new, invoke "匯入" dialog → After complete, auto-start comment preview
-- ✅ **2025-11-17-001**: File separation: YouTubeApiService separate from UrtubeapiService
+- Laravel 10/11 running locally with PostgreSQL database
+- PHP 8.1+ with Composer
+- YouTube API key (instructions below)
+- Existing `comments`, `videos`, `channels` tables in database
 
 ---
 
-## Key Architectural Decisions
+## Part 1: Setup & Configuration
 
-### 1. Service Isolation
-- **New Service**: `YouTubeApiService.php` (YouTube API only)
-- **Existing Service**: `UrtubeapiService.php` (untouched)
-- **Rationale**: Complete separation prevents cross-contamination, enables independent testing
-
-### 2. Data Model Changes
-- **Add Column**: `parent_comment_id` to `comments` table
-- **Purpose**: Support reply hierarchies (top-level → reply → reply-to-reply, etc.)
-- **Migration**: One new migration required
-
-### 3. UI Integration
-- **New Button**: "API 導入" alongside existing "匯入" button
-- **Workflow**:
-  - For new videos: Route to existing "匯入" dialog for metadata → auto-proceed to comment import
-  - For existing videos: Direct to comment preview
-
-### 4. Technology Stack
-- **API Client**: `google/apiclient` (Google's official SDK)
-- **Framework**: Laravel 11 (existing)
-- **Testing**: Pest (existing test framework)
-- **Storage**: MySQL/SQLite (existing)
-
----
-
-## Implementation Scope
-
-### Files to Create
-
-```
-app/Services/YouTubeApiService.php
-app/Http/Controllers/YouTubeApiImportController.php
-database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php
-tests/Unit/Services/YouTubeApiServiceTest.php
-tests/Feature/YouTubeApiImportTest.php
-```
-
-### Files to Modify
-
-```
-app/Models/Comment.php                  [Add parent_comment_id field + relation]
-routes/api.php                          [Add new routes for API endpoints]
-resources/views/comments/list.blade.php [Add "API 導入" button]
-```
-
-### Files to Leave Unchanged
-
-```
-app/Services/UrtubeapiService.php      [NO CHANGES]
-app/Http/Controllers/ImportController.php  [NO CHANGES]
-database/migrations/*_create_comments_table.php  [NO CHANGES]
-```
-
----
-
-## Dependencies
-
-### New Composer Package
+### 1.1 Install YouTube API Client Library
 
 ```bash
-composer require google/apiclient:^2.15
+cd /Users/yueyu/Dev/DISINFO_SCANNER
+composer require google/apiclient
 ```
 
-### Environment Configuration
+This installs the official `google/apiclient` package for YouTube API v3.
 
-Add to `.env`:
-```env
-YOUTUBE_API_KEY=AIzaSyD...  # Get from Google Cloud Console
+### 1.2 Create YouTube API Key
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create new project: "DISINFO_SCANNER"
+3. Enable YouTube API v3:
+   - Search "YouTube Data API v3" in APIs & Services
+   - Click "Enable"
+4. Create API Key:
+   - Go to "Credentials"
+   - Click "Create Credentials" → "API Key"
+   - Copy the key
+5. Add to `.env`:
+   ```
+   YOUTUBE_API_KEY=AIzaSy... (paste your key here)
+   ```
+
+**Quota Notes**:
+- YouTube API v3 quotas measured in "units":
+  - `videos.list`: 1 unit per call
+  - `commentThreads.list`: 1 unit per call
+  - Free quota: 10,000 units/day (enough for ~5,000 comment fetches)
+- For production, request quota increase after testing
+
+### 1.3 Create Blade Templates
+
+Create three UI components in `resources/views/comments/`:
+
+**File**: `import-modal.blade.php`
+```blade
+<div id="import-modal" class="modal">
+  <div class="modal-content">
+    <h2>官方API導入</h2>
+    <form id="import-form">
+      @csrf
+      <label>YouTube 影片網址</label>
+      <input type="url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+
+      <div class="actions">
+        <button type="submit">取得影片資訊</button>
+        <button type="button" onclick="closeModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
 ```
 
-### No Other Dependencies
-- Uses existing Laravel, Guzzle, Pest installations
+**File**: `metadata-dialog.blade.php`
+```blade
+<div id="metadata-dialog" style="display: none;">
+  <div class="dialog-content">
+    <h3>確認影片資訊</h3>
+    <div id="metadata-info">
+      <p><strong>標題:</strong> <span id="meta-title"></span></p>
+      <p><strong>頻道:</strong> <span id="meta-channel"></span></p>
+    </div>
+
+    <label>選擇標籤 (可多選)</label>
+    <div id="tags-container">
+      <!-- Populated dynamically -->
+    </div>
+
+    <div class="actions">
+      <button onclick="confirmMetadata()">確認</button>
+      <button onclick="cancelImport()">取消</button>
+    </div>
+  </div>
+</div>
+```
+
+**File**: `preview-dialog.blade.php`
+```blade
+<div id="preview-dialog" style="display: none;">
+  <div class="dialog-content">
+    <h3>留言預覽</h3>
+    <div id="preview-comments">
+      <!-- Populated dynamically -->
+    </div>
+    <p id="total-comments-info"></p>
+
+    <div class="actions">
+      <button onclick="confirmImport()" id="confirm-import-btn">確認導入</button>
+      <button onclick="cancelImport()">取消</button>
+    </div>
+  </div>
+</div>
+```
+
+### 1.4 Verify Database Tables
+
+Ensure the following tables exist (or create migrations):
+
+```bash
+php artisan make:migration create_videos_table
+php artisan make:migration create_channels_table
+php artisan make:migration create_comments_table
+```
+
+Check that columns match `data-model.md`:
+- `videos`: `id`, `video_id`, `channel_id`, `title`, `published_at`, `created_at`, `updated_at`
+- `channels`: `id`, `channel_id`, `name`, `video_count`, `comment_count`, `first_import_at`, `last_import_at`, `created_at`, `updated_at`
+- `comments`: `id`, `comment_id`, `video_id`, `author_channel_id`, `text`, `like_count`, `parent_comment_id`, `published_at`, `created_at`, `updated_at`
+
+Run migrations:
+```bash
+php artisan migrate
+```
 
 ---
 
-## High-Level Workflow
+## Part 2: Development Setup
 
-### User Story 1: Import Comments for New Video
+### 2.1 Create Service Layer
 
-1. User clicks "API 導入" button on comments page
-2. User enters YouTube video URL
-3. System checks if video exists in DB
-   - **If NO**: Routes to existing "匯入" dialog (web scraping for metadata)
-   - User completes "匯入" workflow
-   - After successful import, system auto-proceeds to comment import
-4. System fetches 5 preview comments from YouTube API
-5. User reviews preview and clicks "確認導入"
-6. System fetches all comments + all reply levels recursively
-7. System stores comments in DB, updates channel/video metadata
-8. Success message shown with comment count
+**File**: `app/Services/YouTubeApiService.php`
 
-### User Story 2: Update Existing Video
+Skeleton (detailed implementation in `/speckit.tasks`):
 
-1. User clicks "API 導入" button
-2. User enters YouTube video URL for video already in DB
-3. System fetches 5 **new** comments (since last import)
-4. User reviews preview and clicks "確認導入"
-5. System fetches all comments newer than last import
-6. System stops at first duplicate (incremental safety)
-7. Stores new comments, updates metadata
-8. Success message shown with count of new comments
+```php
+<?php
 
-### User Story 3: Reply Comment Handling
+namespace App\Services;
 
-1. System fetches top-level comments from API
-2. For each comment with replies:
-   - Call YouTube API `comments.list` with `parentId`
-   - Recursively fetch all reply levels
-3. Flatten all comments (top-level + replies) into storage array
-4. Each reply has `parent_comment_id` pointing to its parent
-5. Store all with correct hierarchy preserved
+use Google_Client;
+use Google_Service_YouTube;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
----
-
-## Database Schema Changes
-
-### Migration: Add parent_comment_id
-
-```sql
-ALTER TABLE comments ADD COLUMN parent_comment_id VARCHAR(255) NULLABLE AFTER comment_id;
-ALTER TABLE comments ADD FOREIGN KEY (parent_comment_id) REFERENCES comments(comment_id) ON DELETE SET NULL;
-ALTER TABLE comments ADD INDEX idx_parent_comment_id (parent_comment_id);
-```
-
-**Why nullable**: Top-level comments have `parent_comment_id = NULL`
-
-**Why cascade on delete SET NULL**: If parent reply is deleted, child replies remain but lose parent reference
-
----
-
-## API Endpoints (New)
-
-### POST /api/youtube-import/preview
-
-**Purpose**: Fetch preview comments without persisting
-
-**Request**:
-```json
+class YouTubeApiService
 {
-    "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    protected Google_Service_YouTube $youTubeService;
+
+    public function __construct()
+    {
+        $client = new Google_Client();
+        $client->setApplicationName("DISINFO_SCANNER");
+        $client->setDeveloperKey(env('YOUTUBE_API_KEY'));
+        $this->youTubeService = new Google_Service_YouTube($client);
+    }
+
+    /**
+     * Fetch video metadata from YouTube API
+     *
+     * @param string $videoId YouTube video ID
+     * @return array Video metadata: title, channel_id, channel_name, published_at
+     * @throws YouTubeApiException
+     */
+    public function fetchVideoMetadata(string $videoId): array
+    {
+        // Implementation per contract (research.md)
+        // Returns: ['video_id', 'title', 'channel_id', 'channel_name', 'published_at']
+    }
+
+    /**
+     * Fetch all comments (with recursive replies)
+     *
+     * @param string $videoId YouTube video ID
+     * @param array $options Optional: max_timestamp for incremental, existing_comment_ids
+     * @return array Comments with recursive replies
+     * @throws YouTubeApiException
+     */
+    public function fetchComments(string $videoId, array $options = []): array
+    {
+        // Implementation per contract (research.md)
+        // Returns: ['comments' => [...], 'total_count' => X, 'stopped_by' => 'timestamp'|'duplicate_id']
+    }
+
+    /**
+     * Recursively fetch replies to a comment
+     */
+    protected function fetchRepliesRecursive(string $commentId, array $options = []): array
+    {
+        // Helper method for recursive reply fetching
+    }
 }
 ```
 
-**Response (Existing Video)**:
-```json
+### 2.2 Create Comment Import Service
+
+**File**: `app/Services/CommentImportService.php`
+
+Skeleton:
+
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\{Video, Channel, Comment};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+class CommentImportService
 {
-    "success": true,
-    "status": "preview_ready",
-    "data": {
-        "video_id": "dQw4w9WgXcQ",
-        "import_mode": "incremental",
-        "preview_comments": [
-            {
-                "comment_id": "Ug_abc123",
-                "text": "Great video!",
-                "author_channel_id": "UCxyz",
-                "like_count": 5,
-                "published_at": "2025-11-10T12:00:00Z",
-                "is_reply": false
+    protected YouTubeApiService $youtubeService;
+
+    public function __construct(YouTubeApiService $youtubeService)
+    {
+        $this->youtubeService = $youtubeService;
+    }
+
+    /**
+     * Execute complete import workflow with transaction
+     *
+     * @param string $videoId YouTube video ID
+     * @param string|null $traceId Optional trace ID for logging
+     * @return array Import result: ['total_comments' => X, 'new_video' => bool, ...]
+     * @throws Exception
+     */
+    public function importComments(string $videoId, ?string $traceId = null): array
+    {
+        $traceId = $traceId ?? Str::uuid();
+
+        return DB::transaction(function () use ($videoId, $traceId) {
+            // 1. Check if video exists
+            $isNewVideo = !Video::where('video_id', $videoId)->exists();
+
+            // 2. If new, fetch and save metadata
+            if ($isNewVideo) {
+                $metadata = $this->youtubeService->fetchVideoMetadata($videoId);
+                // Save video and channel (per FR-016 logic)
             }
-            // ... up to 5 comments
-        ],
-        "total_comments": 1250
+
+            // 3. Fetch all comments (incremental if existing)
+            $commentData = $this->youtubeService->fetchComments($videoId, [
+                'max_timestamp' => $this->getMaxCommentTimestamp($videoId),
+                'existing_comment_ids' => $this->getExistingCommentIds($videoId)
+            ]);
+
+            // 4. Insert comments (with parent linking)
+            $this->insertComments($videoId, $commentData['comments']);
+
+            // 5. Update video/channel counts (per FR-016)
+            $this->updateCounts($videoId);
+
+            // 6. Log success
+            Log::info('import_completed', [
+                'trace_id' => $traceId,
+                'video_id' => $videoId,
+                'total_comments' => count($commentData['comments']),
+                'status' => 'success'
+            ]);
+
+            return [
+                'total_comments' => count($commentData['comments']),
+                'new_video' => $isNewVideo,
+                'trace_id' => $traceId
+            ];
+        });
+    }
+
+    protected function getMaxCommentTimestamp(string $videoId): ?string
+    {
+        // Query existing comments, return max published_at
+    }
+
+    protected function getExistingCommentIds(string $videoId): array
+    {
+        // Query existing comment IDs for duplicate detection
+    }
+
+    protected function insertComments(string $videoId, array $comments): void
+    {
+        // Flatten recursive tree and insert with proper parent_comment_id
+    }
+
+    protected function updateCounts(string $videoId): void
+    {
+        // Update videos and channels tables per FR-016
     }
 }
 ```
 
-**Response (New Video)**:
-```json
+### 2.3 Create Controller
+
+**File**: `app/Http/Controllers/YoutubeApiImportController.php`
+
+Skeleton:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\{YouTubeApiService, CommentImportService};
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+
+class YoutubeApiImportController extends Controller
 {
-    "success": true,
-    "status": "new_video_detected",
-    "data": {
-        "import_mode": "full",
-        "action_required": "invoke_import_dialog"
+    protected YouTubeApiService $youtubeService;
+    protected CommentImportService $importService;
+
+    public function __construct(
+        YouTubeApiService $youtubeService,
+        CommentImportService $importService
+    ) {
+        $this->youtubeService = $youtubeService;
+        $this->importService = $importService;
+    }
+
+    public function showImportForm()
+    {
+        return view('comments.import-modal');
+    }
+
+    public function getMetadata(Request $request): JsonResponse
+    {
+        // Validate video URL, extract video ID, fetch metadata
+    }
+
+    public function confirmMetadata(Request $request): JsonResponse
+    {
+        // Validate metadata matches, store in session
+    }
+
+    public function getPreview(Request $request): JsonResponse
+    {
+        // Fetch 5 sample comments (incremental if existing)
+    }
+
+    public function confirmImport(Request $request): JsonResponse
+    {
+        // Execute full import via CommentImportService
     }
 }
 ```
 
-### POST /api/youtube-import/confirm
+### 2.4 Add Routes
 
-**Purpose**: Perform full import after user confirms
-
-**Request**:
-```json
-{
-    "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-}
-```
-
-**Response (Success)**:
-```json
-{
-    "success": true,
-    "status": "import_complete",
-    "data": {
-        "video_id": "dQw4w9WgXcQ",
-        "comments_imported": 1250,
-        "replies_imported": 340,
-        "total_imported": 1590,
-        "import_mode": "full",
-        "import_duration_seconds": 23.5
-    }
-}
-```
-
----
-
-## Service Architecture
-
-### YouTubeApiService (New)
+**File**: `routes/web.php`
 
 ```php
-class YouTubeApiService {
-    public function fetchPreviewComments(string $videoId): array
-    public function fetchAllComments(string $videoId, ?string $afterDate = null): array
-    public function validateVideoId(string $videoId): bool
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('comments/import')->group(function () {
+        Route::get('/', [YoutubeApiImportController::class, 'showImportForm'])->name('import.form');
+        Route::post('/metadata', [YoutubeApiImportController::class, 'getMetadata'])->name('import.metadata');
+        Route::post('/confirm-metadata', [YoutubeApiImportController::class, 'confirmMetadata']);
+        Route::post('/preview', [YoutubeApiImportController::class, 'getPreview'])->name('import.preview');
+        Route::post('/confirm-import', [YoutubeApiImportController::class, 'confirmImport'])->name('import.execute');
+    });
+});
+```
+
+---
+
+## Part 3: Testing
+
+### 3.1 Run Test Suite
+
+```bash
+# Create test files (see tests/ directory layout in plan.md)
+php artisan make:test Unit/YouTubeApiServiceTest
+php artisan make:test Contract/YouTubeApiContractTest
+php artisan make:test Integration/CommentImportWorkflowTest
+
+# Run all tests
+php artisan test
+
+# Run specific test
+php artisan test tests/Integration/CommentImportWorkflowTest.php
+```
+
+### 3.2 Manual Testing
+
+1. **Access Import Form**:
+   - Navigate to `/comments/import`
+   - Verify form displays
+
+2. **Test New Video Import**:
+   - Enter valid YouTube URL: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+   - Verify metadata dialog shows title/channel
+   - Select tags, confirm
+   - Verify preview shows sample comments
+   - Confirm import
+   - Verify comments saved in database
+
+3. **Test Existing Video Update**:
+   - After first import, re-import same video
+   - Verify only new comments fetched
+   - Verify no duplicates created
+
+4. **Test Error Handling**:
+   - Enter invalid URL: `https://invalid-url.com` → expect error
+   - Enter deleted video ID → expect "Video not found"
+   - Simulate API failure (disable key) → expect quota error
+
+---
+
+## Part 4: Integration with Comments Interface
+
+### 4.1 Add Import Button to Comments List
+
+**File**: `resources/views/comments/index.blade.php`
+
+Add button near comment controls:
+
+```blade
+<div class="comment-actions">
+  <button class="btn btn-primary" onclick="openImportModal()">
+    官方API導入
+  </button>
+</div>
+```
+
+### 4.2 Add JavaScript Event Handler
+
+```javascript
+function openImportModal() {
+  // Load import form via AJAX into modal
+  fetch('/comments/import')
+    .then(resp => resp.text())
+    .then(html => {
+      document.getElementById('modal').innerHTML = html;
+      showModal();
+    });
 }
+
+// Form submission handler
+document.getElementById('import-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const url = document.querySelector('[name="youtube_url"]').value;
+  const resp = await fetch('/comments/import/metadata', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': document.querySelector('[name="_token"]').value
+    },
+    body: JSON.stringify({ youtube_url: url })
+  });
+
+  const data = await resp.json();
+
+  if (data.status === 'success' && data.data.action === 'show_metadata_dialog') {
+    // Show metadata dialog
+    showMetadataDialog(data.data.metadata);
+  }
+});
 ```
 
-**Responsibilities**:
-- Authenticate with YouTube API
-- Fetch comments (preview and full)
-- Handle API errors
-- Log operations
+---
 
-**What it does NOT do**:
-- Store data to database (controller's job)
-- Handle HTTP requests (controller's job)
-- Format API responses for frontend (controller's job)
+## Troubleshooting
 
-### YouTubeApiImportController (New)
-
-```php
-class YouTubeApiImportController {
-    public function preview(Request $request): JsonResponse
-    public function confirm(Request $request): JsonResponse
-}
-```
-
-**Responsibilities**:
-- Validate user input (video URL)
-- Check if video exists in DB
-- Call YouTubeApiService
-- Persist comments to database
-- Update channel/video metadata
-- Return JSON responses
+| Issue | Solution |
+|-------|----------|
+| `YOUTUBE_API_KEY not set` | Add key to `.env`, restart server |
+| `API quota exceeded` | Request quota increase at Google Cloud Console |
+| `Video not found` | Verify video is public and URL is valid |
+| `Comments disabled` | Video owner disabled comments, choose different video |
+| `Database lock timeout` | Transaction taking too long, check for queries holding locks |
+| `Duplicate key violation` | Retry, transaction should rollback and allow retry |
 
 ---
 
-## Error Handling
+## Next Steps
 
-### YouTube API Errors
+After completing this setup:
 
-| Scenario | HTTP Code | Action |
-|----------|-----------|--------|
-| Video not found | 404 | Show: "Video not found. Check URL and try again." |
-| Invalid API key | 401 | Show: "System configuration error. Contact admin." |
-| Quota exceeded | 403 | Show: "YouTube API quota exceeded. Try again later." |
-| Network error | 500 | Show: "Network error. Check connection and retry." |
-
-### Validation Errors
-
-| Scenario | HTTP Code | Action |
-|----------|-----------|--------|
-| Invalid URL format | 422 | Show: "Invalid YouTube URL format" |
-| Video not in DB (for incremental) | 400 | Show: "Video not found. Use new video workflow." |
-| Partial import with quota | 206 | Show: "Imported N comments before quota hit" |
-
-### Database Errors
-
-- **Duplicate comment**: Skip (don't re-insert)
-- **Transaction failure**: Rollback, show error, allow retry
-- **Foreign key violation**: Log error, show: "System error storing comment"
+1. **Run `/speckit.tasks`** to generate detailed task list for implementation
+2. **Start with contract tests** (TDD per Constitution)
+3. **Implement YouTube API service** using research.md patterns
+4. **Test incrementally** as each method completes
+5. **Integrate UI** only after services proven via tests
 
 ---
 
-## Testing Strategy
+## Reference Documentation
 
-### Unit Tests (YouTubeApiServiceTest)
-
-```php
-// Contract tests for service methods
-test('fetchPreviewComments returns 5 comments')
-test('fetchAllComments with afterDate filters results')
-test('validateVideoId accepts valid formats')
-test('fetchAllComments recursively fetches replies')
-test('API error handling returns proper exceptions')
-```
-
-### Feature Tests (YouTubeApiImportTest)
-
-```php
-// End-to-end integration tests
-test('preview endpoint returns 5 comments for existing video')
-test('preview endpoint returns new_video_detected for new video')
-test('confirm endpoint imports all comments with replies')
-test('incremental import stops at first duplicate')
-test('invalid URL returns 422 validation error')
-test('quota exceeded returns 403 with partial counts')
-test('parent_comment_id correctly set for replies')
-```
-
-### Manual Testing Checklist
-
-- [ ] Test with new video (no metadata in DB)
-- [ ] Test with existing video (incremental update)
-- [ ] Test with video having multi-level replies
-- [ ] Test with video having no comments
-- [ ] Test with video having fewer than 5 comments
-- [ ] Test with invalid video URL format
-- [ ] Test with invalid video ID (doesn't exist)
-- [ ] Test canceling preview (return to input)
-- [ ] Test importing same video twice (duplicate detection)
-- [ ] Verify parent_comment_id correctly set for all replies
-- [ ] Verify channel.comment_count updated correctly
-- [ ] Verify video.updated_at timestamp changed
-- [ ] Verify logs contain trace ID and operation details
+- **Feature Spec**: `specs/005-api-import-comments/spec.md`
+- **Research**: `specs/005-api-import-comments/research.md`
+- **Data Model**: `specs/005-api-import-comments/data-model.md`
+- **API Contracts**: `specs/005-api-import-comments/contracts/`
+- **Implementation Tasks**: `specs/005-api-import-comments/tasks.md` (generated by `/speckit.tasks`)
 
 ---
 
-## Success Criteria (from spec)
+## Support
 
-| Criteria | Target | Testing |
-|----------|--------|---------|
-| Preview fetch | <3 seconds | Load test with 5 comments |
-| Full import | <30 seconds | Measure with 1000-comment video |
-| Incremental | <10 seconds | Import only new comments, measure time |
-| 100% accuracy | No data loss | Verify all comments + replies stored |
-| 99% duplicate handling | No duplicates | Test incremental updates 10+ times |
-| Reply accuracy | 100% correct | Verify parent_comment_id on 50+ replies |
-| Error messages | Clear/actionable | Manual test all error paths |
+For questions or issues:
+1. Check feature spec for requirements clarification
+2. Review research.md for architecture decisions
+3. Consult data-model.md for schema details
+4. Check existing test cases for examples
 
----
-
-## Future Enhancements (Out of Scope)
-
-- Background job for periodic re-imports
-- Bulk import of multiple videos
-- Comment sentiment analysis
-- Rate limiting policy enforcement
-- Webhook to notify on new comments
-- Comment export functionality
-- Parent reply highlighting in UI
-
----
-
-## Rollback Plan
-
-If feature needs to be disabled:
-
-1. **Remove routes**: Comment out lines in `routes/api.php`
-2. **Hide button**: Set `<button style="display:none;">` in view
-3. **Revert migration**: Run `php artisan migrate:rollback`
-4. **Delete files**: Remove `YouTubeApiService.php`, `YouTubeApiImportController.php`, test files
-5. **Revert Model**: Remove `parent_comment_id` relation from Comment model
-
----
-
-## Resources
-
-- **YouTube API Documentation**: https://developers.google.com/youtube/v3
-- **Google API PHP Client**: https://github.com/googleapis/google-api-php-client
-- **Feature Spec**: `/specs/005-api-import-comments/spec.md`
-- **Data Model**: `/specs/005-api-import-comments/data-model.md`
-- **Service Contract**: `/specs/005-api-import-comments/contracts/youtube-api-service.md`
-- **Controller Contract**: `/specs/005-api-import-comments/contracts/youtube-api-import-controller.md`
-
----
-
-**Status**: ✅ Quickstart ready for implementation

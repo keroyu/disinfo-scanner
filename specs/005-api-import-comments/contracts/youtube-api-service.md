@@ -1,403 +1,323 @@
-# Service Contract: YouTubeApiService
+# Contract: YouTubeApiService
 
-**Service**: `App\Services\YouTubeApiService`
-**Type**: PHP Service Class
-**Purpose**: Manage YouTube API v3 authentication and comment fetching operations
-**Feature**: YouTube API Comments Import
-
----
-
-## Overview
-
-The `YouTubeApiService` is responsible for:
-1. Authenticating with YouTube API v3 using Google API Client
-2. Fetching preview comments (5 samples)
-3. Fetching all comments for a video
-4. Handling YouTube API errors and rate limiting
-5. Parsing and validating API responses
-
-**Isolation**: This service is completely independent of `UrtubeapiService`. No code sharing except through public models/exceptions.
+**Module**: `app/Services/YouTubeApiService.php`
+**Responsibility**: All YouTube API operations for fetching video metadata, comments, and reply threading
+**Testing**: Contract tests in `tests/Contract/YouTubeApiContractTest.php`
 
 ---
 
-## Constructor
+## Service Contract
+
+The `YouTubeApiService` is a concrete service (not an interface) with the following public methods. All methods use dependency injection for testability.
+
+### Constructor
 
 ```php
-public function __construct()
+public function __construct(
+    YouTubeClient $youtubeClient,  // Injected: google/apiclient YouTube service
+    LoggerInterface $logger         // Injected: structured JSON logger
+)
 ```
-
-**Behavior**:
-- Initialize Google Client with YouTube API v3 credentials from `.env`
-- Set timeout to 30 seconds
-- Set maximum retries for API calls
-
-**Throws**:
-- `Exception`: If YouTube API credentials not found in `.env`
-
-**Example**:
-```php
-$service = new YouTubeApiService();
-```
-
----
-
-## Public Methods
-
-### 1. fetchPreviewComments
-
-```php
-public function fetchPreviewComments(string $videoId, int $limit = 5): array
-```
-
-**Purpose**: Fetch sample comments for preview without persisting to database.
 
 **Parameters**:
-- `$videoId` (string, required): YouTube video ID
-- `$limit` (int, optional): Number of comments to fetch (default: 5)
+- `$youtubeClient`: Instance of YouTube API client (from google/apiclient)
+- `$logger`: PSR-3 logger for structured logging
 
-**Returns**:
+---
+
+## Method: `fetchVideoMetadata(string $videoId): array`
+
+Fetches video metadata from YouTube API.
+
+### Signature
+
+```php
+public function fetchVideoMetadata(string $videoId): array
+```
+
+### Input
+
+- `$videoId` (string): YouTube video ID (11 alphanumeric characters)
+
+### Output (Success)
+
+Returns associative array:
+
 ```php
 [
-    'comments' => [
-        [
-            'comment_id' => 'Ug_abc123...',
-            'text' => 'Great video!',
-            'author_channel_id' => 'UCxyz...',
-            'video_id' => 'dQw4w9WgXcQ',
-            'like_count' => 5,
-            'published_at' => '2025-11-10T12:00:00Z',
-            'is_reply' => false,
-            'parent_comment_id' => null,
-            'reply_count' => 0
-        ],
-        // ... up to 5 comments
-    ],
-    'has_more' => true,
-    'total_comments' => 1250
+    'video_id' => 'dQw4w9WgXcQ',              // YouTube video ID
+    'title' => 'Video Title Here',            // From videos.list snippet.title
+    'channel_id' => 'UC...',                  // YouTube channel ID
+    'channel_name' => 'Channel Name',         // From videos.list snippet.channelTitle
+    'published_at' => '2023-01-15T10:30:00Z', // ISO 8601 timestamp
+    'description' => '...',                   // Optional: video description
 ]
 ```
 
-**Behavior**:
-- Query YouTube API `commentThreads.list` with `order=time` (newest first)
-- Limit to `$limit` top-level comments
-- Include reply count for each comment
-- Do NOT fetch actual replies (use separate method)
+### Output (Error)
 
-**Throws**:
-- `YouTubeApiException`: If video not found, API error, or invalid API key
-- `InvalidVideoIdException`: If videoId format is invalid
+Throws `YouTubeApiException` with message:
+- `"Video not found"` - 404 from YouTube API
+- `"API quota exceeded"` - 403 quota limit
+- `"Invalid API key"` - 401 authentication error
+- `"API error: {status_code} {reason}"` - Generic API error
 
-**Side Effects**: None (read-only)
+### Side Effects
 
-**Example**:
-```php
-try {
-    $preview = $service->fetchPreviewComments('dQw4w9WgXcQ');
-    foreach ($preview['comments'] as $comment) {
-        echo $comment['text'];
-    }
-} catch (YouTubeApiException $e) {
-    echo "Error: " . $e->getMessage();
-}
-```
+- Logs operation with trace ID:
+  ```json
+  {
+    "operation": "metadata_fetch",
+    "video_id": "...",
+    "status": "success",
+    "timestamp": "..."
+  }
+  ```
+
+### Contract Test Cases
+
+1. Valid video ID returns complete metadata
+2. Invalid video ID throws "Video not found" exception
+3. Missing API key throws "Invalid API key" exception
+4. Quota exceeded throws "API quota exceeded" exception
+5. Response fields match YouTube API schema
 
 ---
 
-### 2. fetchAllComments
+## Method: `fetchComments(string $videoId, array $options = []): array`
+
+Fetches all top-level comments for a video, with optional incremental filtering.
+
+### Signature
 
 ```php
-public function fetchAllComments(
-    string $videoId,
-    ?string $afterDate = null,
-    callable $progressCallback = null
-): array
+public function fetchComments(string $videoId, array $options = []): array
 ```
 
-**Purpose**: Fetch all comments for a video, with optional filtering for incremental imports.
+### Input
 
-**Parameters**:
-- `$videoId` (string, required): YouTube video ID
-- `$afterDate` (string|null, optional): ISO 8601 timestamp; fetch only comments published after this date (for incremental updates)
-- `$progressCallback` (callable|null, optional): Callback function called after each batch fetched: `fn($totalFetched, $currentBatch) => void`
+- `$videoId` (string): YouTube video ID
+- `$options` (array, optional):
+  - `'max_timestamp'` (string, ISO 8601): For incremental imports, fetch only comments published after this timestamp
+  - `'skip_older_than'` (string, ISO 8601): Alternative to max_timestamp, same purpose
+  - `'existing_comment_ids'` (array): Set of already-imported comment IDs for duplicate detection (secondary guard)
 
-**Returns**:
+### Output (Success)
+
+Returns associative array:
+
 ```php
 [
     'comments' => [
         [
-            'comment_id' => 'Ug_abc123...',
-            'text' => 'Comment text',
-            'author_channel_id' => 'UCxyz...',
-            'video_id' => 'dQw4w9WgXcQ',
-            'like_count' => 5,
-            'published_at' => '2025-11-10T12:00:00Z',
-            'is_reply' => false,
-            'parent_comment_id' => null
-        ],
-        [
-            'comment_id' => 'UgxE_reply123...',
-            'text' => 'Reply text',
-            'author_channel_id' => 'UCreply...',
-            'video_id' => 'dQw4w9WgXcQ',
-            'like_count' => 0,
-            'published_at' => '2025-11-10T13:00:00Z',
-            'is_reply' => true,
-            'parent_comment_id' => 'Ug_abc123...'
+            'comment_id' => 'Ugf...',              // YouTube comment ID
+            'video_id' => 'dQw4w9WgXcQ',          // Same as input
+            'author_channel_id' => 'UCa...',       // YouTube channel ID of author (can be null)
+            'text' => 'Great video!',              // Comment text (plaintext)
+            'like_count' => 42,                    // Number of likes at fetch time
+            'published_at' => '2023-01-16T08:15:00Z', // ISO 8601 timestamp
+            'parent_comment_id' => null,           // NULL for top-level comments
+            'replies' => [                         // Nested replies (recursive structure)
+                [
+                    'comment_id' => 'Ugf...',
+                    'author_channel_id' => '...',
+                    'text' => 'Reply to original',
+                    'like_count' => 5,
+                    'published_at' => '2023-01-16T09:00:00Z',
+                    'parent_comment_id' => 'Ugf...',  // Points to parent
+                    'replies' => [                    // Can nest further (no depth limit)
+                        // ... deeper replies
+                    ]
+                ]
+            ]
         ]
     ],
-    'total_fetched' => 1250,
-    'batches' => 7,  // number of API batches
-    'last_comment_timestamp' => '2025-11-10T01:00:00Z'
+    'total_count' => 156,              // Total comments fetched (including all recursive replies)
+    'stopped_by' => 'timestamp',       // 'timestamp' or 'duplicate_id' (incremental only)
+    'oldest_fetched' => '2023-01-01T...',  // Timestamp of oldest comment fetched
 ]
 ```
 
-**Behavior**:
-1. Query `commentThreads.list` with `order=time` (newest first)
-2. For each top-level comment, recursively fetch all nested replies (all levels)
-3. Flatten all comments (top-level + all replies) into single array
-4. If `$afterDate` provided, **client-side filtering** (fetch all, then filter)
-5. Call `$progressCallback` after each batch of 20 comments
-6. Handle pagination automatically (loop until no more pages)
+### Output (Error)
 
-**Throws**:
-- `YouTubeApiException`: If API error or quota exceeded
-- `InvalidVideoIdException`: If videoId format invalid
-- `InvalidDateException`: If afterDate format invalid
+Throws `YouTubeApiException` with message:
+- `"Video not found"` - Video no longer exists or is private
+- `"Comments disabled"` - Video has comments disabled
+- `"API error: {message}"` - Generic API error
 
-**Side Effects**: None (read-only)
+### Incremental Import Logic
 
-**Error Handling**:
-- If API returns 403 (quota exceeded), throw `YouTubeApiException` with message: "YouTube API quota exceeded"
-- If API returns 404 (video not found), throw `VideoNotFoundException`
-- If API returns 401 (invalid credentials), throw `AuthenticationException`
+When `$options['max_timestamp']` provided:
 
-**Example**:
-```php
-// Fetch all comments with progress tracking
-$comments = $service->fetchAllComments(
-    'dQw4w9WgXcQ',
-    afterDate: '2025-11-10T00:00:00Z',
-    progressCallback: function($total, $batch) {
-        echo "Fetched {$total} comments in batch of {$batch}\n";
-    }
-);
+1. Fetch comments in reverse chronological order (newest first)
+2. **Primary Condition**: Stop immediately when encountering comment with `published_at <= max_timestamp`
+3. **Secondary Guard**: Also track `$options['existing_comment_ids']` and stop if duplicate found
+4. Return `'stopped_by'` field to indicate which condition triggered
 
-// Full recursive hierarchy in $comments['comments']
-foreach ($comments['comments'] as $comment) {
-    if ($comment['is_reply']) {
-        echo "  └─ Reply to {$comment['parent_comment_id']}: {$comment['text']}";
-    } else {
-        echo "├─ {$comment['text']}";
-    }
-}
-```
+### Side Effects
 
----
+- Logs operation with trace ID:
+  ```json
+  {
+    "operation": "comments_fetch",
+    "video_id": "...",
+    "comment_count": 45,
+    "stopped_by": "timestamp",
+    "status": "success"
+  }
+  ```
 
-### 3. validateVideoId
+### Contract Test Cases
 
-```php
-public function validateVideoId(string $videoId): bool
-```
-
-**Purpose**: Validate that a string is a valid YouTube video ID format.
-
-**Parameters**:
-- `$videoId` (string): Video ID to validate
-
-**Returns**:
-- `true` if valid format (11 alphanumeric characters, no special chars)
-- `false` otherwise
-
-**Side Effects**: None
-
-**Example**:
-```php
-if (!$service->validateVideoId($videoId)) {
-    throw new InvalidVideoIdException("Invalid video ID format");
-}
-```
+1. Valid video with comments returns all comments with correct structure
+2. Video with fewer than 100 comments returns all (no pagination needed)
+3. Video with 500+ comments returns all (pagination works)
+4. Replies at multiple levels (3+ deep) all returned with correct parent_comment_id
+5. Video with comments disabled throws "Comments disabled"
+6. Incremental: max_timestamp filters correctly (only newer comments)
+7. Incremental: secondary guard stops on duplicate_id detection
+8. Fields match YouTube API schema (comment_id, author_channel_id, published_at, etc.)
+9. Empty video (0 comments) returns empty array
+10. Reply structure preserved: parent_comment_id correctly set for all replies
 
 ---
 
-### 4. logOperation
+## Method: `fetchReplies(string $commentId, array $options = []): array`
+
+Fetches all replies to a specific comment (for recursive threading).
+
+### Signature
 
 ```php
-public function logOperation(
-    string $traceId,
-    string $operation,
-    int $commentCount,
-    string $status = 'success',
-    ?string $error = null
-): void
+public function fetchReplies(string $commentId, array $options = []): array
 ```
 
-**Purpose**: Log API operations for observability (Observable Systems principle).
+### Input
 
-**Parameters**:
-- `$traceId` (string): Unique trace ID for request
-- `$operation` (string): Operation type (e.g., 'preview_fetch', 'full_fetch', 'incremental_fetch')
-- `$commentCount` (int): Number of comments fetched
-- `$status` (string): 'success', 'partial', 'error'
-- `$error` (string|null): Error message if status is 'error'
+- `$commentId` (string): YouTube comment ID of parent comment
+- `$options` (array, optional):
+  - `'max_timestamp'` (string, ISO 8601): Only fetch replies published after this timestamp (for incremental)
+  - `'existing_reply_ids'` (array): Set of already-imported reply IDs
 
-**Behavior**:
-- Write structured JSON log to Laravel logs with timestamp, operation type, comment count
-- Include trace ID for audit trail
-- Do NOT throw exceptions
+### Output (Success)
 
-**Example**:
+Returns associative array (same structure as comments in `fetchComments`):
+
 ```php
-$service->logOperation(
-    'trace-abc123',
-    'full_fetch',
-    1250,
-    'success'
-);
+[
+    'replies' => [
+        [
+            'comment_id' => 'UgfABC...',
+            'author_channel_id' => 'UCdef...',
+            'text' => 'This is a reply',
+            'like_count' => 3,
+            'published_at' => '2023-01-17T...',
+            'parent_comment_id' => 'UgfABC...',  // Points to the parent comment passed in
+            'replies' => [                        // Can have nested replies (recursive)
+                // ... more nested replies
+            ]
+        ]
+    ],
+    'total_count' => 12,
+    'stopped_by' => null  // or 'timestamp'/'duplicate_id'
+]
 ```
+
+### Output (Error)
+
+Throws `YouTubeApiException` with message:
+- `"Comment not found"` - Comment ID invalid or deleted
+- `"API error: {message}"` - Generic error
+
+### Note on Recursion
+
+This method is called recursively during comment tree traversal. The tree-building happens in the service logic, not here - this method is responsible only for fetching replies to one specific comment.
+
+### Contract Test Cases
+
+1. Comment with replies returns all replies
+2. Comment with no replies returns empty array
+3. Replies maintain correct parent_comment_id
+4. Multi-level nesting (replies to replies to replies) all returned
+5. Incremental: max_timestamp filters correctly
 
 ---
 
-## Exception Classes
+## Exception Handling
 
-### YouTubeApiException
+All methods throw `YouTubeApiException` (custom exception class):
 
 ```php
+// app/Exceptions/YouTubeApiException.php
 class YouTubeApiException extends Exception
+{
+    public function __construct(
+        string $message = "",
+        int $httpStatus = 0,
+        string $youtubeErrorCode = ""
+    )
+}
 ```
 
-Base exception for all YouTube API errors.
+**Specific Error Codes Mapped**:
 
-**Messages**:
-- "Invalid API key or authentication failed"
-- "YouTube API quota exceeded"
-- "Video not found on YouTube"
-- "Invalid video ID format"
-- "API response format invalid"
+| HTTP Status | YouTube Error Code | Exception Message | Handling |
+|------------|-------------------|-------------------|----------|
+| 401 | AUTHENTICATION_ERROR | "Invalid API key" | Retry with new key |
+| 403 | QUOTA_EXCEEDED | "API quota exceeded" | Retry later or increase quota |
+| 404 | NOT_FOUND | "Video not found" or "Comment not found" | User should verify URL |
+| 403 | DISABLED_COMMENTS | "Comments disabled" | Inform user |
+| 429 | RATE_LIMIT | "API rate limited" | Implement backoff |
+| 5xx | SERVER_ERROR | "YouTube service error" | Retry with exponential backoff |
 
 ---
 
-### VideoNotFoundException
+## Implementation Notes
+
+### YouTube API Client Library
+
+Uses `google/apiclient` package with configuration:
 
 ```php
-class VideoNotFoundException extends YouTubeApiException
-```
-
-Thrown when video ID not found on YouTube.
-
----
-
-### AuthenticationException
-
-```php
-class AuthenticationException extends YouTubeApiException
-```
-
-Thrown when YouTube API credentials are invalid or missing.
-
----
-
-## Contract Tests
-
-**Test File**: `tests/Unit/Services/YouTubeApiServiceTest.php`
-
-### Test Cases
-
-1. **Valid Preview Fetch**
-   - Given: Valid video ID with 20+ comments
-   - When: `fetchPreviewComments('dQw4w9WgXcQ')`
-   - Then: Returns array with 5 comments, has_more=true, total_comments >= 5
-
-2. **Preview with Fewer Comments**
-   - Given: Valid video ID with 3 total comments
-   - When: `fetchPreviewComments('dQw4w9WgXcQ', limit: 5)`
-   - Then: Returns array with 3 comments, has_more=false
-
-3. **Full Fetch with Replies**
-   - Given: Valid video ID with top-level and reply comments
-   - When: `fetchAllComments('dQw4w9WgXcQ')`
-   - Then: Flattened array includes all comments + all replies with parent_comment_id set
-
-4. **Incremental Fetch**
-   - Given: afterDate = '2025-11-01T00:00:00Z'
-   - When: `fetchAllComments('dQw4w9WgXcQ', afterDate: ...)`
-   - Then: Only comments published after date returned
-
-5. **Invalid Video ID**
-   - Given: videoId = '123' (too short)
-   - When: `fetchPreviewComments('123')`
-   - Then: Throws `InvalidVideoIdException`
-
-6. **Video Not Found**
-   - Given: videoId = 'invalidxxxxxxxxx' (valid format, doesn't exist)
-   - When: `fetchPreviewComments('invalidxxxxxxxxx')`
-   - Then: Throws `VideoNotFoundException`
-
-7. **API Quota Exceeded**
-   - Given: Google API returns 403 quota error
-   - When: `fetchAllComments(...)`
-   - Then: Throws `YouTubeApiException` with message containing "quota"
-
-8. **Progress Callback**
-   - Given: progressCallback function
-   - When: `fetchAllComments(...)` fetches 100 comments
-   - Then: Callback invoked multiple times with cumulative count
-
-9. **Valid ID Format**
-   - Given: videoId = 'dQw4w9WgXcQ'
-   - When: `validateVideoId('dQw4w9WgXcQ')`
-   - Then: Returns true
-
-10. **Invalid ID Format**
-    - Given: videoId = 'not-a-valid-id'
-    - When: `validateVideoId('not-a-valid-id')`
-    - Then: Returns false
-
----
-
-## Integration Points
-
-### YouTube API v3 SDK
-
-Uses `Google\Client` and `Google\Service\YouTube`:
-
-```php
-$client = new Google\Client();
-$client->setApplicationName('DISINFO_SCANNER');
+// In service constructor or factory
+$client = new Google_Client();
+$client->setApplicationName("DISINFO_SCANNER");
 $client->setDeveloperKey(env('YOUTUBE_API_KEY'));
-
-$youtube = new Google\Service\YouTube($client);
-$response = $youtube->commentThreads->listCommentThreads(
-    $videoId,
-    ['part' => 'snippet,replies'],
-    ['order' => 'time', 'maxResults' => 20]
-);
+$youTubeService = new Google_Service_YouTube($client);
 ```
 
-### Models & Database
+### API Endpoints Used
 
-- Uses `Comment` model to insert fetched comments
-- Uses `Video` model to check existence
-- Uses `Channel` model to update metadata
-- Uses `Author` model to verify author exists
+- `youtube.videos.list(part=snippet,contentDetails)`
+- `youtube.commentThreads.list(part=snippet,replies)` with `textFormat=plainText`
+- Pagination via `pageToken` (handled internally)
 
-### Controllers
+### Structured Logging
 
-- Called by `YouTubeApiImportController` to fetch comments
-- Results passed to controller for persistence layer
+Each operation logged as JSON:
+
+```php
+$this->logger->info('youtube_api_operation', [
+    'trace_id' => $traceId,
+    'operation' => 'fetch_comments',
+    'video_id' => $videoId,
+    'result' => 'success',
+    'record_count' => 45,
+    'timestamp' => now()->toIso8601String(),
+]);
+```
 
 ---
 
-## Configuration
+## Testing Strategy
 
-**Environment Variables**:
-```env
-YOUTUBE_API_KEY=AIzaSyD...  # YouTube Data API v3 key from Google Cloud Console
-YOUTUBE_API_TIMEOUT=30      # Optional: timeout in seconds (default 30)
-```
+Contract tests verify:
 
-**Error Handling**: Service logs all errors to Laravel's default logger.
+1. **YouTube API Response Shapes**: Mock YouTube API responses, verify service parses correctly
+2. **Error Mapping**: Each YouTube error code maps to correct exception message
+3. **Field Mapping**: YouTube response fields correctly mapped to output array keys
+4. **Recursive Structure**: Reply nesting preserved accurately
+5. **Incremental Logic**: Primary/secondary stopping conditions work correctly
+6. **Timestamp Handling**: Timestamps correctly parsed as ISO 8601 and comparable
 
----
-
-**Status**: ✅ Contract finalized, ready for implementation
+No mocking of actual YouTube API calls in contract tests - use fixtures/VCR cassettes to record real API responses, then replay them. This ensures compatibility with future API changes.

@@ -1,443 +1,430 @@
 # Implementation Tasks: YouTube API Comments Import
 
-**Feature**: YouTube API Comments Import
+**Feature**: `005-api-import-comments`
 **Branch**: `005-api-import-comments`
 **Date**: 2025-11-17
-**Total Tasks**: 35
-**Estimated Effort**: 15-20 developer-hours
+**Status**: Ready for Implementation
 
 ---
 
 ## Overview
 
-This task list implements YouTube API-based comment import functionality with full support for new videos, incremental updates, and reply comment hierarchies. Tasks are organized by user story priority and execution order, enabling parallel development and independent testing.
+This document breaks down the YouTube API comment import feature into independently testable user stories with corresponding implementation tasks. The feature is organized into phases:
 
-### User Stories (Priority Order)
-- **P1**: US1 - Import Comments for New Video (foundational)
-- **P1**: US2 - Incremental Update for Existing Video
-- **P1**: US3 - Reply Comments Handling
-- **P2**: US4 - UI Integration (low priority, not blocking MVP)
-
-### Implementation Strategy
-
-**MVP Scope**: US1 + US2 + US3 (all P1 stories)
-- Completes foundational comment import functionality
-- Enables testing with new and existing videos
-- Supports full discussion thread preservation
-- Does NOT include UI "API 導入" button (P2, optional for MVP)
-
-**Estimated MVP Effort**: 12-15 hours (Tasks T001-T028)
-**Full Feature Effort**: 15-20 hours (Tasks T001-T035, includes P2 UI)
-
-### Parallel Opportunities
-
-- **Phase 1 Setup**: All setup tasks [P] (independent, no dependencies)
-- **Phase 2 Foundational**: All foundational tasks [P] (parallel after Phase 1)
-- **Phase 3 US1**: Service tests + controller tests can run in parallel [P]
-- **Phase 4 US2**: Incremental logic tests + implementation [P]
-- **Phase 5 US3**: Reply handling tests + implementation [P]
+- **Phase 1**: Setup & Infrastructure (project initialization, dependencies)
+- **Phase 2**: Foundational (blocking prerequisites for all user stories)
+- **Phase 3**: User Story 1 - New Video Import (P1)
+- **Phase 4**: User Story 2 - Incremental Updates (P1)
+- **Phase 5**: User Story 3 - Reply Threading (P1)
+- **Phase 6**: User Story 4 - UI Integration (P2)
+- **Phase 7**: Polish & Cross-Cutting Concerns
 
 ---
 
-## Phase 1: Setup & Configuration
+## Task Execution Strategy
 
-### Goal
-Initialize project dependencies and environment configuration for YouTube API integration.
+### Dependency Graph
 
-### Independent Test Criteria
-- Composer can successfully require google/apiclient
-- `.env` file contains valid YOUTUBE_API_KEY
-- Google API Client can be instantiated without errors
-- All new files are created in correct locations
+```
+Phase 1 (Setup)
+    ↓
+Phase 2 (Foundational: Models, Base Services, Database)
+    ↓
+    ├→ Phase 3 (US1: New Video Import)
+    ├→ Phase 4 (US2: Incremental Updates) [depends on US1]
+    ├→ Phase 5 (US3: Reply Threading) [integrated into US1 & US2]
+    └→ Phase 6 (US4: UI Integration) [depends on US1, US2, US3]
+    ↓
+Phase 7 (Polish, Error Handling, Documentation)
+```
+
+### Parallel Execution
+
+Within each phase, most tasks are parallelizable (marked with `[P]`):
+- **Phase 1**: All setup tasks independent
+- **Phase 2**: Database migrations and model classes can be done in parallel
+- **Phase 3**: Service, controller, and test classes can be implemented in parallel once models exist
+- **Phase 4-6**: Similar parallel opportunities
+
+### MVP Scope (Minimal Viable Product)
+
+**Recommended MVP**: Complete User Story 1 (New Video Import) + minimal US4 UI button
+- Justification: Demonstrates full feature capability for new videos
+- Estimated effort: ~40-50% of total tasks
+- Enables testing and gathering feedback before incremental updates
 
 ---
 
-- [X] T001 Add google/apiclient dependency to composer.json via `composer require google/apiclient:^2.15`
-- [X] T002 [P] Update .env.example with YOUTUBE_API_KEY=your_key_here
-- [X] T003 [P] Create app/Services/YouTubeApiService.php (empty file, will be filled in later)
-- [X] T004 [P] Create app/Http/Controllers/YouTubeApiImportController.php (empty file, will be filled in later)
-- [X] T005 [P] Create tests/Unit/Services/YouTubeApiServiceTest.php (empty file, will be filled in later)
-- [X] T006 [P] Create tests/Feature/YouTubeApiImportTest.php (empty file, will be filled in later)
-- [X] T007 Create database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php migration file
+## Phase 1: Setup & Infrastructure
+
+**Duration**: ~2-4 hours
+**Goal**: Initialize project, install dependencies, configure environment
+
+### Setup Tasks
+
+- [ ] T001 Install google/apiclient dependency via Composer `composer require google/apiclient`
+- [ ] T002 Create `.env` configuration with `YOUTUBE_API_KEY` placeholder (do not commit real key)
+- [ ] T003 [P] Create database directory structure for migrations in `database/migrations/`
+- [ ] T004 [P] Create `app/Services/` directory for service classes
+- [ ] T005 [P] Create `app/Http/Controllers/` directory for controller class
+- [ ] T006 [P] Create `app/Http/Requests/` directory for form request validation
+- [ ] T007 [P] Create `app/Exceptions/` directory for custom exceptions
+- [ ] T008 [P] Create `resources/views/comments/` directory for Blade templates
+- [ ] T009 [P] Create `tests/Unit/`, `tests/Contract/`, `tests/Integration/` directories
+- [ ] T010 Create `routes/web.php` YouTube API import route group (skeleton)
 
 ---
 
 ## Phase 2: Foundational Prerequisites
 
-### Goal
-Set up database schema changes and core models to support comment import feature.
+**Duration**: ~6-8 hours
+**Goal**: Create database schema, models, base service class, custom exceptions
 
-### Independent Test Criteria
-- Migration runs successfully without errors
-- Comment model has parent_comment_id field accessible
-- parent_comment_id foreign key constraint enforced
-- Existing comments table data unaffected
+### 2.1 Database Migrations
 
----
+- [ ] T011 [P] Create migration `create_videos_table` with fields: video_id, channel_id, title, published_at, created_at, updated_at
+- [ ] T012 [P] Create migration `create_channels_table` with fields: channel_id, name, video_count, comment_count, first_import_at, last_import_at, created_at, updated_at
+- [ ] T013 [P] Create migration `create_comments_table` with fields: comment_id, video_id, author_channel_id, text, like_count, parent_comment_id, published_at, created_at, updated_at
+- [ ] T014 [P] Create migration `create_import_sessions_table` for audit logging (optional but recommended)
+- [ ] T015 Run migrations: `php artisan migrate` and verify tables created
 
-- [X] T008 Implement parent_comment_id migration: Add column, foreign key, and index to comments table in database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php
-- [X] T009 Run migration: `php artisan migrate` and verify no errors
-- [X] T010 [P] Update app/Models/Comment.php to add parent_comment_id field and parent/children relationships
-- [X] T011 [P] Create app/Exceptions/YouTubeApiException.php exception class
-- [X] T012 [P] Create app/Exceptions/VideoNotFoundException.php exception class
-- [X] T013 [P] Create app/Exceptions/AuthenticationException.php exception class
-- [X] T014 [P] Create app/Exceptions/InvalidVideoIdException.php exception class
+### 2.2 Model Classes
 
----
+- [ ] T016 [P] Create `app/Models/Video.php` with relationships, validation rules (implement from data-model.md)
+- [ ] T017 [P] Create `app/Models/Channel.php` with relationships, validation rules
+- [ ] T018 [P] Create `app/Models/Comment.php` with relationships (parent/child), validation rules
+- [ ] T019 [P] Create `app/Models/ImportSession.php` (optional) for audit trail
+- [ ] T020 Add indexes to models via migration: unique(video_id), index(channel_id), index(parent_comment_id), composite unique(video_id, comment_id)
 
-## Phase 3: US1 - Import Comments for New Video
+### 2.3 Custom Exception Class
 
-### Goal
-Implement complete workflow for importing comments from a new YouTube video (not yet in database).
+- [ ] T021 Create `app/Exceptions/YouTubeApiException.php` with properties: httpStatus, youtubeErrorCode, message (per contracts spec)
 
-### Acceptance Criteria
-1. When user enters new video URL, system detects it doesn't exist in DB
-2. System automatically invokes existing "匯入" dialog for metadata capture
-3. After "匯入" completes, system auto-fetches 5 preview comments
-4. User can review preview and click "確認導入" to import all comments
-5. All comments + replies stored with correct parent_comment_id relationships
-6. Channel and video records updated with correct fields
-7. All imported comments visible and sorted by date
+### 2.4 Base YouTube API Service (Skeleton)
 
-### Independent Test Criteria
-- Contract tests pass for YouTubeApiService::fetchPreviewComments
-- Contract tests pass for YouTubeApiService::fetchAllComments
-- Controller tests pass for preview endpoint
-- Controller tests pass for confirm endpoint
-- Integration test passes: new video → preview → confirm full import
-- Database records reflect all imported comments with correct timestamps
+- [ ] T022 Create `app/Services/YouTubeApiService.php` with constructor injecting Google_Client and LoggerInterface
+- [ ] T023 Implement YouTube API authentication in constructor (read API key from env)
+- [ ] T024 Implement structured JSON logging setup with trace ID support
 
 ---
 
-### US1 Service Layer - Contract Tests First (TDD)
+## Phase 3: User Story 1 - New Video Import (P1)
 
-- [X] T015 Implement YouTubeApiServiceTest::test_fetch_preview_comments_returns_5_comments in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [X] T016 Implement YouTubeApiServiceTest::test_fetch_preview_comments_with_fewer_than_5_comments in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [X] T017 Implement YouTubeApiServiceTest::test_fetch_all_comments_returns_all_top_level_and_replies in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [X] T018 Implement YouTubeApiServiceTest::test_fetch_all_comments_with_after_date_filters_results in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [X] T019 Implement YouTubeApiServiceTest::test_validate_video_id_accepts_valid_format in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [X] T020 Implement YouTubeApiServiceTest::test_validate_video_id_rejects_invalid_format in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [X] T021 Implement YouTubeApiServiceTest::test_api_error_handling_throws_proper_exceptions in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+**Duration**: ~10-12 hours
+**Goal**: Users can import comments from a new YouTube video with metadata confirmation and preview
 
-### US1 Service Layer - Implementation (GREEN)
+**Independent Test Criteria**:
+- User enters new video URL → metadata fetched from API and displayed
+- User selects tags → metadata NOT persisted until full import
+- User reviews preview → 5 sample comments shown
+- User confirms import → all comments recursively fetched and saved
+- No data persists if import fails or user cancels
 
-- [X] T022 Implement YouTubeApiService::__construct() method: Initialize Google Client with API key from .env
-- [X] T023 Implement YouTubeApiService::fetchPreviewComments(string $videoId): array method
-- [X] T024 Implement YouTubeApiService::fetchAllComments(string $videoId, ?string $afterDate = null, ?callable $progressCallback = null): array method with recursive reply fetching
-- [X] T025 Implement YouTubeApiService::validateVideoId(string $videoId): bool method
-- [X] T026 Implement YouTubeApiService::logOperation(string $traceId, string $operation, int $commentCount, string $status, ?string $error): void method
-- [ ] T027 [P] Run all YouTubeApiService tests and verify passing (REFACTOR phase)
+### 3.1 YouTube API Service - Metadata Fetch
 
-### US1 Controller Layer - Contract Tests First (TDD)
+- [ ] T025 Implement `YouTubeApiService::fetchVideoMetadata(string $videoId)` method (per youtube-api-service contract)
+- [ ] T026 [P] Add YouTube API error handling: map HTTP 404/403/401 to exceptions
+- [ ] T027 [P] Implement structured logging for metadata fetch operations
 
-- [X] T028 Implement YouTubeApiImportTest::test_preview_endpoint_fetches_5_comments_for_existing_video in tests/Feature/YouTubeApiImportTest.php (RED test)
-- [X] T029 Implement YouTubeApiImportTest::test_preview_endpoint_detects_new_video_and_returns_action_required in tests/Feature/YouTubeApiImportTest.php (RED test)
-- [X] T030 Implement YouTubeApiImportTest::test_confirm_endpoint_imports_all_comments_with_replies in tests/Feature/YouTubeApiImportTest.php (RED test)
+### 3.2 YouTube API Service - Comment Fetch (Top-Level)
 
-### US1 Controller Layer - Implementation (GREEN)
+- [ ] T028 Implement `YouTubeApiService::fetchComments(string $videoId, array $options)` method fetching top-level comments
+- [ ] T029 [P] Implement pagination logic to fetch ALL comments (not just first page)
+- [ ] T030 [P] Implement recursive reply fetching via `fetchRepliesRecursive()` helper method
 
-- [X] T031 Implement YouTubeApiImportController::preview(Request $request): JsonResponse method in app/Http/Controllers/YouTubeApiImportController.php
-  - Extract video ID from URL
-  - Check if video exists in database
-  - If new → Return "new_video_detected" status (no preview fetch)
-  - If exists → Call YouTubeApiService::fetchPreviewComments
-  - Return preview array + metadata
+### 3.3 YouTube API Service - Reply Threading
 
-- [X] T032 Implement YouTubeApiImportController::confirm(Request $request): JsonResponse method in app/Http/Controllers/YouTubeApiImportController.php
-  - Extract video ID
-  - Determine import mode (incremental vs full)
-  - Call YouTubeApiService::fetchAllComments
-  - For each comment: Check duplicates, insert if new, set parent_comment_id for replies
-  - Update channel: comment_count (recalculate), last_import_at, updated_at; Initialize video_count/first_import_at/created_at for NEW channels
-  - Update video: updated_at (always); Initialize video_id/title/published_at/created_at for NEW videos
-  - Return success with counts
+- [ ] T031 Implement recursive traversal of `replies.comments` structure (depth-first)
+- [ ] T032 Build in-memory tree structure with parent_comment_id references
+- [ ] T033 Add validation: parent_comment_id correctly set for all nested replies
 
-- [ ] T033 [P] Run all YouTubeApiImportTest tests and verify passing (REFACTOR phase)
+### 3.4 Comment Import Service - Transaction Management
 
-### US1 Routes & Integration
+- [ ] T034 Create `app/Services/CommentImportService.php` orchestrating import workflow
+- [ ] T035 Implement DB::transaction() wrapper for atomic import (all-or-nothing)
+- [ ] T036 Implement channel existence check (per FR-015a): INSERT or UPDATE channels table
+- [ ] T037 Implement video existence check and INSERT if new video
+- [ ] T038 Implement batch insert for comments with correct parent_comment_id linking
+- [ ] T039 [P] Implement count updates for videos/channels tables (FR-016)
 
-- [X] T034 Add routes to routes/api.php: POST /api/youtube-import/preview and POST /api/youtube-import/confirm
-- [ ] T035 [P] Run full integration test: new video URL → preview → confirm → verify all comments in DB with correct relationships
+### 3.5 HTTP Controller - Import Endpoints
 
----
+- [ ] T040 Create `app/Http/Controllers/YoutubeApiImportController.php` with method stubs
+- [ ] T041 Implement `showImportForm()` returning import-modal.blade.php view
+- [ ] T042 Implement `getMetadata(Request)` endpoint: fetch metadata, return JSON response
+- [ ] T043 Implement `confirmMetadata(Request)` endpoint: validate metadata, store in session
+- [ ] T044 Implement `getPreview(Request)` endpoint: fetch 5 sample comments, return JSON (NO DB persist)
+- [ ] T045 Implement `confirmImport(Request)` endpoint: execute full import via CommentImportService
 
-## Phase 4: US2 - Incremental Update for Existing Video
+### 3.6 Form Validation
 
-### Goal
-Implement efficient updating of comments for videos that have been imported before.
+- [ ] T046 Create `app/Http/Requests/ImportVideoRequest.php` validating YouTube URL format
+- [ ] T047 Extract YouTube video ID from URL (support youtube.com?v=ID and youtu.be/ID formats)
 
-### Acceptance Criteria
-1. When user enters existing video URL, system fetches only NEW comments (since last import)
-2. Preview shows up to 5 sample new comments
-3. Full import fetches only newer comments (ordered newest first)
-4. System stops at first duplicate comment_id (prevents unnecessary API calls)
-5. New comments merged with existing without duplicates
-6. Reply comments properly linked to parents
-7. Channel comment_count recalculated and updated
+### 3.7 Blade Templates
 
-### Independent Test Criteria
-- Contract test passes: incremental fetch with afterDate filters correctly
-- Integration test passes: import same video twice, verify only new comments fetched second time
-- Duplicate detection stops fetch at expected point
-- Comment counts match actual DB records
+- [ ] T048 [P] Create `resources/views/comments/import-modal.blade.php` with URL input form
+- [ ] T049 [P] Create `resources/views/comments/metadata-dialog.blade.php` with title/channel display + tag selector
+- [ ] T050 [P] Create `resources/views/comments/preview-dialog.blade.php` showing 5 sample comments
 
----
+### 3.8 Routes
 
-### US2 - Incremental Logic Tests & Implementation
+- [ ] T051 Add routes to `routes/web.php`:
+  - GET `/comments/import` → showImportForm
+  - POST `/comments/import/metadata` → getMetadata
+  - POST `/comments/import/confirm-metadata` → confirmMetadata
+  - POST `/comments/import/preview` → getPreview
+  - POST `/comments/import/confirm-import` → confirmImport
 
-- [X] T036 Implement YouTubeApiServiceTest::test_incremental_fetch_with_after_date_parameter in tests/Unit/Services/YouTubeApiServiceTest.php
-- [X] T037 Implement YouTubeApiServiceTest::test_fetch_stops_at_duplicate_comment_id in tests/Unit/Services/YouTubeApiServiceTest.php
-- [X] T038 Implement incremental mode logic in YouTubeApiImportController::confirm() method:
-  - Find max(published_at) from existing comments for video
-  - Call fetchAllComments with afterDate parameter
-  - Stop processing when duplicate comment_id detected
+### 3.9 Unit Tests (Contract Tests First - TDD)
 
-- [X] T039 Implement duplicate detection in confirm() endpoint:
-  - Check if comment_id exists before insert
-  - Skip insert if exists (no update to like_count)
-  - Continue to next comment
-  - Stop if duplicate found in incremental mode
+- [ ] T052 [P] Create `tests/Contract/YouTubeApiContractTest.php` with fixtures/VCR cassettes for YouTube API responses
+- [ ] T053 [P] Test: fetchVideoMetadata returns correct schema (title, channel_id, channel_name, published_at)
+- [ ] T054 [P] Test: fetchVideoMetadata handles 404 (video not found) → exception
+- [ ] T055 [P] Test: fetchVideoMetadata handles 403 quota exceeded → exception
+- [ ] T056 [P] Test: fetchComments returns all top-level comments with correct structure
+- [ ] T057 [P] Test: fetchComments handles empty comment list
+- [ ] T058 [P] Test: fetchComments handles pagination (>100 comments)
 
-- [X] T040 Implement YouTubeApiImportTest::test_incremental_import_fetches_only_new_comments in tests/Feature/YouTubeApiImportTest.php
-- [ ] T041 [P] Run incremental update tests and verify passing
+### 3.10 Unit Tests (Service Layer)
 
----
+- [ ] T059 [P] Create `tests/Unit/YouTubeApiServiceTest.php` with mocked Google API client
+- [ ] T060 [P] Test: fetchVideoMetadata parses API response correctly
+- [ ] T061 [P] Test: fetchComments builds correct tree structure with parent_comment_id
 
-## Phase 5: US3 - Reply Comments Handling
+### 3.11 Integration Tests (Full Workflow)
 
-### Goal
-Implement recursive fetching and storage of reply comments at all nesting levels.
+- [ ] T062 Create `tests/Integration/CommentImportWorkflowTest.php`
+- [ ] T063 Test: New video import workflow end-to-end (metadata → preview → full import → DB verification)
+- [ ] T064 Test: Transaction rollback on API error (verify NO data persisted)
+- [ ] T065 Test: Transaction rollback on user cancel (verify NO data persisted)
+- [ ] T066 Test: Verify correct comment count in videos table after import
+- [ ] T067 Test: Verify correct comment count in channels table after import
+- [ ] T068 Test: Verify channels table INSERT for new channel (FR-015a)
 
-### Acceptance Criteria
-1. System recursively fetches replies for each top-level comment
-2. All reply levels imported (reply → reply-to-reply → ...)
-3. Each reply has correct parent_comment_id pointing to parent comment
-4. Parent-child relationships preserved in database
-5. Discussion thread structure completely maintained
+### 3.12 Run Tests & Verify
 
-### Independent Test Criteria
-- Contract test passes: multi-level reply comments fetched recursively
-- Integration test passes: video with 3-level nested replies imported correctly
-- parent_comment_id correctly set for all reply levels
-- Queries can reconstruct full thread hierarchy
+- [ ] T069 Run full test suite: `php artisan test`
+- [ ] T070 Verify all User Story 1 tests passing
 
 ---
 
-### US3 - Reply Handling Tests & Implementation
+## Phase 4: User Story 2 - Incremental Updates (P1)
 
-- [X] T042 Implement YouTubeApiServiceTest::test_fetch_comments_recursively_gets_all_reply_levels in tests/Unit/Services/YouTubeApiServiceTest.php
-- [X] T043 Implement YouTubeApiServiceTest::test_parent_comment_id_set_correctly_for_multi_level_replies in tests/Unit/Services/YouTubeApiServiceTest.php
-- [X] T044 Implement recursive reply fetching in YouTubeApiService::fetchAllComments():
-  - For each top-level comment with totalReplyCount > 0
-  - Call YouTube API comments.list with parentId filter
-  - Process replies recursively (reply-to-reply, etc.)
-  - Flatten all into single array with parent_comment_id set correctly
+**Duration**: ~8-10 hours
+**Goal**: Users can re-import existing videos and fetch only new comments
 
-- [X] T045 Implement YouTubeApiImportTest::test_multi_level_reply_comments_imported_with_correct_hierarchy in tests/Feature/YouTubeApiImportTest.php
-- [ ] T046 [P] Run reply handling tests and verify passing
+**Independent Test Criteria**:
+- User enters URL for existing video → preview shows only NEW comments
+- Primary stopping condition works: stop at max(published_at) boundary
+- Secondary guard works: catch duplicate comment_ids
+- No duplicates created in database
+- Video/channel counts correctly updated
 
----
+### 4.1 Comment Import Service - Incremental Logic
 
-## Phase 6: US4 - UI Integration (P2, Optional for MVP)
+- [ ] T071 Implement max_timestamp detection: query existing comments for max(published_at)
+- [ ] T072 Implement existing_comment_ids set for duplicate detection
+- [ ] T073 Implement PRIMARY stopping condition: stop when published_at <= max_timestamp (per FR-013)
+- [ ] T074 Implement SECONDARY guard: stop on duplicate comment_id detection (per FR-014)
+- [ ] T075 Update comments batch insert: skip duplicates (no UPDATE, immutable records)
 
-### Goal
-Add "API 導入" button and integrate with existing comments interface.
+### 4.2 Controller - Incremental Preview & Import
 
-### Note
-**This phase is P2 (lower priority) and NOT required for MVP.** All P1 functionality is complete without this phase.
+- [ ] T076 Update `getPreview()` to detect existing video and filter NEW comments only
+- [ ] T077 Implement "no new comments" message in preview (per edge case spec)
+- [ ] T078 Update `confirmImport()` to handle existing video path (use stopping conditions)
 
-### Acceptance Criteria
-1. "API 導入" button visible alongside "匯入" button on comments list page
-2. Button properly positioned on right side
-3. Clicking button opens import modal/form
-4. Form accepts video URL input
-5. Form validates URL and triggers preview endpoint
-6. New video detection routes to existing "匯入" dialog
-7. Both flows (new + existing video) work seamlessly
+### 4.3 Contract Tests - Incremental Logic
 
-### Independent Test Criteria
-- Button exists and positioned correctly
-- Form submits to /api/youtube-import/preview endpoint
-- URL validation works client-side
-- New video detection flow routes correctly
+- [ ] T079 [P] Test: fetchComments with max_timestamp filters correctly
+- [ ] T080 [P] Test: fetchComments stops at primary condition (timestamp boundary)
+- [ ] T081 [P] Test: fetchComments stops at secondary condition (duplicate_id)
 
----
+### 4.4 Integration Tests - Incremental Workflow
 
-### US4 - UI Implementation (Optional)
+- [ ] T082 Test: Incremental import workflow end-to-end (existing video → only new comments fetched)
+- [ ] T083 Test: No duplicates created on re-import
+- [ ] T084 Test: Duplicate comment_ids handled correctly (skipped)
+- [ ] T085 Test: Video/channel counts updated correctly for existing records (FR-016)
 
-- [ ] T047 Add "API 導入" button to resources/views/comments/list.blade.php next to "匯入" button
-- [ ] T048 Create resources/views/youtube-import-modal.blade.php form view with URL input field
-- [ ] T049 Add JavaScript event handler to submit URL to /api/youtube-import/preview endpoint
-- [ ] T050 Implement URL validation (client-side): Reject malformed URLs
-- [ ] T051 Handle preview response: Display sample comments or "new_video_detected" message
-- [ ] T052 Route new video detection to existing "匯入" dialog (JavaScript redirect)
-- [ ] T053 Add "確認導入" button to preview display
-- [ ] T054 Implement progress indicator during full import (optional enhancement)
-- [ ] T055 [P] Manual testing: Both new and existing video workflows through UI
+### 4.5 Edge Case Tests
+
+- [ ] T086 Test: Video with no new comments shows "no new comments" message but import still works
+- [ ] T087 Test: API ordering edge case: comments returned out of order (secondary guard catches)
 
 ---
 
-## Phase 7: Polish & Documentation
+## Phase 5: User Story 3 - Reply Threading (P1)
 
-### Goal
-Final testing, documentation, and performance optimization.
+**Duration**: ~4-6 hours
+**Goal**: Ensure all reply levels are recursively imported and linked correctly
 
-### Independent Test Criteria
-- All manual test scenarios pass
-- Performance metrics meet targets
-- Error messages are clear and actionable
-- Logs contain trace IDs and operation details
+**Independent Test Criteria**:
+- Multi-level reply threads imported (3+ levels)
+- Every reply linked via parent_comment_id
+- No missing replies at any depth
 
----
+*Note: Reply threading is implemented in Phase 3 (US1) via fetchRepliesRecursive(). This phase focuses on comprehensive testing.*
 
-### Testing & Documentation
+### 5.1 Integration Tests - Reply Threading
 
-- [ ] T056 Manual test scenario: New video with 1000+ comments (verify <30 second import)
-- [ ] T057 Manual test scenario: Existing video with 5 new comments (verify <10 second incremental)
-- [ ] T058 Manual test scenario: Video with multi-level replies (5 levels deep)
-- [ ] T059 Manual test scenario: Invalid video URL (verify error message)
-- [ ] T060 Manual test scenario: API quota exceeded (verify user message)
-- [ ] T061 Manual test scenario: Network error during import (verify partial state handling)
-- [ ] T062 Manual test scenario: User cancels preview (verify dialog closes, no DB changes)
-- [ ] T063 Run full test suite: `php artisan test` and verify all passing
-- [ ] T064 [P] Performance benchmark: Preview fetch <3 seconds
-- [ ] T065 [P] Performance benchmark: Full import <30 seconds
-- [ ] T066 [P] Performance benchmark: Incremental update <10 seconds
-- [ ] T067 Update documentation: Add API endpoint examples to quickstart.md
-- [ ] T068 Add migration rollback instructions to feature README
-- [ ] T069 [P] Code review checklist: All files follow Laravel conventions
-- [ ] T070 [P] Verify no modifications to UrtubeapiService.php or existing ImportController
+- [ ] T088 Test: Video with 3+ level reply threads: all replies imported with correct parent_comment_id
+- [ ] T089 Test: Deeply nested replies (10+ levels) all captured and linked
+- [ ] T090 Test: Replies to new top-level comments in incremental import: all new reply levels captured
+- [ ] T091 Test: Duplicate replies in incremental update: not re-imported
 
 ---
 
-## Dependency Graph
+## Phase 6: User Story 4 - UI Integration (P2)
 
-```
-Phase 1: Setup & Configuration (no dependencies)
-    ↓
-Phase 2: Foundational (depends on Phase 1)
-    ↓
-Phase 3: US1 - New Video Import (depends on Phase 2)
-    ├→ T015-T021 (tests) → T022-T026 (implementation) → T027 (verify)
-    └→ T028-T030 (controller tests) → T031-T032 (implementation) → T033 (verify)
-    ↓
-Phase 4: US2 - Incremental Update (depends on Phase 3)
-    └→ T036-T041 (incremental logic)
-    ↓
-Phase 5: US3 - Reply Comments (depends on Phase 3)
-    └→ T042-T046 (reply handling)
-    ↓
-Phase 6: US4 - UI Integration (depends on Phase 3, optional)
-    └→ T047-T055 (UI implementation, P2)
-    ↓
-Phase 7: Polish & Documentation (depends on all previous)
-    └→ T056-T070 (testing, performance, documentation)
-```
+**Duration**: ~4-6 hours
+**Goal**: Integrate YouTube API import button into existing comments interface
+
+**Independent Test Criteria**:
+- Button visible on comments list page
+- Button opens import modal
+- Both new and existing video flows work correctly
+
+### 6.1 UI Button Integration
+
+- [ ] T092 Add "官方API導入" button to `resources/views/comments/index.blade.php`
+- [ ] T093 [P] Implement JavaScript event handler: open import modal on button click
+- [ ] T094 [P] Implement AJAX form submission for URL input
+- [ ] T095 [P] Implement success/error message display
+
+### 6.2 User Flow Tests
+
+- [ ] T096 Test: Button visible on comments page
+- [ ] T097 Test: Button click opens import modal
+- [ ] T098 Test: New video flow: URL → metadata dialog → preview → import
+- [ ] T099 Test: Existing video flow: URL → preview → import (skip metadata)
+- [ ] T100 Test: Modal closes cleanly on import success
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Duration**: ~4-6 hours
+**Goal**: Error handling, documentation, performance optimization
+
+### 7.1 Error Handling & User Feedback
+
+- [ ] T101 Implement structured JSON error responses for all endpoints (per import-controller contract)
+- [ ] T102 [P] Handle YouTube API errors: quota exceeded, rate limit, invalid key, video not found
+- [ ] T103 [P] Handle network timeouts (implement retry logic with exponential backoff)
+- [ ] T104 [P] Implement user-friendly error messages in Chinese (per spec)
+- [ ] T105 [P] Implement progress indicators for long-running imports (>5 seconds)
+
+### 7.2 Structured Logging (Observable Systems)
+
+- [ ] T106 Implement trace ID generation for each import session (UUID)
+- [ ] T107 [P] Log operation boundaries: import_start, metadata_fetch, preview_fetch, full_import_start, db_commit
+- [ ] T108 [P] Log JSON format: timestamp, trace_id, operation, video_id, source, record_count, status
+- [ ] T109 [P] Implement ImportSession model persistence (optional) for audit trail
+
+### 7.3 Performance Optimization
+
+- [ ] T110 Implement comment batch insert (avoid N+1 query problem)
+- [ ] T111 [P] Test import performance: new video <30s, incremental <10s (per success criteria)
+- [ ] T112 [P] Profile database queries: verify no unnecessary queries during import
+
+### 7.4 Documentation & Code Quality
+
+- [ ] T113 [P] Add PHPDoc comments to all public methods in services and controllers
+- [ ] T114 [P] Create API documentation: endpoint signatures, request/response examples
+- [ ] T115 [P] Add inline comments for complex logic: recursive reply fetching, stopping conditions
+- [ ] T116 [P] Create deployment guide for setting YouTube API key in production
+
+### 7.5 Final Testing & Validation
+
+- [ ] T117 Run full test suite: `php artisan test` (target: >90% coverage)
+- [ ] T118 [P] Manual testing: import various video types (new, existing, different comment volumes)
+- [ ] T119 [P] Manual testing: error scenarios (invalid URL, video not found, quota exceeded)
+- [ ] T120 [P] Manual testing: UI workflows on different browsers (Chrome, Firefox, Safari)
+
+### 7.6 Code Review & Quality Gates
+
+- [ ] T121 Run code quality tools: phpstan, phpcs (PSR-12 standard)
+- [ ] T122 Fix any type errors or code style violations
+- [ ] T123 Ensure all test names are descriptive and follow convention
+- [ ] T124 Document any architectural decisions in comments or separate ARCHITECTURE.md
+
+---
+
+## Execution Checklist
+
+Use this section to track overall progress:
+
+- [ ] **Phase 1**: Setup & Infrastructure (10 tasks) - START HERE
+- [ ] **Phase 2**: Foundational (13 tasks)
+- [ ] **Phase 3**: User Story 1 - New Video Import (45 tasks)
+- [ ] **Phase 4**: User Story 2 - Incremental Updates (15 tasks)
+- [ ] **Phase 5**: User Story 3 - Reply Threading (4 tasks)
+- [ ] **Phase 6**: User Story 4 - UI Integration (9 tasks)
+- [ ] **Phase 7**: Polish & Cross-Cutting Concerns (15 tasks)
+
+**Total**: 124 implementation tasks
 
 ---
 
 ## Parallel Execution Examples
 
-### By Phase (Within Phase Parallelization)
+### Within Phase 3 (US1):
 
-**Phase 1 Tasks** (all parallelizable):
-```
-- [ ] T001 Add google/apiclient
-- [ ] T002 [P] Update .env.example
-- [ ] T003 [P] Create YouTubeApiService.php
-- [ ] T004 [P] Create YouTubeApiImportController.php
-- [ ] T005 [P] Create YouTubeApiServiceTest.php
-- [ ] T006 [P] Create YouTubeApiImportTest.php
-⏭️ (then T007 - migration, depends on PHP files existing)
-```
-
-**Phase 2 Tasks** (all parallelizable after Phase 1):
-```
-- [ ] T008 Implement migration (blocking, must complete first)
-- [ ] T009 Run migration (depends on T008)
-⏭️ (then all T010-T014 in parallel)
-- [ ] T010 [P] Update Comment model
-- [ ] T011 [P] Create YouTubeApiException
-- [ ] T012 [P] Create VideoNotFoundException
-- [ ] T013 [P] Create AuthenticationException
-- [ ] T014 [P] Create InvalidVideoIdException
-```
-
-**Phase 3 US1** (service tests and controller tests in parallel):
-```
-Service Track:
-- [ ] T015-T021 [P] Write all service tests (RED)
-- [ ] T022-T026 Implement service methods (GREEN)
-- [ ] T027 [P] Verify service tests passing
-
-Controller Track:
-- [ ] T028-T030 [P] Write controller tests (RED)
-- [ ] T031-T032 Implement controller methods (GREEN)
-- [ ] T033 [P] Verify controller tests passing
-
-Integration:
-⏭️ (sync both tracks before T034-T035)
-```
-
----
-
-## MVP vs Full Feature
-
-### MVP Scope (Recommended for v1.0)
-**Tasks**: T001-T046 (Phases 1-5)
-**Excludes**: US4 UI Integration (P2), Phase 7 polish
-**Effort**: 12-15 hours
-**Value**: Complete core functionality (new, incremental, replies)
-- Users can import via API endpoints
-- Full discussion thread preservation
-- Incremental updates work perfectly
-- All P1 requirements met
-
-### Full Feature (v1.1)
-**Tasks**: T001-T070 (All phases)
-**Includes**: US4 UI Integration (P2), full testing & documentation
-**Effort**: 15-20 hours
-**Value**: Production-ready with UI and comprehensive testing
-
----
-
-## Task Completion Checklist Format
-
-All tasks follow this format:
-```
-- [ ] [TaskID] [P] [Story] Description with file path
-```
+These tasks can be executed in parallel once models exist (after T020):
+- T025-T033: YouTube API Service methods (parallel)
+- T034-T039: CommentImportService methods (parallel)
+- T040-T050: Controller and templates (mostly parallel)
 
 Example:
 ```
-- [ ] T015 Write service contract test for fetchPreviewComments in tests/Unit/Services/YouTubeApiServiceTest.php
-- [ ] T022 [P] Implement YouTubeApiService::__construct() in app/Services/YouTubeApiService.php
-- [ ] T031 [US1] Implement preview() method in app/Http/Controllers/YouTubeApiImportController.php
+Developer A: Implement YouTubeApiService methods (T025-T033)
+Developer B: Implement CommentImportService methods (T034-T039)
+Developer C: Create Blade templates (T048-T050)
+Developer D: Create form validation (T046-T047)
+→ Then merge and test together (T052-T070)
 ```
 
-**Breakdown**:
-- `[TaskID]`: T001, T002, ... T070 (sequential execution order)
-- `[P]`: Parallelizable marker (only when task has no dependencies on incomplete tasks)
-- `[Story]`: User Story label (US1, US2, US3, US4 - only for story-specific tasks)
-- **Description**: Clear action with exact file path
+### Within Phase 2:
+
+These tasks are fully parallel:
+- T011-T014: All migrations (parallel)
+- T016-T019: All model classes (parallel)
 
 ---
 
-## Status Tracking
+## Notes for Implementation
 
-Use this checklist to track progress:
-
-- [ ] **Phase 1 Complete** (all setup tasks done)
-- [ ] **Phase 2 Complete** (database migration + exceptions ready)
-- [ ] **Phase 3 Complete** (US1 - new video import fully tested)
-- [ ] **Phase 4 Complete** (US2 - incremental updates working)
-- [ ] **Phase 5 Complete** (US3 - reply comments recursive)
-- [ ] **Phase 6 Complete** (US4 - UI integration done)
-- [ ] **Phase 7 Complete** (all testing & documentation done)
-
-**MVP Ready**: ✅ Phase 1-5 complete
-**Full Release Ready**: ✅ Phase 1-7 complete
+1. **TDD Approach**: Write contract tests (T052-T058) BEFORE implementing service methods (T025-T033)
+2. **Transaction Testing**: Verify rollback behavior thoroughly (T064-T065)
+3. **API Quota**: Use VCR cassettes in tests to avoid hitting real YouTube API during development
+4. **Logging**: Implement structured logging from the start (not as an afterthought in Phase 7)
+5. **Error Messages**: Keep user messages in Chinese per spec context
+6. **Documentation**: Refer to research.md and data-model.md during implementation for design decisions
 
 ---
 
-**Generated**: 2025-11-17 | **Status**: Ready for Implementation | **Next**: Use `/speckit.implement` to execute tasks
+## Success Metrics
+
+Upon completion:
+- ✅ All 124 tasks completed and tested
+- ✅ User Story 1 (new video) fully working and tested
+- ✅ User Story 2 (incremental) fully working and tested
+- ✅ User Story 3 (replies) fully working and tested
+- ✅ User Story 4 (UI) fully working and tested
+- ✅ Test coverage >90%
+- ✅ No failing tests
+- ✅ Code quality: zero phpstan errors, PSR-12 compliant
+- ✅ Performance: <30s new video import, <10s incremental
+
+---
+
+## Quick Start
+
+1. Start with **Phase 1** (setup): 10 tasks, ~2-4 hours
+2. Then **Phase 2** (foundational): 13 tasks, ~6-8 hours
+3. Then pick **Phase 3** (MVP) for immediate value: 45 tasks, ~10-12 hours
+4. Phases 4-7 follow MVP completion
+
+Estimated total effort: **~50-70 hours** for full feature with one developer

@@ -5,24 +5,13 @@
 **Status**: Draft
 **Input**: User description: "新增：API導入留言的功能..."
 
+---
+
 ## Clarifications
 
-### Session 2025-11-16
+### Session 2025-11-20 (Channel Existence Logic)
 
-- Q: "API 導入"頁面的具體流程是什麼，以及預覽時應導入多少留言？ → A: 流程為 1. 點「API 導入」進入頁面 → 2. 輸入影片URL → 3. 系統自動檢查存否並顯示預覽 → 4. 預覽時先測試性導入5則留言 → 5. 點「確認導入」開始完整 fetch
-- Q: 預覽時的5則留言是否應保存到數據庫？ → A: 只在預覽中顯示，不儲存到數據庫；用戶確認「確認導入」後才儲存留言
-- Q: 導入後應更新 channels 和 videos 表的哪些欄位？ → A:
-  - **Channels**: video_count (新增時), comment_count, first_import_at, last_import_at, created_at (新增時), updated_at
-  - **Videos**: video_id (新增時), channel_id (新頻道時), title (新影片時), published_at (新增時), created_at (新增時), updated_at (無論新舊都更新)
-- Q: 使用者取消導入時應如何處理？ → A: 直接關閉對話框，不做任何操作；預覽留言不儲存，導入中斷直接停止。若導入已開始儲存但中斷，下次重新導入時由增量更新邏輯自動處理
-- Q: 回複評論的導入深度應該多深？ → A: 導入所有層級的回複（評論 → 回複 → 回複的回複...等全部），完整保留討論上下文
-- Q: 新影片的元數據獲取與標籤選擇流程應如何進行？ → A: 採用和「匯入」功能一樣的機制和介面。流程為：輸入 URL → 檢查 DB 存否 → 若新影片，調用現有「匯入」對話框 → 完整「匯入」流程（爬蟲、標籤選擇等） → 匯入完成後自動開始留言導入
-
-### Session 2025-11-17
-
-- Q: File Organization Strategy – API 導入功能應如何組織代碼，以確保與 urtubeapi 完全分離？ → A: 創建新的 `YouTubeApiService.php`（獨立於 `UrtubeapiService.php`），包含 YouTube API 留言導入邏輯；只重用標籤選擇和視頻元數據選擇的 UI 組件
-
----
+- Q: 寫入DB前，應該如何檢查channel資料？ → A: 寫入DB時必須同時檢查「影片是否存在」和「頻道是否在DB存在」；如果頻道不存在才新增channels資料，否則只更新channels表中既有資料
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -41,84 +30,108 @@
 
 ### User Story 1 - Import Comments for New Video (Priority: P1)
 
-User has a YouTube video URL that has never been imported before. For a new video, the system first invokes the existing "匯入" (import video) dialog to capture metadata, channel info, and tags via web scraping. After video import completes, the system automatically proceeds to import comments using YouTube API.
+User has a YouTube video URL that has never been imported before. The system guides the user through a complete workflow: fetch video metadata from YouTube API, select tags, preview sample comments, and import all comments with their reply threads. The entire flow ensures data consistency and provides clear feedback at each step.
 
-**Why this priority**: This is the foundational use case. New videos require metadata capture (via existing import mechanism) before comments can be meaningfully stored. The feature integrates seamlessly with the existing import workflow.
+**Why this priority**: This is the foundational use case. New videos require metadata capture and tag assignment before comments can be meaningfully stored. The feature provides a streamlined workflow using YouTube API for all metadata retrieval.
 
-**Independent Test**: Can be fully tested by entering a new video URL, completing the "匯入" dialog, and verifying all comments are imported with correct fields and relationships after the video import completes.
+**Independent Test**: Can be fully tested by entering a new video URL, confirming metadata and tags, reviewing preview, and verifying all comments (including multi-level replies) are imported with correct fields and relationships.
 
 **Acceptance Scenarios**:
 
-1. **Given** a video URL that doesn't exist in the database, **When** user enters the URL and the system checks existence, **Then** the existing "匯入" dialog is triggered for the user to complete video metadata entry (channel name, title, tags via web scraping)
-2. **Given** user completes the "匯入" process and the video is saved to database, **When** the import dialog closes, **Then** the system automatically initiates comment preview showing the first 5 sample comments from YouTube API
-3. **Given** preview is displayed with 5 sample comments, **When** user reviews the preview and clicks "確認導入", **Then** the system fetches all remaining comments via YouTube API and stores them in the database with all required fields populated correctly
-4. **Given** the full comment import is in progress, **When** comments are being fetched, **Then** user receives visual feedback (progress indicator or status message)
-5. **Given** comment import completes successfully, **When** user views the comments list, **Then** all imported comments are visible and sorted by date
+1. **Given** user clicks "官方API導入" button and enters a new video URL that doesn't exist in database, **When** user clicks submit, **Then** the system calls YouTube API to fetch video title and channel name
+2. **Given** YouTube API successfully returns metadata, **When** fetching completes, **Then** a dialog displays the fetched title, channel name, and a form to select tags
+3. **Given** metadata dialog is displayed, **When** user reviews the metadata and selects tags, **Then** clicking "確認" proceeds to comment preview (metadata NOT yet saved to database)
+4. **Given** metadata is confirmed, **When** dialog closes, **Then** system automatically displays comment preview with up to 5 sample comments (newest first) WITHOUT persisting any data to database
+5. **Given** video has fewer than 5 comments, **When** preview is displayed, **Then** all available comments are shown
+6. **Given** comment preview is displayed, **When** user clicks "確認導入", **Then** system begins fetching ALL remaining comments in reverse chronological order (newest first)
+7. **Given** system successfully fetches all comment data, **When** fetching completes without errors, **Then** system saves to database: video metadata, tags, all comments with required fields, and all reply threads
+8. **Given** comments are being fetched during full import, **When** import is in progress, **Then** user receives visual feedback (progress indicator or status message)
+9. **Given** full import includes multi-level reply comments, **When** comments are stored, **Then** ALL levels of replies are recursively imported and linked to parent comments via parent_comment_id
+10. **Given** full comment import completes successfully, **When** user navigates to comments list, **Then** all imported comments and replies are visible, sorted by date, with complete thread structure preserved
+11. **Given** fetch fails at any point during comment retrieval, **When** error occurs, **Then** NO data is saved to database; user can retry and system will attempt fetch again
+12. **Given** user cancels at any point during the flow (during metadata dialog, preview, or before import starts), **When** cancellation occurs, **Then** dialog closes and NO data is saved
+13. **Given** full comment import completes and all data is saved, **When** import finishes, **Then** `channels` and `videos` tables are updated ONCE with: video_count, comment_count, first_import_at, last_import_at, created_at, updated_at (as applicable)
 
 ---
 
 ### User Story 2 - Incremental Update for Existing Video (Priority: P1)
 
-User has already imported a video before. They want to check for new comments added since the last import without downloading all previous comments again.
+User has already imported a video before and wants to check for new comments added since the last import without re-downloading all previous comments. The system intelligently fetches only new comments, preserves discussion threads (including replies to new comments), and uses dual stopping conditions to ensure completeness and efficiency.
 
-**Why this priority**: Essential for keeping data fresh without duplicating effort. Videos with ongoing discussion need regular updates, and re-importing everything would be inefficient.
+**Why this priority**: Essential for keeping data fresh without duplicating effort. Videos with ongoing discussion need regular updates, and re-importing everything would be inefficient. Smart incremental logic prevents API waste and database duplication.
 
-**Independent Test**: Can be fully tested by importing a video twice with an interval, verifying that only new comments (those added after the last import timestamp) are fetched and stored.
+**Independent Test**: Can be fully tested by importing a video twice with time interval, verifying only new comments are fetched, reply threads are complete, and no duplicates are created even if API returns unexpected ordering.
 
 **Acceptance Scenarios**:
 
-1. **Given** a video URL that already exists in the database with previous comments, **When** user enters the same URL and the system checks existence, **Then** a preview is displayed showing up to 5 sample new comments (newer than the most recent stored comment)
-2. **Given** preview is displayed with new comments available, **When** user clicks "確認導入", **Then** the system only fetches comments newer than the most recent comment already stored
-3. **Given** comments are being fetched in chronological order (newest first), **When** a duplicate comment_id is encountered, **Then** the system stops fetching immediately (avoiding unnecessary API calls)
-4. **Given** the incremental import finds new comments, **When** they are stored, **Then** they are merged with existing comments without creating duplicates
-5. **Given** the import completes, **When** related reply comments exist, **Then** they are also stored in the database
+1. **Given** a video URL already exists in database with previous comments, **When** user enters the same URL, **Then** system identifies the most recent stored comment's published_at timestamp
+2. **Given** system identifies most recent comment timestamp, **When** user clicks "確認導入", **Then** a preview displays up to 5 sample NEW comments (with published_at NEWER than max stored timestamp) WITHOUT saving any data
+3. **Given** video has no new comments since last import, **When** preview is displayed, **Then** preview shows message indicating no new comments available but user can still proceed
+4. **Given** preview is displayed and user clicks "確認導入", **When** full fetch begins, **Then** system fetches comments in reverse chronological order (newest first) from YouTube API
+5. **Given** system is fetching comments incrementally, **When** comments are being processed, **Then** system uses PRIMARY stopping condition: stop immediately when reaching a comment with published_at <= max(published_at) in database
+6. **Given** PRIMARY condition is met, **When** system encounters edge cases (API ordering issues, timezone inconsistencies), **Then** SECONDARY guard: additionally track comment_id duplicates and stop if duplicate is found, ensuring no missed comments
+7. **Given** system successfully fetches all new comment data, **When** fetching completes without errors, **Then** system saves to database: all new comments with required fields and ALL levels of reply threads
+8. **Given** new comments have replies at multiple levels, **When** comments are stored, **Then** ALL levels of replies are recursively imported and linked to parent comments via parent_comment_id
+9. **Given** fetch fails during incremental import, **When** error occurs, **Then** NO new data is saved to database; user can retry and next fetch will handle via primary/secondary stopping conditions
+10. **Given** incremental import completes successfully and all new data is saved, **When** import finishes, **Then** system prevents duplicates and merges with existing comments seamlessly
+11. **Given** import completes and all data is saved, **When** completion occurs, **Then** `channels` and `videos` tables are updated ONCE with: comment_count (recalculated from all comments), last_import_at, updated_at
 
 ---
 
 ### User Story 3 - Reply Comments Handling (Priority: P1)
 
-When importing comments, if a comment has replies (nested comments at any depth), those replies should be automatically captured and stored alongside parent comments. The system should recursively import all levels of replies to preserve the complete discussion thread structure.
+When importing comments (both new videos and incremental updates), the system MUST recursively import ALL levels of nested replies (replies, replies to replies, replies to replies to replies, etc.). Each reply maintains correct parent-child relationship, preserving complete discussion context and thread structure.
 
-**Why this priority**: YouTube comments have a threading structure with multiple levels of replies, and missing replies means losing important context and discussion continuity. Complete thread preservation is essential for maintaining full discussion history.
+**Why this priority**: YouTube comments have deep threading structure (multiple reply levels). Missing any level breaks discussion continuity and loses important context. Complete recursive import is essential for data integrity and usability.
 
-**Independent Test**: Can be fully tested by importing a video with multi-level reply comments (replies to replies) and verifying that all comment levels are stored correctly with proper parent-child relationships maintained.
+**Independent Test**: Can be fully tested by importing video with multi-level reply thread (3+ levels deep) and verifying every reply at every level is stored with correct parent_comment_id linking.
 
 **Acceptance Scenarios**:
 
-1. **Given** a comment has replies at multiple levels from the YouTube API, **When** the parent comment is imported, **Then** all reply comments at all levels are also fetched and stored in the database
-2. **Given** multi-level reply comments are stored, **When** they are queried, **Then** each maintains the correct relationship to its parent comment (via parent_comment_id or equivalent)
+1. **Given** a top-level comment has replies at multiple levels (replies → replies to replies → replies to replies to replies, etc.) from YouTube API, **When** the parent comment is imported, **Then** system calls YouTube API's `commentThreads` endpoint to recursively fetch ALL reply levels
+2. **Given** all reply levels are fetched from API, **When** storing in database, **Then** each reply stores its parent_comment_id pointing to its direct parent (forming complete tree structure)
+3. **Given** multi-level reply tree is stored, **When** comment queries execute, **Then** each reply maintains correct parent-child relationship and full thread can be reconstructed
+4. **Given** a reply at ANY depth level has replies, **When** importing that reply, **Then** system recursively imports ALL its replies (no depth limit)
+5. **Given** incremental update imports a top-level comment with existing and NEW replies at multiple levels, **When** storing, **Then** NEW replies at all levels are added while EXISTING replies are not duplicated
 
 ---
 
 ### User Story 4 - UI Integration (Priority: P2)
 
-The "API 導入" button appears alongside existing "匯入" button in the comments interface, providing unified access to video and comment import functionality. The workflow seamlessly integrates with the existing "匯入" mechanism for new videos.
+The "官方API導入" button appears in the comments interface, providing easy access to YouTube API-based comment import. Users can seamlessly import comments using official API with minimal configuration.
 
-**Why this priority**: UX clarity is important but doesn't block core functionality. Users need to discover the feature easily, and reusing existing "匯入" interface ensures consistency.
+**Why this priority**: UX clarity is important but doesn't block core functionality. Users need to discover the feature easily and understand it's a separate import method.
 
 **Independent Test**: Can be fully tested by verifying the button exists, is properly positioned, and that both new and existing video flows work correctly with appropriate dialogs appearing.
 
 **Acceptance Scenarios**:
 
-1. **Given** the comments list page is open, **When** user looks at the interface, **Then** they see both "API 導入" and "匯入" buttons positioned on the right side
-2. **Given** user clicks "API 導入" button, **When** the action is triggered, **Then** a new import modal/page is presented with a form field for entering the video URL
-3. **Given** user enters a new video URL and system detects it doesn't exist, **When** URL validation completes, **Then** the existing "匯入" dialog is automatically invoked for metadata entry
-4. **Given** user completes the "匯入" process, **When** video is saved, **Then** the system automatically displays the comment preview with up to 5 sample comments
+1. **Given** the comments list page is open, **When** user looks at the interface, **Then** they see the "官方API導入" button clearly visible
+2. **Given** user clicks "官方API導入" button, **When** the action is triggered, **Then** a new import modal/page is presented with a form field for entering the video URL
+3. **Given** user enters a new video URL and system detects it doesn't exist, **When** URL validation completes, **Then** a metadata dialog is displayed showing YouTube API-fetched title and channel name with a tag selection form
+4. **Given** user reviews the metadata and selects tags, **When** user confirms the selection, **Then** the metadata and tags are saved and the system automatically displays the comment preview with up to 5 sample comments
 5. **Given** user enters an existing video URL, **When** URL validation completes, **Then** the comment preview is directly displayed with up to 5 sample comments
 6. **Given** preview is displayed, **When** user reviews the sample data, **Then** a "確認導入" button is available to proceed with full comment import
 
-### Edge Cases
+### Edge Cases & Error Handling
 
-- What happens when the YouTube API returns an error during preview fetch (invalid API key, quota exceeded, video not found)?
-- What if the video has fewer than 5 comments available? (Should preview show all available comments)
-- How does the system handle if preview fetch succeeds but full import fails after user clicks "確認導入"?
-- How does the system handle partially imported comments if the process is interrupted mid-way during full import? (Incremental update logic will skip duplicates on next attempt)
-- What if a video URL is malformed or invalid?
-- What if the database already has comments for a video but they were imported from a different source?
-- What if a video has no new comments when doing incremental update? (Should still show preview with 0 new comments message)
-- What happens if user closes the import modal/page during preview or after clicking "確認導入"? (Dialog closes without action; import may continue in background if already started, will be handled on next import attempt)
-- What if user cancels the "匯入" dialog after entering a new video URL? (Original API import dialog closes; user returns to comment import modal, can try again or cancel)
-- What if the existing "匯入" dialog fails when importing a new video? (Error handling depends on "匯入" feature; comment import flow should not proceed)
+**API Errors**:
+- **Metadata fetch fails** (invalid API key, quota exceeded, video not found, API error): Show error message to user; NO data saved; allow retry or cancel; user returns to URL input
+- **Preview fetch fails** after successful metadata entry: Show error message; NO data saved; allow retry of preview or proceed to cancel
+- **Comment fetch fails** after user clicks "確認導入": If fetch fails at ANY point (before, during, or after recursive reply fetching), NO data is saved to database; show error message; user can retry - next attempt will refetch all data from scratch (for new videos) or use primary/secondary conditions (for incremental updates)
+
+**Data Edge Cases**:
+- **Video has fewer than 5 comments**: Preview displays all available comments (not limited to 5)
+- **Video has no new comments** in incremental update: Preview shows "no new comments" message but user can still proceed (flow remains consistent)
+- **Malformed or invalid video URL**: URL validation rejects before API call; show error message
+- **Database has comments from different source**: System treats as existing video; incremental logic prevents duplicates by comment_id and timestamp matching
+- **Partially fetched comments** if process interrupted during full comment fetch: NO partial data saved; next import attempt treats as new (for new videos) or refetches from max stored timestamp (for incremental updates)
+
+**User Actions**:
+- **User cancels during metadata dialog**: Dialog closes; NO data saved; user returns to URL input; can retry or cancel entire flow
+- **User cancels during preview**: Dialog closes; NO data saved (preview is not persisted); user returns to URL input; can retry or cancel
+- **User closes modal/page during comment fetch**: If fetch hasn't completed, NO data saved to database; dialog closes cleanly; user can retry
+- **User changes URL between steps**: Treated as new request; previous state is abandoned; NO partial data persists
 
 ## Requirements *(mandatory)*
 
@@ -132,22 +145,31 @@ The "API 導入" button appears alongside existing "匯入" button in the commen
 - **FR-001**: System MUST read YouTube API key from environment configuration (.env file)
 - **FR-002**: System MUST accept a YouTube video URL as input from the user
 - **FR-003**: System MUST validate whether a video already exists in the database before processing
-- **FR-004**: System MUST invoke the existing "匯入" (import video) dialog when a new (non-existent) video URL is detected, allowing user to complete video metadata entry (channel name, title, tags selection via web scraping)
+- **FR-004**: System MUST fetch video metadata (title, channel name) from YouTube API when a new (non-existent) video URL is detected, display the fetched metadata in a dialog, and allow user to select tags before confirming the metadata entry; metadata and tags are NOT persisted to database until successful comment fetch completion
 - **FR-005**: System MUST automatically initiate comment preview after video import completes, displaying up to 5 sample comments from YouTube API without persisting to database
 - **FR-006**: System MUST display preview comments on the import form, allowing user to review sample data without persisting to database
 - **FR-007**: System MUST provide a "確認導入" button that triggers the full import process after user reviews the preview
 - **FR-008**: System MUST fetch all comments from YouTube API when user clicks "確認導入" (for both new and existing videos)
-- **FR-009**: System MUST store all imported comments in the database with correct field mapping (matching existing comments table schema)
-- **FR-010**: System MUST recursively fetch and store all levels of reply/nested comments from the `replies.comments` section and their replies (replies to replies, etc.) to fully preserve the discussion thread structure
+- **FR-008a**: System MUST NOT persist ANY data to database (video metadata, tags, or comments) until ALL comments and replies have been successfully fetched from YouTube API
+- **FR-008b**: System MUST display video metadata and tags in preview before comment fetch, but these are only persisted to database after successful comment fetch completion
+- **FR-009**: System MUST store all imported comments in the database with correct field mapping to comments table ONLY AFTER successful completion of all comment and reply fetches:
+  - From YouTube API: `comment_id`, `video_id`, `author_channel_id`, `text`, `like_count`, `published_at`
+  - System-generated: `parent_comment_id` (set for replies; NULL for top-level), `created_at` (import timestamp), `updated_at` (import timestamp)
+- **FR-010**: System MUST recursively fetch and store all levels of reply/nested comments from the `replies.comments` section and their replies (replies to replies, etc.) to fully preserve the discussion thread structure; this recursive fetch must complete successfully before ANY data is persisted to database
+- **FR-010a**: If comment fetch fails at any point during full import (including during recursive reply fetching), system MUST rollback and persist NO data to database; user can retry
 - **FR-011**: System MUST identify the most recent comment timestamp in the database for existing videos to determine the incremental import starting point
 - **FR-012**: System MUST fetch comments in reverse chronological order (newest first) when performing incremental updates
-- **FR-013**: System MUST track the comment_id of the most recent imported comment to detect duplicates during incremental import
-- **FR-014**: System MUST stop the import process immediately upon encountering a duplicate comment_id (already exists in database)
-- **FR-015**: System MUST stop the import process when reaching comments older than the most recent stored comment timestamp (fallback safety measure)
-- **FR-016**: System MUST update the related database records in `channels` and `videos` tables after importing comments with the following rules:
-  - **Channels table**: Update `comment_count`, `last_import_at`, `updated_at` for all imports; Initialize `video_count`, `first_import_at`, `created_at` only for new channels
-  - **Videos table**: Always update `updated_at`; Initialize `video_id`, `title`, `published_at`, `created_at` for new videos; Set `channel_id` only when importing from a new channel
-- **FR-017**: System MUST display an "API 導入" button alongside the existing "匯入" button in the comments interface
+- **FR-013**: System MUST use timestamp-based break as PRIMARY condition: stop immediately when reaching comments older than or equal to max(published_at) in database
+- **FR-014**: System MUST use comment_id duplicate detection as SECONDARY guard: additionally track if comment_id already exists to catch edge cases
+- **FR-015**: System MUST stop the import process when EITHER primary (timestamp) or secondary (duplicate comment_id) condition is met
+- **FR-015a**: System MUST check channel existence in database BEFORE writing any data; determines whether to INSERT or UPDATE channels table
+- **FR-016**: System MUST update the related database records in `channels` and `videos` tables **AFTER completing the full comment import** with the following rules:
+  - **Timing**: Perform a single update/insert operation AFTER all comments are inserted (not per-comment)
+  - **Channels table - Channel does NOT exist in DB**: INSERT new channel record with: `video_count` (initialized to 1), `comment_count` (count of imported comments), `first_import_at` (import timestamp), `last_import_at` (import timestamp), `created_at` (import timestamp), `updated_at` (import timestamp)
+  - **Channels table - Channel already exists in DB**: UPDATE existing channel record with: `video_count` (increment if this is a new video for the channel), `comment_count` (recalculate from all comments), `last_import_at` (import timestamp), `updated_at` (import timestamp)
+  - **Videos table - Video does NOT exist in DB**: INSERT new video record with: `video_id`, `title`, `channel_id`, `published_at`, `created_at` (import timestamp), `updated_at` (import timestamp)
+  - **Videos table - Video already exists in DB**: UPDATE existing video record with: `updated_at` (import timestamp)
+- **FR-017**: System MUST display "官方API導入" button in the comments list page to provide access to YouTube API-based comment import
 - **FR-018**: System MUST provide user feedback during the import process (e.g., progress indication, success/failure messages)
 - **FR-019**: System MUST validate that all required comment fields are populated correctly before storing in the database
 
@@ -155,19 +177,20 @@ The "API 導入" button appears alongside existing "匯入" button in the commen
 
 ## Architecture & Code Organization
 
-### Service Separation
+### Service Separation - Complete Independence
 
-The YouTube API comment import feature **MUST be implemented in a separate service file** to maintain clean separation from the existing urtubeapi-based implementation:
+The YouTube API comment import feature **MUST be implemented as a completely independent service** with its own dedicated code:
 
-- **New Service**: `app/Services/YouTubeApiService.php` (dedicated to YouTube API operations)
-- **Existing Service**: `app/Services/UrtubeapiService.php` (remains unchanged for web scraping)
-- **Reuse**: Tag selection and video metadata selection UI components may be shared with the existing import workflow, but all API interaction logic must be isolated
+- **Service**: `app/Services/YouTubeApiService.php` (handles all YouTube API operations for comment and metadata import)
+- **UI**: Independent dialog/form for video metadata confirmation and comment preview
+- **No Code Sharing**: This feature does not share any code with other import tools. All functionality is self-contained.
 
 **Rationale**:
-- Prevents cross-contamination between YouTube API and urtubeapi implementations
-- Simplifies testing and maintenance (each service has a single responsibility)
-- Facilitates future expansion of YouTube API features without affecting urtubeapi code
-- Ensures clear code boundaries and reduces regression risk
+- Prevents cross-contamination and reduces regression risk
+- Simplifies testing and maintenance with clear, single responsibility
+- Allows independent evolution of YouTube API features without affecting other systems
+- Clear separation makes it easier to debug issues and understand feature boundaries
+- Reduces complexity by eliminating dependencies on other import implementations
 
 ---
 
@@ -199,9 +222,11 @@ The YouTube API comment import feature **MUST be implemented in a separate servi
 ## Assumptions
 
 1. YouTube API credentials are properly configured in the .env file and valid
-2. User has the necessary YouTube API quota available for fetching comments
+2. User has the necessary YouTube API quota available for fetching video metadata and comments
 3. The existing database schema for comments, videos, and channels tables is understood and documented elsewhere
 4. Comment field mapping between YouTube API response and database schema is straightforward (documented separately)
 5. Users will only attempt to import public videos where comments are enabled
 6. The system has existing infrastructure for handling YouTube API errors and rate limiting
-7. "Order by time" descending in YouTube API returns newest comments first (chronologically newest)
+7. YouTube API v3 `videos.list` endpoint provides reliable data for video title and channel name
+8. YouTube API v3 `commentThreads.list` endpoint returns comments in descending order by time (newest first)
+9. This YouTube API import feature is implemented completely independently with its own dedicated service code
