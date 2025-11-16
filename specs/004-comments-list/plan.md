@@ -1,41 +1,33 @@
-# Implementation Plan: Comments List View
+# Implementation Plan: Comments List View (UI Layout Update)
 
-**Branch**: `004-comments-list` | **Date**: 2025-11-16 | **Spec**: `specs/004-comments-list/spec.md`
-**Input**: Feature specification from `/specs/004-comments-list/spec.md`
+**Branch**: `004-comments-list` | **Date**: 2025-11-16 | **Spec**: `/specs/004-comments-list/spec.md`
+**Input**: Incremental UI layout requirements update with fixed column widths and responsive design
 
-**Note**: This plan focuses on implementing the comments list feature with search, filtering, sorting, and navigation capabilities. The system extends the existing Laravel application with a new comments management interface.
+**Note**: This plan document consolidates the UI layout changes only. Core logic (filtering, sorting, pagination) remains unchanged from previous implementation phases.
 
 ## Summary
 
-Build a comprehensive comments list view that allows analysts to browse, search, filter, and sort YouTube comments imported into the DISINFO_SCANNER system. The feature displays 500 comments per page with support for keyword search across multiple fields, date range filtering, sorting by likes and comment date, and clickable navigation to YouTube channels and videos. Success requires performance optimization for large datasets (10,000+ records) and intuitive UX for complex filtering scenarios.
+Implement responsive table layout for comments list with fixed column widths (channel: 100px, title: 200px) and multi-line comment content display. Maintain horizontal scroll with sticky headers on small screens; ensure all data visibility on larger viewports (desktop). No backend logic changes required.
 
 ## Technical Context
 
-**Language/Version**: PHP 8.2 (Laravel 11.x framework)
-**Primary Dependencies**: Laravel (Eloquent ORM, Blade templating), Vue 3 (frontend), Livewire for reactive filtering
-**Storage**: MySQL/SQLite (existing database with comments table)
-**Testing**: PHPUnit (unit/feature tests), Pest PHP (feature testing)
-**Target Platform**: Web browser (responsive design)
-**Project Type**: Web application (Laravel + Blade template backend, Vue.js/Livewire frontend)
-**Performance Goals**: <3s page load for initial list, <2s for keyword search (10k+ records), <1s for sorting/filtering
-**Constraints**: 500 comments per page (fixed), sort/filter operations <1s, no data modification, preserve existing functionality
-**Scale/Scope**: 10,000+ comments, 7 UI components (list view, search, date picker, sort headers, pagination, navigation links)
+**Language/Version**: PHP 8.1+ (Laravel 10)
+**Primary Dependencies**: Laravel 10, Tailwind CSS 3, Blade templates
+**Storage**: PostgreSQL (existing)
+**Testing**: PHPUnit for backend; Playwright for UI layout validation
+**Target Platform**: Web browser (responsive, desktop-first with mobile fallback)
+**Project Type**: Web application (Laravel + Blade)
+**Performance Goals**: Page load <3s; responsive layout adjustments instantaneous
+**Constraints**: Fixed column widths per spec; maintain accessibility; <1s sort/filter operations
+**Scale/Scope**: Comments table view UI refactor (no database schema changes)
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-✅ **Principle I - Test-First Development**: Feature will include tests for all filtering, sorting, and pagination logic before implementation.
-
-✅ **Principle II - API-First Design**: Comments list will expose API endpoints for search, filter, and sort operations with clear contracts (REST endpoints returning JSON).
-
-✅ **Principle III - Observable Systems**: All query operations will include structured logging and trace IDs for performance monitoring.
-
-✅ **Principle IV - Contract Testing**: Comment search and filter endpoints will have contract tests validating response schema before UI implementation.
-
-✅ **Principle V - Semantic Versioning**: Feature increments MINOR version; no breaking changes to existing APIs.
-
-**GATE RESULT**: ✅ **PASS** - No constitutional violations. Feature aligns with all core principles.
+✅ **Test-First Development**: UI layout changes will include acceptance tests verifying responsive breakpoints and column widths
+✅ **API-First Design**: Backend API contracts remain stable; UI consumes existing `/api/comments` endpoints
+✅ **Observable Systems**: No observability changes; existing query logging applies
+✅ **Contract Testing**: No new API contracts; existing contracts validated via current tests
+✅ **Semantic Versioning**: Minor version bump for UI layout improvements (backward-compatible)
 
 ## Project Structure
 
@@ -43,60 +35,136 @@ Build a comprehensive comments list view that allows analysts to browse, search,
 
 ```text
 specs/004-comments-list/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── plan.md              # This file (incremental UI update)
+├── research.md          # Phase 0 (completed - backend logic)
+├── data-model.md        # Phase 1 (completed - no changes needed)
+├── quickstart.md        # Phase 1 (completed)
+├── contracts/           # Phase 1 (completed - no changes)
+└── tasks.md             # Phase 2 (will be regenerated with UI tasks)
 ```
 
-### Source Code (repository root - Web application)
+### Source Code (repository root)
 
 ```text
-# Existing Laravel structure (extended)
 app/
-├── Http/Controllers/
-│   └── CommentController.php         # NEW: List, search, filter endpoints
-├── Models/
-│   ├── Comment.php                   # EXISTING: Extend with scopes for filtering
-│   ├── Video.php                     # EXISTING
-│   └── Channel.php                   # EXISTING
-└── Services/
-    └── CommentFilterService.php      # NEW: Centralized filtering/sorting logic
+└── Http/
+    └── Controllers/
+        └── CommentController.php    # Existing - no changes
 
-resources/views/
-├── comments/
-│   ├── index.blade.php               # NEW: Comments list view
-│   └── components/
-│       ├── search-bar.blade.php      # NEW: Search component
-│       ├── date-filter.blade.php     # NEW: Date range picker
-│       ├── sort-header.blade.php     # NEW: Sortable column headers
-│       └── pagination.blade.php      # NEW: Custom pagination
-└── layouts/
-    └── app.blade.php                 # EXISTING: Navigation update (add Comments List link)
+resources/
+├── views/
+│   └── comments/
+│       └── list.blade.php           # MODIFY: Add responsive layout + fixed widths
+│       └── components/              # NEW: Create reusable column components
+│
+└── css/
+    └── comments-list.css             # NEW: Responsive breakpoint styles
 
 tests/
 ├── Feature/
-│   ├── CommentListTest.php           # NEW: List view tests
-│   ├── CommentSearchTest.php         # NEW: Search functionality tests
-│   ├── CommentFilterTest.php         # NEW: Date range filtering tests
-│   ├── CommentSortTest.php           # NEW: Sorting functionality tests
-│   └── CommentNavigationTest.php     # NEW: Link navigation tests
-└── Unit/
-    └── CommentFilterServiceTest.php  # NEW: Service logic tests
-
-database/
-└── seeders/
-    └── CommentSeeder.php             # EXISTING: Use for test data (>500 records)
+│   └── CommentsListViewTest.php      # NEW: Add responsive layout tests
+└── Browser/
+    └── CommentsListLayoutTest.php    # NEW: Playwright tests for column widths
 ```
 
-**Structure Decision**: Extended Laravel web application structure. Follows existing MVC pattern with:
-- **CommentController**: HTTP request handling
-- **CommentFilterService**: Business logic for filtering/sorting (testable, reusable)
-- **Blade templates**: Server-rendered views with Livewire for reactive filtering (optional enhancement)
-- **Feature/Unit tests**: Comprehensive test coverage for all filtering scenarios
+## Incremental Changes Required
+
+### 1. Frontend View Layer (Blade Templates)
+
+**File**: `resources/views/comments/list.blade.php`
+**Changes**:
+- Apply Tailwind CSS utilities for fixed column widths
+  - Channel name: `w-[100px]` (fixed width, overflow hidden with ellipsis)
+  - Video title: `w-[200px]` (fixed width, text truncation)
+  - Comment content: Full width, `whitespace-pre-wrap` for multi-line display
+- Add responsive wrapper with `overflow-x-auto` for small screens
+- Make table columns sticky with proper z-index for horizontal scrolling
+- Implement responsive breakpoints:
+  - Mobile (<640px): Horizontal scroll with sticky headers
+  - Tablet (640px-1024px): Adjusted layout with hidden non-critical columns
+  - Desktop (>1024px): Full layout, all columns visible
+
+### 2. Styling & Layout Components
+
+**File**: `resources/views/comments/components/` (NEW directory)
+**Components to create**:
+- `column-header.blade.php`: Sortable column header with fixed width
+- `comment-cell.blade.php`: Multi-line comment content with proper wrapping
+- `channel-cell.blade.php`: Channel name with ellipsis truncation (100px)
+- `video-title-cell.blade.php`: Video title with ellipsis truncation (200px)
+
+### 3. Responsive CSS
+
+**File**: `resources/css/comments-list.css` (NEW)
+**Breakpoints**:
+```css
+/* Mobile: <640px */
+@media (max-width: 640px) {
+  /* Horizontal scroll with sticky headers */
+  .comments-table { overflow-x: auto; }
+  .comments-table thead { position: sticky; top: 0; z-index: 10; }
+}
+
+/* Tablet: 640px-1024px */
+@media (min-width: 640px) and (max-width: 1024px) {
+  /* Hide likes/dates, show essential columns */
+  .hide-tablet { display: none; }
+}
+
+/* Desktop: >1024px */
+@media (min-width: 1024px) {
+  /* Full layout visible */
+}
+```
+
+### 4. Layout Specifications
+
+| Column | Width | Desktop | Tablet | Mobile | Behavior |
+|--------|-------|---------|--------|--------|----------|
+| Channel Name | 100px | Fixed | Fixed | Fixed | Ellipsis overflow |
+| Video Title | 200px | Fixed | Fixed | Fixed | Ellipsis overflow |
+| Comment Content | Auto | Wrap | Wrap | Wrap | Multi-line, word-break |
+| Commenter ID | Auto | Visible | Visible | Visible | Truncate as needed |
+| Likes | Auto | Visible | Hidden | Hidden | Right-aligned, clickable |
+| Date | Auto | Visible | Hidden | Hidden | Right-aligned, clickable |
+
+## Backend Integration
+
+No backend changes required. Existing endpoints and query scopes remain:
+- `GET /api/comments` - Paginated comment list
+- Query parameters: `search`, `from_date`, `to_date`, `sort`, `direction`
+- Response format: Unchanged (JSON with comment objects)
+
+## Testing Strategy
+
+### Unit Tests (No changes to existing tests)
+- Existing `CommentFilterService` tests cover business logic
+- No new service tests required
+
+### Feature Tests (NEW)
+- Test responsive layout rendering in Blade templates
+- Verify column widths applied correctly via CSS classes
+- Test comment content wrapping for multi-line display
+
+### Browser Tests (NEW - Playwright)
+- Verify column widths (100px channel, 200px title) on desktop
+- Test horizontal scroll activation on small screens
+- Validate sticky headers remain visible while scrolling
+- Test long comment text wrapping and readability
+
+## Accessibility Considerations
+
+- Maintain semantic HTML `<table>` structure with `<thead>/<tbody>`
+- Ensure column headers remain accessible for screen readers
+- Preserve text contrast ratios in responsive layouts
+- Support keyboard navigation (tab, arrow keys)
 
 ## Complexity Tracking
 
-No constitutional violations requiring justification. Feature design aligns with all DISINFO_SCANNER core principles.
+| Aspect | Impact | Notes |
+|--------|--------|-------|
+| Fixed column widths | Low | CSS-only; no JS required |
+| Responsive breakpoints | Low | Standard Tailwind patterns |
+| Multi-line comment display | Low | CSS `whitespace-pre-wrap` handles wrapping |
+| Horizontal scroll on mobile | Low | Browser-native scrolling |
+| No backend changes | None | Reuses existing API contracts |
