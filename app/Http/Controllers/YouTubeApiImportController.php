@@ -43,7 +43,7 @@ class YouTubeApiImportController extends Controller
     public function getMetadata(Request $request): JsonResponse
     {
         $request->validate([
-            'video_url' => 'required|string|url',
+            'video_url' => 'required|string',
         ]);
 
         $videoUrl = $request->input('video_url');
@@ -101,7 +101,7 @@ class YouTubeApiImportController extends Controller
     public function getPreview(Request $request): JsonResponse
     {
         $request->validate([
-            'video_url' => 'required|string|url',
+            'video_url' => 'required|string',
         ]);
 
         $videoUrl = $request->input('video_url');
@@ -144,7 +144,7 @@ class YouTubeApiImportController extends Controller
     public function confirmImport(Request $request): JsonResponse
     {
         $request->validate([
-            'video_url' => 'required|string|url',
+            'video_url' => 'required|string',
             'metadata' => 'sometimes|array',
         ]);
 
