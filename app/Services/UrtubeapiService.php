@@ -53,6 +53,7 @@ class UrtubeapiService
     /**
      * Validate JSON structure from urtubeapi
      * Supports both old format and new format from API
+     * IMPORTANT: channelId is NOT in API response (it's a request parameter only)
      */
     public function validateJsonStructure(array &$data): bool
     {
@@ -63,13 +64,10 @@ class UrtubeapiService
             return true;
         }
 
-        // Check for old format with 'comments' directly
-        $required = ['videoId', 'channelId'];
-
-        foreach ($required as $field) {
-            if (!isset($data[$field])) {
-                throw new UrtubeapiException('資料格式異常，無法匯入');
-            }
+        // Check for required videoId (channelId comes from request parameter, not response)
+        // Support both camelCase and snake_case
+        if (!isset($data['videoId']) && !isset($data['video_id'])) {
+            throw new UrtubeapiException('資料格式異常，無法匯入');
         }
 
         // If comments array exists, validate it
@@ -79,12 +77,23 @@ class UrtubeapiService
             }
 
             // Validate first comment structure if exists
+            // API returns comments as object where keys are comment IDs
             if (!empty($data['comments'])) {
-                $comment = $data['comments'][0];
-                $commentRequired = ['commentId', 'author', 'authorChannelId', 'text'];
+                // Get first comment (API returns object, not array)
+                $firstCommentId = array_key_first($data['comments']);
+                if ($firstCommentId !== null) {
+                    $comment = $data['comments'][$firstCommentId];
 
-                foreach ($commentRequired as $field) {
-                    if (!isset($comment[$field])) {
+                    // Comment must be an array and have required fields
+                    if (!is_array($comment)) {
+                        throw new UrtubeapiException('資料格式異常，無法匯入');
+                    }
+
+                    // Required fields in comment data
+                    $hasAuthorChannelId = isset($comment['authorChannelId']) || isset($comment['author_channel_id']);
+                    $hasText = isset($comment['textDisplay']) || isset($comment['textOriginal']) || isset($comment['text']);
+
+                    if (!($hasAuthorChannelId && $hasText)) {
                         throw new UrtubeapiException('資料格式異常，無法匯入');
                     }
                 }

@@ -172,8 +172,9 @@ class ImportService
             // IMPORTANT: Pass channelId explicitly - API does NOT return it (it's a request parameter only)
             $models = $this->dataTransformService->transformToModels($apiData, $channelId);
 
-            // Step 4: Detect duplicates - support both camelCase and snake_case field names
-            $commentIds = array_map(fn($c) => $c['commentId'] ?? $c['comment_id'] ?? null, $apiData['comments']);
+            // Step 4: Detect duplicates
+            // commentIds are the keys in the comments object (not a field within each comment)
+            $commentIds = array_keys($apiData['comments'] ?? []);
             $dupStats = $this->duplicateDetectionService->detectDuplicateComments($commentIds);
             $stats['skipped'] = $dupStats['duplicate_count'];
             $stats['total_processed'] = count($apiData['comments']);

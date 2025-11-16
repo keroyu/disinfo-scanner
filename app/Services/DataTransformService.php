@@ -36,12 +36,24 @@ class DataTransformService
         $authors = [];
         $authorChannelIds = [];
 
-        foreach ($apiJson['comments'] as $commentData) {
-            // Support both camelCase (legacy) and snake_case (API) field names
-            $commentId = $commentData['commentId'] ?? $commentData['comment_id'] ?? null;
+        // Comments from urtubeapi can be either:
+        // 1. Array format: array of comment objects (has 'comments' array structure)
+        // 2. Object format: object where keys are comment IDs (needs iteration by key)
+        $commentsData = $apiJson['comments'] ?? [];
+
+        foreach ($commentsData as $commentId => $commentData) {
+            // commentId is the key when API returns object format
+            // Skip if commentData is not an array (shouldn't happen but be safe)
+            if (!is_array($commentData)) {
+                continue;
+            }
+
+            // Extract fields from comment data
+            // Support multiple possible field names
             $authorChannelId = $commentData['authorChannelId'] ?? $commentData['author_channel_id'] ?? null;
-            $authorName = $commentData['author'] ?? null;
-            $text = $commentData['text'] ?? '';
+            $authorName = $commentData['author'] ?? $commentData['authorDisplayName'] ?? null;
+            // Text can be in textDisplay or text or text field
+            $text = $commentData['textOriginal'] ?? $commentData['textDisplay'] ?? $commentData['text'] ?? '';
             $likeCount = $commentData['likeCount'] ?? $commentData['like_count'] ?? 0;
             $publishedAt = $commentData['publishedAt'] ?? $commentData['published_at'] ?? null;
 
@@ -55,16 +67,18 @@ class DataTransformService
                 ]);
             }
 
-            // Create comment
-            $comments[] = new Comment([
-                'comment_id' => $commentId,
-                'video_id' => $videoId,
-                'author_channel_id' => $authorChannelId,
-                'text' => $text,
-                'like_count' => $likeCount,
-                'published_at' => $publishedAt ?
-                    \Carbon\Carbon::parse($publishedAt) : null,
-            ]);
+            // Create comment (skip if no comment ID or text)
+            if ($commentId && $text) {
+                $comments[] = new Comment([
+                    'comment_id' => $commentId,
+                    'video_id' => $videoId,
+                    'author_channel_id' => $authorChannelId,
+                    'text' => $text,
+                    'like_count' => $likeCount,
+                    'published_at' => $publishedAt ?
+                        \Carbon\Carbon::parse($publishedAt) : null,
+                ]);
+            }
         }
 
         return (object)[
