@@ -1,0 +1,258 @@
+/* Comments List - Responsive Styles */
+
+/* Base Table Styles */
+.comments-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.comments-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f9fafb;
+}
+
+.comments-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.comments-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Column Width Styles */
+.comments-table th:nth-child(1),
+.comments-table td:nth-child(1) {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+}
+
+.comments-table th:nth-child(2),
+.comments-table td:nth-child(2) {
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+}
+
+/* Text Truncation for Fixed-Width Columns */
+.comments-table td:nth-child(1),
+.comments-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Comment Content Multi-line Wrapping */
+.comments-table td:nth-child(4) {
+  word-break: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Mobile Responsive: < 640px */
+@media (max-width: 639px) {
+  .comments-table {
+    font-size: 0.875rem;
+  }
+
+  .comments-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f9fafb;
+  }
+
+  /* Hide likes and date columns on mobile */
+  .comments-table th:nth-child(5),
+  .comments-table th:nth-child(6),
+  .comments-table td:nth-child(5),
+  .comments-table td:nth-child(6) {
+    display: none;
+  }
+
+  /* Horizontal scroll on mobile */
+  .overflow-x-auto {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .comments-table th,
+  .comments-table td {
+    padding: 0.75rem;
+  }
+}
+
+/* Tablet Responsive: 640px - 1024px */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .comments-table {
+    font-size: 0.875rem;
+  }
+
+  /* Hide likes and date columns on tablet */
+  .comments-table th:nth-child(5),
+  .comments-table th:nth-child(6),
+  .comments-table td:nth-child(5),
+  .comments-table td:nth-child(6) {
+    display: none;
+  }
+
+  /* Allow horizontal scroll if needed */
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
+
+  .comments-table th,
+  .comments-table td {
+    padding: 0.75rem;
+  }
+}
+
+/* Desktop Responsive: > 1024px */
+@media (min-width: 1024px) {
+  .comments-table {
+    font-size: 1rem;
+  }
+
+  /* Show all columns on desktop */
+  .comments-table th:nth-child(5),
+  .comments-table th:nth-child(6),
+  .comments-table td:nth-child(5),
+  .comments-table td:nth-child(6) {
+    display: table-cell;
+  }
+
+  .comments-table th,
+  .comments-table td {
+    padding: 1rem;
+  }
+
+  /* Disable horizontal scroll on desktop */
+  .overflow-x-auto {
+    overflow-x: visible;
+  }
+}
+
+/* Sticky Header Positioning */
+.comments-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  z-index: 10;
+}
+
+/* Link Styling */
+.comments-table a {
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.comments-table a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Accessibility: Focus Visible */
+.comments-table a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Sortable Column Header Styling */
+.comments-table th button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #374151;
+  font-weight: 600;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.comments-table th button:hover {
+  color: #2563eb;
+}
+
+.comments-table th button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Sort Direction Indicator */
+.comments-table th button span {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+}
+
+/* Pagination Section */
+.pagination-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+/* Empty State Styling */
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+}
+
+/* Contrast and Accessibility */
+@media (prefers-contrast: more) {
+  .comments-table thead {
+    background-color: #e5e7eb;
+  }
+
+  .comments-table a {
+    font-weight: 600;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .comments-table a,
+  .comments-table th button {
+    transition: none;
+  }
+
+  .comments-table tbody tr:hover {
+    background-color: transparent;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .comments-table {
+    border-collapse: collapse;
+    page-break-inside: avoid;
+  }
+
+  .comments-table thead {
+    position: static;
+  }
+
+  .comments-table a {
+    text-decoration: underline;
+    color: #000;
+  }
+
+  /* Hide interactive elements on print */
+  form,
+  button,
+  .pagination-section {
+    display: none;
+  }
+}

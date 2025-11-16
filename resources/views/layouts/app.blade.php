@@ -17,7 +17,8 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <a href="/" class="text-gray-600 hover:text-gray-900">匯入</a>
-                    <a href="/channels" class="text-gray-600 hover:text-gray-900">頻道列表</a>
+                    <a href="{{ route('channels.index') }}" class="text-gray-600 hover:text-gray-900">頻道列表</a>
+                    <a href="{{ route('comments.index') }}" class="text-gray-600 hover:text-gray-900">留言列表</a>
                 </div>
             </div>
         </div>
