@@ -128,7 +128,14 @@ class YouTubeMetadataService
         try {
             $crawler = new Crawler($html);
 
-            // Try og:video:tag meta tag (often contains creator name)
+            // Priority 1: Try itemprop="name" link tag (structured data for channel name)
+            // This is the most reliable source: <link itemprop="name" content="頻道名稱">
+            $name = $crawler->filter('link[itemprop="name"]')->attr('content');
+            if ($name) {
+                return trim($name);
+            }
+
+            // Priority 2: Try og:video:tag meta tag (often contains creator name)
             $tags = $crawler->filter('meta[property="og:video:tag"]')->each(function ($node) {
                 return $node->attr('content');
             });
@@ -138,13 +145,7 @@ class YouTubeMetadataService
                 return trim($tags[0]);
             }
 
-            // Try itemprop="name" link tag (common in YouTube structured data)
-            $name = $crawler->filter('link[itemprop="name"]')->attr('content');
-            if ($name) {
-                return trim($name);
-            }
-
-            // Fallback: search for channel name in schema.org data
+            // Priority 3: Fallback to schema.org data
             // Look for videoDetails.author in ytInitialData
             if (preg_match('/"author":"([^"]+)"/', $html, $matches)) {
                 return trim($matches[1]);
