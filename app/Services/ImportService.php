@@ -79,22 +79,23 @@ class ImportService
 
             // Step 4: Scrape video metadata (title, channel name) from YouTube
             // This is optional and gracefully degrades if it fails
-            if ($urlType === 'youtube') {
-                $scrapedMetadata = $this->youTubeMetadataService->scrapeMetadata($videoId);
-                $metadata['video_title'] = $scrapedMetadata['videoTitle'];
+            // Works for both YouTube URLs and urtubeapi (since API provides videoId)
+            $scrapedMetadata = $this->youTubeMetadataService->scrapeMetadata($videoId);
+            $metadata['video_title'] = $scrapedMetadata['videoTitle'];
 
-                // If we couldn't get channel name from API, try scraped version
-                if (!$metadata['channel_name'] && $scrapedMetadata['channelName']) {
-                    $metadata['channel_name'] = $scrapedMetadata['channelName'];
-                }
-
-                Log::info('Metadata scraping completed', [
-                    'trace_id' => $traceId,
-                    'video_id' => $videoId,
-                    'scraping_status' => $scrapedMetadata['scrapingStatus'],
-                    'has_title' => !is_null($scrapedMetadata['videoTitle']),
-                ]);
+            // If we couldn't get channel name from API, try scraped version
+            if (!$metadata['channel_name'] && $scrapedMetadata['channelName']) {
+                $metadata['channel_name'] = $scrapedMetadata['channelName'];
             }
+
+            Log::info('Metadata scraping completed', [
+                'trace_id' => $traceId,
+                'video_id' => $videoId,
+                'scraping_status' => $scrapedMetadata['scrapingStatus'],
+                'has_title' => !is_null($scrapedMetadata['videoTitle']),
+                'has_channel' => !is_null($scrapedMetadata['channelName']),
+                'url_type' => $urlType,
+            ]);
 
             // Step 5: Check if channel is new
             $isNewChannel = $this->channelTaggingService->isNewChannel($channelId);
