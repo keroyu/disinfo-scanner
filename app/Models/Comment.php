@@ -33,7 +33,7 @@ class Comment extends Model
 
     /**
      * Filter comments by keyword across multiple fields
-     * Searches: video title, author name, and comment text
+     * Searches: video title, author name, author_channel_id, and comment text
      */
     public function scopeFilterByKeyword(Builder $query, string $keyword): Builder
     {
@@ -44,6 +44,7 @@ class Comment extends Model
                 ->orWhereHas('author', function (Builder $aq) use ($keyword) {
                     $aq->where('name', 'like', '%' . $keyword . '%');
                 })
+                ->orWhere('author_channel_id', 'like', '%' . $keyword . '%')
                 ->orWhere('text', 'like', '%' . $keyword . '%');
         });
     }
