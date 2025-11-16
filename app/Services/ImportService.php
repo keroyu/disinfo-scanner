@@ -169,16 +169,18 @@ class ImportService
 
             // Step 3: Fetch fresh API data
             $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
-            $models = $this->dataTransformService->transformToModels($apiData);
+            // IMPORTANT: Pass channelId explicitly - API does NOT return it (it's a request parameter only)
+            $models = $this->dataTransformService->transformToModels($apiData, $channelId);
 
-            // Step 4: Detect duplicates
-            $commentIds = array_map(fn($c) => $c['commentId'], $apiData['comments']);
+            // Step 4: Detect duplicates - support both camelCase and snake_case field names
+            $commentIds = array_map(fn($c) => $c['commentId'] ?? $c['comment_id'] ?? null, $apiData['comments']);
             $dupStats = $this->duplicateDetectionService->detectDuplicateComments($commentIds);
             $stats['skipped'] = $dupStats['duplicate_count'];
             $stats['total_processed'] = count($apiData['comments']);
 
             // Step 5: Execute database write in transaction
-            DB::transaction(function () use ($models, $apiData, $channelId, $isNewChannel, $tags, &$stats) {
+            // IMPORTANT: Add $importId to use clause - it's needed for selectTagsForChannel()
+            DB::transaction(function () use ($models, $apiData, $channelId, $isNewChannel, $tags, $importId, &$stats) {
                 // Ensure channel exists
                 $channel = Channel::firstOrCreate(
                     ['channel_id' => $channelId],
@@ -289,7 +291,8 @@ class ImportService
         $channelId = $pendingImport['channel_id'];
 
         $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
-        $models = $this->dataTransformService->transformToModels($apiData);
+        // IMPORTANT: Pass channelId explicitly - API does NOT return it
+        $models = $this->dataTransformService->transformToModels($apiData, $channelId);
 
         $stats = [
             'newly_added' => 0,

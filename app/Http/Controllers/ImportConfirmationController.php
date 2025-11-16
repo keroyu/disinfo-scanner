@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ImportService;
+use Illuminate\Support\Facades\Log;
 
 class ImportConfirmationController extends Controller
 {
@@ -17,6 +18,9 @@ class ImportConfirmationController extends Controller
     /**
      * POST /api/import/confirm - Confirm and execute import
      * Writes all data atomically to database
+     *
+     * @param Request $request {import_id, tags}
+     * @return \Illuminate\Http\JsonResponse 200 on success, 422 on validation error
      */
     public function confirm(Request $request)
     {
@@ -58,6 +62,12 @@ class ImportConfirmationController extends Controller
                 $errorCode = 'import_expired';
             }
 
+            Log::error('Import confirmation error', [
+                'import_id' => $request->import_id,
+                'error' => $e->getMessage(),
+                'status' => $statusCode,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -69,6 +79,9 @@ class ImportConfirmationController extends Controller
     /**
      * POST /api/import/cancel - Cancel import without writing to database
      * Clears cached import data
+     *
+     * @param Request $request {import_id}
+     * @return \Illuminate\Http\JsonResponse 200 on success
      */
     public function cancel(Request $request)
     {
@@ -86,11 +99,20 @@ class ImportConfirmationController extends Controller
             // Clear the pending import from cache
             $channelTaggingService->clearPendingImport($request->import_id);
 
+            Log::info('Import cancelled', [
+                'import_id' => $request->import_id,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => '已取消匯入',
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Import cancellation error', [
+                'import_id' => $request->import_id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

@@ -219,6 +219,135 @@ Design decisions justified:
 
 ---
 
+## Core Logic: Complete Comment Import Flow
+
+### Unified Data Source: All Comments from urtubeapi
+
+**Key Principle**: Regardless of input URL format, ALL comment data must be fetched from urtubeapi API.
+
+### Import Flow by URL Type
+
+#### Flow 1: When URL is urtubeapi format
+
+```
+Input: https://urtubeapi.analysis.tw/...?videoId=abc123&token=UCxxx
+
+Step 1: URL Parsing
+   ├─ Extract videoId: "abc123"
+   └─ Extract channelId from token parameter: "UCxxx"
+      (No web scraping needed - direct from URL)
+
+Step 2: Fetch from urtubeapi
+   └─ API(videoId=abc123, token=UCxxx) → JSON response
+
+Step 3: YouTube Page Scraping (for metadata only)
+   ├─ Fetch: https://www.youtube.com/watch?v=abc123
+   ├─ Extract: videoTitle, channelName
+   └─ Store in metadata (not from API, from scraping)
+
+Step 4: Parse JSON Comments
+   ├─ API returns: comment_id, author, text, like_count, etc.
+   └─ Transform to models with channelId from Step 1
+
+Step 5: Database Write
+   └─ Insert videos, comments, authors using transformed models
+```
+
+#### Flow 2: When URL is YouTube format
+
+```
+Input: https://www.youtube.com/watch?v=abc123
+
+Step 1: YouTube Page Scraping (extract channelId)
+   ├─ Fetch: https://www.youtube.com/watch?v=abc123
+   ├─ Extract channelId from HTML: "UCxxx"
+   └─ Extract videoId from URL: "abc123"
+
+Step 2: Construct urtubeapi URL
+   └─ Build: urtubeapi.analysis.tw?videoId=abc123&token=UCxxx
+
+Step 3: Fetch from urtubeapi
+   └─ API(videoId=abc123, token=UCxxx) → JSON response
+
+Step 4: YouTube Page Scraping (for metadata)
+   ├─ Fetch: https://www.youtube.com/watch?v=abc123 (already done in Step 1)
+   ├─ Extract: videoTitle, channelName
+   └─ Store in metadata
+
+Step 5: Parse JSON Comments
+   ├─ API returns: comment_id, author, text, like_count, etc.
+   └─ Transform to models with channelId from Step 1
+
+Step 6: Database Write
+   └─ Insert videos, comments, authors using transformed models
+```
+
+### Critical Data Points
+
+**Sources of channelId**:
+- ✅ urtubeapi URL: Extract from `token` parameter (fastest)
+- ✅ YouTube URL: Extract from HTML via web scraper
+- ❌ API response: Does NOT contain channelId (it's a request parameter, not a response field)
+
+**Sources of Comments**:
+- ✅ ONLY from urtubeapi API
+- API returns: JSON with `comment_id`, `author_channel_id`, `like_count`, `published_at` (all snake_case)
+
+**Sources of Metadata** (videoTitle, channelName):
+- ✅ YouTube page scraping (not from API)
+- Requires accessing YouTube video page regardless of input URL type
+
+### Data Format Handling
+
+**API Response Format** (urtubeapi):
+```json
+{
+  "videoId": "abc123",
+  "videoTitle": "Title from API",
+  "channelTitle": "Channel from API",
+  "comments": [
+    {
+      "comment_id": "comment_123",
+      "author": "Author Name",
+      "author_channel_id": "UCyyy",
+      "text": "Comment text",
+      "like_count": 5,
+      "published_at": "2025-11-16T10:00:00Z"
+    }
+  ]
+}
+```
+
+**Database Storage Format** (snake_case):
+```sql
+-- videos table
+INSERT INTO videos (video_id, channel_id, title, youtube_url, published_at)
+
+-- comments table
+INSERT INTO comments (comment_id, video_id, author_channel_id, text, like_count, published_at)
+
+-- authors table
+INSERT INTO authors (author_channel_id, name, profile_url)
+```
+
+### Key Implementation Rules
+
+1. **channelId Parameter**: Must be passed to `transformToModels()` because:
+   - API does NOT return it (it's a request parameter only)
+   - Web scraper OR URL parsing provides it
+   - NEVER try to extract from API response
+
+2. **Comment Fields**: Handle both camelCase and snake_case:
+   - API returns snake_case: `comment_id`, `author_channel_id`, `like_count`, `published_at`
+   - Code must support both variants via `??` operator
+   - Example: `$id = $data['commentId'] ?? $data['comment_id'] ?? null`
+
+3. **Validation**: Check for minimum required fields:
+   - Must have: `commentId` (or `comment_id`) AND `text`
+   - Optional: `authorChannelId`, `author` (graceful degradation)
+
+---
+
 ## Service Layer Architecture
 
 ### Service 1: YouTubeMetadataService (NEW)
