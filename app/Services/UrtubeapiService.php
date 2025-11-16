@@ -54,7 +54,7 @@ class UrtubeapiService
      * Validate JSON structure from urtubeapi
      * Supports both old format and new format from API
      */
-    public function validateJsonStructure(array $data): bool
+    public function validateJsonStructure(array &$data): bool
     {
         // Check for new API format with 'result' and 'authors'
         if (isset($data['result']) && is_array($data['result'])) {
@@ -102,6 +102,11 @@ class UrtubeapiService
         // Extract comments from 'result' field
         if (isset($data['result']) && is_array($data['result'])) {
             $data['comments'] = $data['result'];
+        }
+
+        // Use 'authors' as channelTitle if available
+        if (isset($data['authors']) && !isset($data['channelTitle'])) {
+            $data['channelTitle'] = null;
         }
 
         // Add default values for missing fields
