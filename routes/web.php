@@ -12,3 +12,13 @@ Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'in
 
 // Comments list page
 Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'])->name('comments.index');
+
+// YouTube API Import endpoints
+Route::prefix('api')->group(function () {
+    Route::prefix('youtube-import')->group(function () {
+        Route::get('show-form', [\App\Http\Controllers\YouTubeApiImportController::class, 'showForm'])->name('youtube-import.form');
+        Route::post('metadata', [\App\Http\Controllers\YouTubeApiImportController::class, 'getMetadata'])->name('youtube-import.metadata');
+        Route::post('preview', [\App\Http\Controllers\YouTubeApiImportController::class, 'getPreview'])->name('youtube-import.preview');
+        Route::post('confirm-import', [\App\Http\Controllers\YouTubeApiImportController::class, 'confirmImport'])->name('youtube-import.confirm');
+    });
+});

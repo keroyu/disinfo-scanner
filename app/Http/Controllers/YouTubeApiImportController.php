@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\YouTubeApiService;
+use App\Services\CommentImportService;
 use App\Models\Video;
 use App\Models\Channel;
 use App\Models\Comment;
@@ -17,317 +18,169 @@ use Illuminate\Support\Facades\Log;
 class YouTubeApiImportController extends Controller
 {
     private YouTubeApiService $youtubeApiService;
+    private CommentImportService $commentImportService;
 
-    public function __construct(YouTubeApiService $youtubeApiService)
+    public function __construct(YouTubeApiService $youtubeApiService, CommentImportService $commentImportService)
     {
         $this->youtubeApiService = $youtubeApiService;
+        $this->commentImportService = $commentImportService;
     }
 
     /**
-     * Preview endpoint: Fetch preview comments for a video
-     * Returns 5 comments without persisting to DB
+     * GET /api/youtube-import/show-form
+     * Display the import form
      */
-    public function preview(Request $request): JsonResponse
+    public function showForm(): \Illuminate\View\View
+    {
+        return view('comments.import-modal');
+    }
+
+    /**
+     * POST /api/youtube-import/metadata
+     * Fetch and return metadata for a new video
+     * Returns title, channel name, and action required
+     */
+    public function getMetadata(Request $request): JsonResponse
     {
         $request->validate([
-            'video_url' => 'required|string',
+            'video_url' => 'required|string|url',
         ]);
 
-        $traceId = Str::uuid();
+        $videoUrl = $request->input('video_url');
+        $videoId = null;
+
+        try {
+            // Extract video ID from URL
+            $videoId = $this->extractVideoId($videoUrl);
+
+            // Check if video already exists
+            $video = Video::where('video_id', $videoId)->first();
+
+            if ($video) {
+                // Video exists - proceed to preview
+                return response()->json([
+                    'success' => true,
+                    'status' => 'existing_video',
+                    'data' => [
+                        'video_id' => $videoId,
+                        'next_action' => 'show_preview',
+                    ],
+                ]);
+            }
+
+            // New video - fetch metadata
+            $result = $this->commentImportService->importNewVideo($videoId);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $result['error'],
+                ], 500);
+            }
+
+            return response()->json($result);
+        } catch (InvalidVideoIdException $e) {
+            Log::warning('Invalid video URL', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'error' => '無效的YouTube URL格式',
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error getting metadata', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'error' => '無法獲取視頻元數據: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/youtube-import/preview
+     * Fetch preview comments (5 samples) without persisting to DB
+     */
+    public function getPreview(Request $request): JsonResponse
+    {
+        $request->validate([
+            'video_url' => 'required|string|url',
+        ]);
+
         $videoUrl = $request->input('video_url');
 
         try {
             // Extract video ID from URL
             $videoId = $this->extractVideoId($videoUrl);
 
-            // Check if video exists in database
-            $video = Video::where('video_id', $videoId)->first();
+            // Fetch preview
+            $result = $this->commentImportService->fetchPreview($videoId);
 
-            if (!$video) {
-                // New video detected - route to import dialog
-                Log::info('New video detected', [
-                    'trace_id' => $traceId,
-                    'video_id' => $videoId,
-                ]);
-
+            if (!$result['success']) {
                 return response()->json([
-                    'success' => true,
-                    'status' => 'new_video_detected',
-                    'data' => [
-                        'video_id' => $videoId,
-                        'import_mode' => 'full',
-                        'action_required' => 'invoke_import_dialog',
-                    ],
-                ]);
+                    'success' => false,
+                    'error' => $result['error'],
+                ], 500);
             }
 
-            // Existing video - fetch preview comments
-            $previewComments = $this->youtubeApiService->fetchPreviewComments($videoId);
-
-            $this->youtubeApiService->logOperation(
-                $traceId,
-                'preview_fetch',
-                count($previewComments),
-                'success'
-            );
-
-            return response()->json([
-                'success' => true,
-                'status' => 'preview_ready',
-                'data' => [
-                    'video_id' => $videoId,
-                    'import_mode' => 'incremental',
-                    'preview_comments' => $previewComments,
-                    'total_preview_count' => count($previewComments),
-                ],
-            ]);
+            return response()->json($result);
         } catch (InvalidVideoIdException $e) {
-            Log::warning('Invalid video URL', [
-                'trace_id' => $traceId,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::warning('Invalid video URL in preview', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'error' => 'Invalid YouTube URL format',
+                'error' => '無效的YouTube URL格式',
             ], 422);
-        } catch (YouTubeApiException $e) {
-            Log::error('YouTube API error in preview', [
-                'trace_id' => $traceId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to fetch preview: ' . $e->getMessage(),
-            ], 500);
         } catch (\Exception $e) {
-            Log::error('Unexpected error in preview', [
-                'trace_id' => $traceId,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Error fetching preview', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'error' => 'An unexpected error occurred',
+                'error' => '無法獲取預覽評論: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Confirm endpoint: Perform full import after user confirms
+     * POST /api/youtube-import/confirm-import
+     * Execute full import after user confirms
+     * Wraps workflow in database transaction for atomicity
      */
-    public function confirm(Request $request): JsonResponse
+    public function confirmImport(Request $request): JsonResponse
     {
         $request->validate([
-            'video_url' => 'required|string',
+            'video_url' => 'required|string|url',
+            'metadata' => 'sometimes|array',
         ]);
 
-        $traceId = Str::uuid();
         $videoUrl = $request->input('video_url');
-        $startTime = microtime(true);
+        $videoMetadata = $request->input('metadata');
 
         try {
             // Extract video ID
             $videoId = $this->extractVideoId($videoUrl);
 
-            // Check if video exists
-            $video = Video::where('video_id', $videoId)->first();
-            $isNewVideo = !$video;
-
-            // Determine import mode
-            $importMode = $isNewVideo ? 'full' : 'incremental';
-            $afterDate = null;
-
-            if (!$isNewVideo) {
-                // Get the max published_at from existing comments for this video
-                $maxComment = Comment::where('video_id', $videoId)
-                    ->orderBy('published_at', 'desc')
-                    ->first();
-
-                if ($maxComment) {
-                    $afterDate = $maxComment->published_at->toDateTimeString();
-                }
-            }
-
-            // Fetch all comments
-            $allComments = $this->youtubeApiService->fetchAllComments(
+            // Execute full import with transaction
+            $result = $this->commentImportService->executeFullImport(
                 $videoId,
-                $afterDate,
-                function ($count) use ($traceId) {
-                    Log::debug('Import progress', [
-                        'trace_id' => $traceId,
-                        'comment_count' => $count,
-                    ]);
-                }
+                $videoMetadata
             );
 
-            // If incremental and found nothing new, return early
-            if (!$isNewVideo && empty($allComments)) {
-                Log::info('No new comments found in incremental import', [
-                    'trace_id' => $traceId,
-                    'video_id' => $videoId,
-                ]);
-
+            if (!$result['success']) {
                 return response()->json([
-                    'success' => true,
-                    'status' => 'import_complete',
-                    'data' => [
-                        'video_id' => $videoId,
-                        'comments_imported' => 0,
-                        'replies_imported' => 0,
-                        'total_imported' => 0,
-                        'import_mode' => $importMode,
-                        'import_duration_seconds' => round(microtime(true) - $startTime, 2),
-                    ],
-                ]);
+                    'success' => false,
+                    'status' => $result['status'],
+                    'error' => $result['error'],
+                ], 500);
             }
 
-            // Get or create video and channel
-            $channel = $video?->channel;
-            $newCommentCount = 0;
-            $replyCount = 0;
-            $duplicateCount = 0;
-
-            // Process comments
-            foreach ($allComments as $commentData) {
-                // Check for duplicates
-                $exists = Comment::where('comment_id', $commentData['comment_id'])->exists();
-
-                if ($exists) {
-                    $duplicateCount++;
-                    // In incremental mode, stop at first duplicate
-                    if ($importMode === 'incremental') {
-                        break;
-                    }
-                    continue;
-                }
-
-                // Get or create author
-                $authorChannelId = $commentData['author_channel_id'];
-                if ($authorChannelId) {
-                    $author = Author::firstOrCreate(
-                        ['author_channel_id' => $authorChannelId],
-                        ['name' => $authorChannelId] // Placeholder name
-                    );
-                }
-
-                // Create or update video first if new
-                if ($isNewVideo && !$video) {
-                    $video = Video::create([
-                        'video_id' => $videoId,
-                        'title' => 'Imported from YouTube API',
-                        'published_at' => $commentData['published_at'],
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    $isNewVideo = false; // Mark as no longer new after first insert
-                }
-
-                // Create comment
-                $comment = Comment::create([
-                    'comment_id' => $commentData['comment_id'],
-                    'video_id' => $videoId,
-                    'author_channel_id' => $authorChannelId,
-                    'text' => $commentData['text'],
-                    'like_count' => $commentData['like_count'],
-                    'published_at' => $commentData['published_at'],
-                    'parent_comment_id' => $commentData['parent_comment_id'],
-                ]);
-
-                $newCommentCount++;
-
-                if ($commentData['parent_comment_id']) {
-                    $replyCount++;
-                }
-            }
-
-            // Update video
-            if ($video) {
-                $video->update(['updated_at' => now()]);
-            }
-
-            // Get channel from video if available
-            if ($video && !$channel) {
-                $channel = $video->channel;
-            }
-
-            // Update or create channel metadata
-            if (!$channel && $video) {
-                // No channel yet, we would need to get it from the video
-                // For now, skip channel creation
-            } elseif ($channel) {
-                // Recalculate comment count for this channel
-                $commentCount = Comment::whereHas('video', function ($query) use ($channel) {
-                    $query->where('channel_id', $channel->channel_id);
-                })->count();
-
-                $channel->update([
-                    'comment_count' => $commentCount,
-                    'last_import_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
-            $this->youtubeApiService->logOperation(
-                $traceId,
-                'full_import',
-                $newCommentCount + $replyCount,
-                'success'
-            );
-
-            $duration = round(microtime(true) - $startTime, 2);
-
-            return response()->json([
-                'success' => true,
-                'status' => 'import_complete',
-                'data' => [
-                    'video_id' => $videoId,
-                    'comments_imported' => $newCommentCount - $replyCount,
-                    'replies_imported' => $replyCount,
-                    'total_imported' => $newCommentCount,
-                    'duplicate_skipped' => $duplicateCount,
-                    'import_mode' => $importMode,
-                    'import_duration_seconds' => $duration,
-                ],
-            ]);
+            return response()->json($result);
         } catch (InvalidVideoIdException $e) {
-            Log::warning('Invalid video URL in confirm', [
-                'trace_id' => $traceId,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::warning('Invalid video URL in import', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'error' => 'Invalid YouTube URL format',
+                'error' => '無效的YouTube URL格式',
             ], 422);
-        } catch (YouTubeApiException $e) {
-            Log::error('YouTube API error in confirm', [
-                'trace_id' => $traceId,
-                'error' => $e->getMessage(),
-            ]);
-
-            $this->youtubeApiService->logOperation(
-                $traceId,
-                'full_import',
-                0,
-                'error',
-                $e->getMessage()
-            );
-
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to import comments: ' . $e->getMessage(),
-            ], 500);
         } catch (\Exception $e) {
-            Log::error('Unexpected error in confirm', [
-                'trace_id' => $traceId,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Error during import confirmation', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'error' => 'An unexpected error occurred',
+                'error' => '導入評論失敗: ' . $e->getMessage(),
             ], 500);
         }
     }

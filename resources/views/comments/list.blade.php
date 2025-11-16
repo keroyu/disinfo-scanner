@@ -3,9 +3,14 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Page Header -->
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">Comments List</h1>
-        <p class="text-gray-600 mt-2">Browse and analyze all collected YouTube comments</p>
+    <div class="mb-6 flex justify-between items-start">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Comments List</h1>
+            <p class="text-gray-600 mt-2">Browse and analyze all collected YouTube comments</p>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="showYouTubeImportModal()">
+            <i class="fab fa-youtube mr-2"></i>官方API導入
+        </button>
     </div>
 
     <!-- Search and Filter Section -->
@@ -323,4 +328,8 @@ document.addEventListener('keydown', function(event) {
     }
 });
 </script>
+
+<!-- Include YouTube API Import Modal -->
+@include('comments.import-modal')
+
 @endsection

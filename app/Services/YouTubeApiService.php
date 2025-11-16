@@ -29,6 +29,42 @@ class YouTubeApiService
     }
 
     /**
+     * Fetch video metadata from YouTube API
+     * Returns: title, channel_name, published_at
+     */
+    public function fetchVideoMetadata(string $videoId): array
+    {
+        $this->validateVideoId($videoId);
+
+        try {
+            $response = $this->youtube->videos->listVideos('snippet', [
+                'id' => $videoId,
+            ]);
+
+            $items = $response->getItems();
+            if (empty($items)) {
+                throw new YouTubeApiException("Video not found: {$videoId}");
+            }
+
+            $video = $items[0];
+            $snippet = $video->getSnippet();
+
+            return [
+                'title' => $snippet->getTitle(),
+                'channel_name' => $snippet->getChannelTitle(),
+                'channel_id' => $snippet->getChannelId(),
+                'published_at' => $snippet->getPublishedAt(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('YouTube API error in fetchVideoMetadata', [
+                'video_id' => $videoId,
+                'error' => $e->getMessage(),
+            ]);
+            throw new YouTubeApiException('Failed to fetch video metadata: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Fetch preview comments (up to 5) for a video without persisting
      */
     public function fetchPreviewComments(string $videoId): array
@@ -57,20 +93,28 @@ class YouTubeApiService
     /**
      * Fetch all comments for a video, optionally filtered by date
      * Recursively fetches replies at all levels
+     * Supports incremental imports with dual stopping conditions
+     *
+     * @param string $videoId The YouTube video ID
+     * @param ?string $afterDate Optional: timestamp filter (ISO 8601 format)
+     * @param ?array $existingCommentIds Optional: set of existing comment IDs for duplicate detection
+     * @param ?callable $progressCallback Optional: callback for progress updates
+     * @return array Flattened array of all comments and replies with parent_comment_id set
      */
-    public function fetchAllComments(string $videoId, ?string $afterDate = null, ?callable $progressCallback = null): array
+    public function fetchAllComments(string $videoId, ?string $afterDate = null, ?array $existingCommentIds = null, ?callable $progressCallback = null): array
     {
         $this->validateVideoId($videoId);
 
         try {
             $allComments = [];
             $nextPageToken = null;
+            $seenCommentIds = array_fill_keys($existingCommentIds ?? [], true);
 
             do {
                 $params = [
                     'videoId' => $videoId,
                     'maxResults' => 100,
-                    'order' => 'time',
+                    'order' => 'relevance', // YouTube's newest-first ordering
                     'textFormat' => 'plainText',
                     'moderationStatus' => 'heldForReview,likelySpam,published',
                 ];
@@ -81,34 +125,77 @@ class YouTubeApiService
 
                 $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
 
+                $shouldStop = false;
                 foreach ($response->getItems() as $thread) {
                     $topLevel = $thread->getSnippet()->getTopLevelComment();
                     $commentData = $this->parseCommentData($topLevel);
 
-                    // Filter by date if provided
+                    // PRIMARY STOPPING CONDITION: Check timestamp (for incremental imports)
                     if ($afterDate && strtotime($commentData['published_at']) <= strtotime($afterDate)) {
-                        break 2; // Break both foreach and do-while
+                        $shouldStop = true;
+                        break;
                     }
 
+                    // SECONDARY GUARD: Check for duplicate comment_id
+                    if (isset($seenCommentIds[$commentData['comment_id']])) {
+                        $shouldStop = true;
+                        break;
+                    }
+
+                    $seenCommentIds[$commentData['comment_id']] = true;
                     $allComments[] = $commentData;
 
-                    // Process inline replies
+                    // Process inline replies (up to 20 per thread)
                     if ($thread->getSnippet()->getTotalReplyCount() > 0 && $thread->getReplies()) {
                         foreach ($thread->getReplies()->getComments() as $reply) {
                             $replyData = $this->parseCommentData($reply, $topLevel->getId());
+
+                            // Check stopping conditions for replies too
+                            if ($afterDate && strtotime($replyData['published_at']) <= strtotime($afterDate)) {
+                                $shouldStop = true;
+                                break 2;
+                            }
+
+                            if (isset($seenCommentIds[$replyData['comment_id']])) {
+                                $shouldStop = true;
+                                break 2;
+                            }
+
+                            $seenCommentIds[$replyData['comment_id']] = true;
                             $allComments[] = $replyData;
                         }
                     }
 
                     // Recursively fetch additional replies if more than 20
                     if ($thread->getSnippet()->getTotalReplyCount() > 20) {
-                        $additionalReplies = $this->fetchRepliesRecursive($videoId, $topLevel->getId());
+                        $additionalReplies = $this->fetchRepliesRecursive(
+                            $videoId,
+                            $topLevel->getId(),
+                            $afterDate,
+                            $seenCommentIds
+                        );
                         $allComments = array_merge($allComments, $additionalReplies);
+
+                        // If recursive fetch was stopped, break main loop
+                        foreach ($additionalReplies as $reply) {
+                            if ($afterDate && strtotime($reply['published_at']) <= strtotime($afterDate)) {
+                                $shouldStop = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($shouldStop) {
+                        break;
                     }
                 }
 
                 if ($progressCallback) {
                     $progressCallback(count($allComments));
+                }
+
+                if ($shouldStop) {
+                    break;
                 }
 
                 $nextPageToken = $response->getNextPageToken();
@@ -126,11 +213,19 @@ class YouTubeApiService
 
     /**
      * Recursively fetch all replies to a comment
+     * Supports stopping conditions for incremental imports
+     *
+     * @param string $videoId The YouTube video ID
+     * @param string $parentCommentId The parent comment ID
+     * @param ?string $afterDate Optional: timestamp filter
+     * @param ?array &$seenCommentIds Optional: reference to set of seen comment IDs
+     * @return array Flattened array of all reply comments with parent_comment_id set
      */
-    private function fetchRepliesRecursive(string $videoId, string $parentCommentId, ?string $afterDate = null): array
+    private function fetchRepliesRecursive(string $videoId, string $parentCommentId, ?string $afterDate = null, ?array &$seenCommentIds = null): array
     {
         $replies = [];
         $nextPageToken = null;
+        $shouldStop = false;
 
         try {
             do {
@@ -149,12 +244,27 @@ class YouTubeApiService
                 foreach ($response->getItems() as $comment) {
                     $commentData = $this->parseCommentData($comment, $parentCommentId);
 
-                    // Filter by date if provided
+                    // PRIMARY STOPPING CONDITION: Check timestamp
                     if ($afterDate && strtotime($commentData['published_at']) <= strtotime($afterDate)) {
-                        break 2; // Break both foreach and do-while
+                        $shouldStop = true;
+                        break;
+                    }
+
+                    // SECONDARY GUARD: Check for duplicate comment_id
+                    if ($seenCommentIds !== null && isset($seenCommentIds[$commentData['comment_id']])) {
+                        $shouldStop = true;
+                        break;
+                    }
+
+                    if ($seenCommentIds !== null) {
+                        $seenCommentIds[$commentData['comment_id']] = true;
                     }
 
                     $replies[] = $commentData;
+                }
+
+                if ($shouldStop) {
+                    break;
                 }
 
                 $nextPageToken = $response->getNextPageToken();
