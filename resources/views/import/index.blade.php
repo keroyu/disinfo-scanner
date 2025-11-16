@@ -111,7 +111,7 @@
             </div>
 
             <p class="text-sm font-medium text-gray-700 mb-3">選擇標籤：</p>
-            <div id="tags-container" class="space-y-2 max-h-48 overflow-y-auto">
+            <div id="tags-container" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
                 <!-- Tags will be populated here -->
             </div>
             <div id="tag-error" class="hidden text-red-600 text-sm mt-2">請至少選擇一個標籤</div>
@@ -210,12 +210,12 @@ document.addEventListener('DOMContentLoaded', function() {
         tagsContainer.innerHTML = '';
         availableTags.forEach(tag => {
             const label = document.createElement('label');
-            label.className = 'flex items-center p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50';
+            label.className = 'inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 whitespace-nowrap';
             label.innerHTML = `
                 <input type="checkbox" class="tag-checkbox" value="${tag.code}" data-id="${tag.tag_id}">
-                <span class="ml-3 flex items-center gap-2">
+                <span class="ml-2 flex items-center gap-2">
                     <span class="inline-block w-3 h-3 rounded-full" style="background-color: var(--color-${tag.color})"></span>
-                    <span class="font-medium">${tag.name}</span>
+                    <span class="font-medium text-sm">${tag.name}</span>
                 </span>
             `;
             tagsContainer.appendChild(label);
