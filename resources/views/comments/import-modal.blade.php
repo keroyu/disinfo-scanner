@@ -1,72 +1,102 @@
-<!-- YouTube API Import Modal -->
-<div id="youtube-import-modal" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">官方API導入</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+<!-- YouTube API Import Modal (Tailwind CSS) -->
+<div id="youtube-import-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-lg shadow-2xl w-full mx-4 max-w-2xl max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="sticky top-0 flex justify-between items-center p-6 border-b border-gray-200 bg-white">
+            <h2 class="text-2xl font-bold text-gray-900">
+                <i class="fab fa-youtube text-red-600 mr-2"></i>官方API導入
+            </h2>
+            <button type="button" id="modal-close-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">
+                ×
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6">
+            <!-- Step 1: URL Input -->
+            <div id="step-url-input" class="import-step">
+                <div class="mb-4">
+                    <label for="video-url" class="block text-sm font-medium text-gray-700 mb-1">YouTube 視頻網址</label>
+                    <input
+                        type="text"
+                        id="video-url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    >
+                    <p class="mt-1 text-sm text-gray-500">支持 youtube.com 或 youtu.be 鏈接</p>
+                </div>
+                <div id="url-error" class="hidden text-red-600 bg-red-50 p-3 rounded mb-4"></div>
             </div>
 
-            <div class="modal-body">
-                <!-- Step 1: URL Input -->
-                <div id="step-url-input" class="import-step">
-                    <div class="form-group">
-                        <label for="video-url">YouTube 視頻網址</label>
-                        <input type="text" class="form-control" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
-                        <small class="form-text text-muted">支持 youtube.com 或 youtu.be 鏈接</small>
+            <!-- Step 2: Metadata Confirmation (for new videos) -->
+            <div id="step-metadata" class="import-step hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">視頻信息</h3>
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700">標題</dt>
+                        <dd class="text-gray-900" id="metadata-title">-</dd>
                     </div>
-                    <div id="url-error" class="alert alert-danger" style="display: none;"></div>
-                </div>
-
-                <!-- Step 2: Metadata Confirmation (for new videos) -->
-                <div id="step-metadata" class="import-step" style="display: none;">
-                    <h6>視頻信息</h6>
-                    <dl class="row">
-                        <dt class="col-sm-3">標題</dt>
-                        <dd class="col-sm-9" id="metadata-title">-</dd>
-
-                        <dt class="col-sm-3">頻道</dt>
-                        <dd class="col-sm-9" id="metadata-channel">-</dd>
-
-                        <dt class="col-sm-3">發布日期</dt>
-                        <dd class="col-sm-9" id="metadata-published">-</dd>
-                    </dl>
-
-                    <div class="form-group">
-                        <label>標籤</label>
-                        <div id="tag-selection" class="form-control" style="height: auto; min-height: 100px;">
-                            <!-- Tags will be populated here -->
-                        </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700">頻道</dt>
+                        <dd class="text-gray-900" id="metadata-channel">-</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700">發布日期</dt>
+                        <dd class="text-gray-900" id="metadata-published">-</dd>
                     </div>
                 </div>
 
-                <!-- Step 3: Preview Comments -->
-                <div id="step-preview" class="import-step" style="display: none;">
-                    <h6>預覽評論 (前5條)</h6>
-                    <div id="preview-comments-container" style="max-height: 300px; overflow-y: auto;">
-                        <!-- Comments will be populated here -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">標籤</label>
+                    <div id="tag-selection" class="border border-gray-300 rounded-lg p-3 min-h-[100px] bg-gray-50">
+                        <!-- Tags will be populated here -->
                     </div>
                 </div>
-
-                <!-- Loading Indicator -->
-                <div id="loading-indicator" style="display: none; text-align: center;">
-                    <div class="spinner-border" role="status">
-                        <span class="sr-only">加載中...</span>
-                    </div>
-                    <p>正在處理，請稍候...</p>
-                </div>
-
-                <!-- Success Message -->
-                <div id="success-message" class="alert alert-success" style="display: none;"></div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" id="btn-cancel" class="btn btn-secondary" data-dismiss="modal">取消</button>
-                <button type="button" id="btn-next" class="btn btn-primary">下一步</button>
-                <button type="button" id="btn-confirm" class="btn btn-success" style="display: none;">確認導入</button>
+            <!-- Step 3: Preview Comments -->
+            <div id="step-preview" class="import-step hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">預覽評論 (前5條)</h3>
+                <div id="preview-comments-container" class="space-y-2 max-h-[300px] overflow-y-auto">
+                    <!-- Comments will be populated here -->
+                </div>
             </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="hidden text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                </div>
+                <p class="mt-4 text-gray-600">正在處理，請稍候...</p>
+            </div>
+
+            <!-- Success Message -->
+            <div id="success-message" class="hidden text-green-700 bg-green-50 p-4 rounded mb-4"></div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="sticky bottom-0 flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <button
+                type="button"
+                id="btn-cancel"
+                class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+                取消
+            </button>
+            <button
+                type="button"
+                id="btn-next"
+                class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+            >
+                下一步
+            </button>
+            <button
+                type="button"
+                id="btn-confirm"
+                class="hidden px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+            >
+                確認導入
+            </button>
         </div>
     </div>
 </div>
@@ -78,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnNext = document.getElementById('btn-next');
     const btnConfirm = document.getElementById('btn-confirm');
     const btnCancel = document.getElementById('btn-cancel');
+    const closeBtn = document.getElementById('modal-close-btn');
     const loadingIndicator = document.getElementById('loading-indicator');
     const successMessage = document.getElementById('success-message');
 
@@ -88,7 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Step navigation
     btnNext.addEventListener('click', handleNextStep);
     btnConfirm.addEventListener('click', handleConfirmImport);
-    btnCancel.addEventListener('click', resetModal);
+    btnCancel.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
 
     // Video URL input - trigger metadata fetch on Enter
     videoUrlInput.addEventListener('keypress', function(e) {
@@ -97,20 +129,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    function showModal() {
+        modal.classList.remove('hidden');
+    }
+
     function resetModal() {
         currentStep = 'url-input';
         currentVideoId = null;
         currentVideoMetadata = null;
         videoUrlInput.value = '';
-        document.getElementById('url-error').style.display = 'none';
+        document.getElementById('url-error').classList.add('hidden');
         showStep('url-input');
-        btnNext.style.display = 'inline-block';
-        btnConfirm.style.display = 'none';
+        btnNext.classList.remove('hidden');
+        btnConfirm.classList.add('hidden');
     }
 
     function showStep(step) {
-        document.querySelectorAll('.import-step').forEach(el => el.style.display = 'none');
-        document.getElementById('step-' + step).style.display = 'block';
+        document.querySelectorAll('.import-step').forEach(el => el.classList.add('hidden'));
+        document.getElementById('step-' + step).classList.remove('hidden');
         currentStep = step;
     }
 
@@ -131,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         showLoading(true);
-        document.getElementById('url-error').style.display = 'none';
+        document.getElementById('url-error').classList.add('hidden');
 
         try {
             // Extract video ID
@@ -165,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentVideoMetadata = data.data;
                 displayMetadata(data.data);
                 showStep('metadata');
-                btnNext.innerText = '下一步';
+                btnNext.textContent = '下一步';
                 showLoading(false);
             }
         } catch (error) {
@@ -175,9 +229,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayMetadata(metadata) {
-        document.getElementById('metadata-title').innerText = metadata.title || '-';
-        document.getElementById('metadata-channel').innerText = metadata.channel_name || '-';
-        document.getElementById('metadata-published').innerText = metadata.published_at
+        document.getElementById('metadata-title').textContent = metadata.title || '-';
+        document.getElementById('metadata-channel').textContent = metadata.channel_name || '-';
+        document.getElementById('metadata-published').textContent = metadata.published_at
             ? new Date(metadata.published_at).toLocaleDateString('zh-TW')
             : '-';
     }
@@ -212,9 +266,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             displayPreviewComments(data.data.preview_comments);
             showStep('preview');
-            btnNext.style.display = 'none';
-            btnConfirm.style.display = 'inline-block';
-            btnConfirm.innerText = '確認導入';
+            btnNext.classList.add('hidden');
+            btnConfirm.classList.remove('hidden');
+            btnConfirm.textContent = '確認導入';
             showLoading(false);
         } catch (error) {
             showError('獲取預覽評論失敗: ' + error.message);
@@ -227,25 +281,25 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '';
 
         if (!comments || comments.length === 0) {
-            container.innerHTML = '<p class="text-muted">沒有新的評論</p>';
+            container.innerHTML = '<p class="text-gray-500">沒有新的評論</p>';
             return;
         }
 
         comments.forEach(comment => {
-            const commentEl = document.createElement('div');
-            commentEl.className = 'card mb-2';
-            if (comment.parent_comment_id) {
-                commentEl.style.marginLeft = '20px';
-            }
-
             const publishedDate = new Date(comment.published_at).toLocaleDateString('zh-TW');
+            const truncatedText = comment.text.substring(0, 150) + (comment.text.length > 150 ? '...' : '');
+
+            const commentEl = document.createElement('div');
+            commentEl.className = comment.parent_comment_id
+                ? 'pl-4 border-l-4 border-gray-300 bg-gray-50 p-3 rounded'
+                : 'bg-white border border-blue-200 p-3 rounded';
 
             commentEl.innerHTML = `
-                <div class="card-body p-2">
-                    <small class="text-muted">${comment.author_channel_id || '匿名用戶'} - ${publishedDate}</small>
-                    <p class="mb-1">${escapeHtml(comment.text.substring(0, 200))}${comment.text.length > 200 ? '...' : ''}</p>
-                    <small class="text-muted">👍 ${comment.like_count}</small>
+                <div class="text-xs text-gray-500 mb-1">
+                    ${comment.author_channel_id || '匿名用戶'} · ${publishedDate}
                 </div>
+                <p class="text-sm text-gray-700">${escapeHtml(truncatedText)}</p>
+                <div class="text-xs text-gray-500 mt-1">👍 ${comment.like_count}</div>
             `;
 
             container.appendChild(commentEl);
@@ -293,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Close modal after 2 seconds
             setTimeout(() => {
-                $(modal).modal('hide');
+                closeModal();
                 // Reload comments list
                 if (window.location.pathname.includes('/comments')) {
                     location.reload();
@@ -308,19 +362,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showLoading(show) {
-        loadingIndicator.style.display = show ? 'block' : 'none';
+        if (show) {
+            loadingIndicator.classList.remove('hidden');
+        } else {
+            loadingIndicator.classList.add('hidden');
+        }
     }
 
     function showError(message) {
         const errorDiv = document.getElementById('url-error');
-        errorDiv.innerText = message;
-        errorDiv.style.display = 'block';
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
     }
 
     function showSuccess(message) {
         const successDiv = document.getElementById('success-message');
-        successDiv.innerText = message;
-        successDiv.style.display = 'block';
+        successDiv.textContent = message;
+        successDiv.classList.remove('hidden');
     }
 
     function extractVideoId(url) {
@@ -349,31 +407,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Expose modal show function globally
     window.showYouTubeImportModal = function() {
         resetModal();
-        $(modal).modal('show');
+        showModal();
     };
 });
 </script>
 
 <style>
-#youtube-import-modal .import-step {
-    animation: fadeIn 0.3s;
+.import-step {
+    animation: fadeIn 0.3s ease-in;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
+        transform: translateY(5px);
     }
     to {
         opacity: 1;
+        transform: translateY(0);
     }
-}
-
-#preview-comments-container .card {
-    border-left: 3px solid #007bff;
-}
-
-#preview-comments-container .card.reply {
-    border-left-color: #6c757d;
-    margin-left: 30px;
 }
 </style>
