@@ -77,7 +77,6 @@ class YouTubeApiService
                 'maxResults' => 5,
                 'order' => 'time',
                 'textFormat' => 'plainText',
-                'moderationStatus' => 'heldForReview,likelySpam,published',
             ]);
 
             return $this->flattenCommentThreads($response->getItems());
@@ -116,7 +115,6 @@ class YouTubeApiService
                     'maxResults' => 100,
                     'order' => 'relevance', // YouTube's newest-first ordering
                     'textFormat' => 'plainText',
-                    'moderationStatus' => 'heldForReview,likelySpam,published',
                 ];
 
                 if ($nextPageToken) {
