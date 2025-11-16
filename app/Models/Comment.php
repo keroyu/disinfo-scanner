@@ -15,7 +15,7 @@ class Comment extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['comment_id', 'video_id', 'author_channel_id', 'text', 'like_count', 'published_at'];
+    protected $fillable = ['comment_id', 'video_id', 'author_channel_id', 'text', 'like_count', 'published_at', 'parent_comment_id'];
 
     protected $casts = [
         'published_at' => 'datetime',
@@ -29,6 +29,22 @@ class Comment extends Model
     public function author()
     {
         return $this->belongsTo(Author::class, 'author_channel_id');
+    }
+
+    /**
+     * Get the parent comment (for reply comments)
+     */
+    public function parentComment()
+    {
+        return $this->belongsTo(Comment::class, 'parent_comment_id', 'comment_id');
+    }
+
+    /**
+     * Get the child replies to this comment
+     */
+    public function replies()
+    {
+        return $this->hasMany(Comment::class, 'parent_comment_id', 'comment_id');
     }
 
     /**

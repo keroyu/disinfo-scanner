@@ -52,13 +52,13 @@ Initialize project dependencies and environment configuration for YouTube API in
 
 ---
 
-- [ ] T001 Add google/apiclient dependency to composer.json via `composer require google/apiclient:^2.15`
-- [ ] T002 [P] Update .env.example with YOUTUBE_API_KEY=your_key_here
-- [ ] T003 [P] Create app/Services/YouTubeApiService.php (empty file, will be filled in later)
-- [ ] T004 [P] Create app/Http/Controllers/YouTubeApiImportController.php (empty file, will be filled in later)
-- [ ] T005 [P] Create tests/Unit/Services/YouTubeApiServiceTest.php (empty file, will be filled in later)
-- [ ] T006 [P] Create tests/Feature/YouTubeApiImportTest.php (empty file, will be filled in later)
-- [ ] T007 Create database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php migration file
+- [X] T001 Add google/apiclient dependency to composer.json via `composer require google/apiclient:^2.15`
+- [X] T002 [P] Update .env.example with YOUTUBE_API_KEY=your_key_here
+- [X] T003 [P] Create app/Services/YouTubeApiService.php (empty file, will be filled in later)
+- [X] T004 [P] Create app/Http/Controllers/YouTubeApiImportController.php (empty file, will be filled in later)
+- [X] T005 [P] Create tests/Unit/Services/YouTubeApiServiceTest.php (empty file, will be filled in later)
+- [X] T006 [P] Create tests/Feature/YouTubeApiImportTest.php (empty file, will be filled in later)
+- [X] T007 Create database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php migration file
 
 ---
 
@@ -75,13 +75,13 @@ Set up database schema changes and core models to support comment import feature
 
 ---
 
-- [ ] T008 Implement parent_comment_id migration: Add column, foreign key, and index to comments table in database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php
-- [ ] T009 Run migration: `php artisan migrate` and verify no errors
-- [ ] T010 [P] Update app/Models/Comment.php to add parent_comment_id field and parent/children relationships
-- [ ] T011 [P] Create app/Exceptions/YouTubeApiException.php exception class
-- [ ] T012 [P] Create app/Exceptions/VideoNotFoundException.php exception class
-- [ ] T013 [P] Create app/Exceptions/AuthenticationException.php exception class
-- [ ] T014 [P] Create app/Exceptions/InvalidVideoIdException.php exception class
+- [X] T008 Implement parent_comment_id migration: Add column, foreign key, and index to comments table in database/migrations/YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php
+- [X] T009 Run migration: `php artisan migrate` and verify no errors
+- [X] T010 [P] Update app/Models/Comment.php to add parent_comment_id field and parent/children relationships
+- [X] T011 [P] Create app/Exceptions/YouTubeApiException.php exception class
+- [X] T012 [P] Create app/Exceptions/VideoNotFoundException.php exception class
+- [X] T013 [P] Create app/Exceptions/AuthenticationException.php exception class
+- [X] T014 [P] Create app/Exceptions/InvalidVideoIdException.php exception class
 
 ---
 
@@ -111,39 +111,39 @@ Implement complete workflow for importing comments from a new YouTube video (not
 
 ### US1 Service Layer - Contract Tests First (TDD)
 
-- [ ] T015 Implement YouTubeApiServiceTest::test_fetch_preview_comments_returns_5_comments in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [ ] T016 Implement YouTubeApiServiceTest::test_fetch_preview_comments_with_fewer_than_5_comments in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [ ] T017 Implement YouTubeApiServiceTest::test_fetch_all_comments_returns_all_top_level_and_replies in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [ ] T018 Implement YouTubeApiServiceTest::test_fetch_all_comments_with_after_date_filters_results in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [ ] T019 Implement YouTubeApiServiceTest::test_validate_video_id_accepts_valid_format in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [ ] T020 Implement YouTubeApiServiceTest::test_validate_video_id_rejects_invalid_format in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
-- [ ] T021 Implement YouTubeApiServiceTest::test_api_error_handling_throws_proper_exceptions in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T015 Implement YouTubeApiServiceTest::test_fetch_preview_comments_returns_5_comments in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T016 Implement YouTubeApiServiceTest::test_fetch_preview_comments_with_fewer_than_5_comments in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T017 Implement YouTubeApiServiceTest::test_fetch_all_comments_returns_all_top_level_and_replies in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T018 Implement YouTubeApiServiceTest::test_fetch_all_comments_with_after_date_filters_results in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T019 Implement YouTubeApiServiceTest::test_validate_video_id_accepts_valid_format in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T020 Implement YouTubeApiServiceTest::test_validate_video_id_rejects_invalid_format in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
+- [X] T021 Implement YouTubeApiServiceTest::test_api_error_handling_throws_proper_exceptions in tests/Unit/Services/YouTubeApiServiceTest.php (RED test)
 
 ### US1 Service Layer - Implementation (GREEN)
 
-- [ ] T022 Implement YouTubeApiService::__construct() method: Initialize Google Client with API key from .env
-- [ ] T023 Implement YouTubeApiService::fetchPreviewComments(string $videoId): array method
-- [ ] T024 Implement YouTubeApiService::fetchAllComments(string $videoId, ?string $afterDate = null, ?callable $progressCallback = null): array method with recursive reply fetching
-- [ ] T025 Implement YouTubeApiService::validateVideoId(string $videoId): bool method
-- [ ] T026 Implement YouTubeApiService::logOperation(string $traceId, string $operation, int $commentCount, string $status, ?string $error): void method
+- [X] T022 Implement YouTubeApiService::__construct() method: Initialize Google Client with API key from .env
+- [X] T023 Implement YouTubeApiService::fetchPreviewComments(string $videoId): array method
+- [X] T024 Implement YouTubeApiService::fetchAllComments(string $videoId, ?string $afterDate = null, ?callable $progressCallback = null): array method with recursive reply fetching
+- [X] T025 Implement YouTubeApiService::validateVideoId(string $videoId): bool method
+- [X] T026 Implement YouTubeApiService::logOperation(string $traceId, string $operation, int $commentCount, string $status, ?string $error): void method
 - [ ] T027 [P] Run all YouTubeApiService tests and verify passing (REFACTOR phase)
 
 ### US1 Controller Layer - Contract Tests First (TDD)
 
-- [ ] T028 Implement YouTubeApiImportTest::test_preview_endpoint_fetches_5_comments_for_existing_video in tests/Feature/YouTubeApiImportTest.php (RED test)
-- [ ] T029 Implement YouTubeApiImportTest::test_preview_endpoint_detects_new_video_and_returns_action_required in tests/Feature/YouTubeApiImportTest.php (RED test)
-- [ ] T030 Implement YouTubeApiImportTest::test_confirm_endpoint_imports_all_comments_with_replies in tests/Feature/YouTubeApiImportTest.php (RED test)
+- [X] T028 Implement YouTubeApiImportTest::test_preview_endpoint_fetches_5_comments_for_existing_video in tests/Feature/YouTubeApiImportTest.php (RED test)
+- [X] T029 Implement YouTubeApiImportTest::test_preview_endpoint_detects_new_video_and_returns_action_required in tests/Feature/YouTubeApiImportTest.php (RED test)
+- [X] T030 Implement YouTubeApiImportTest::test_confirm_endpoint_imports_all_comments_with_replies in tests/Feature/YouTubeApiImportTest.php (RED test)
 
 ### US1 Controller Layer - Implementation (GREEN)
 
-- [ ] T031 Implement YouTubeApiImportController::preview(Request $request): JsonResponse method in app/Http/Controllers/YouTubeApiImportController.php
+- [X] T031 Implement YouTubeApiImportController::preview(Request $request): JsonResponse method in app/Http/Controllers/YouTubeApiImportController.php
   - Extract video ID from URL
   - Check if video exists in database
   - If new → Return "new_video_detected" status (no preview fetch)
   - If exists → Call YouTubeApiService::fetchPreviewComments
   - Return preview array + metadata
 
-- [ ] T032 Implement YouTubeApiImportController::confirm(Request $request): JsonResponse method in app/Http/Controllers/YouTubeApiImportController.php
+- [X] T032 Implement YouTubeApiImportController::confirm(Request $request): JsonResponse method in app/Http/Controllers/YouTubeApiImportController.php
   - Extract video ID
   - Determine import mode (incremental vs full)
   - Call YouTubeApiService::fetchAllComments
@@ -156,7 +156,7 @@ Implement complete workflow for importing comments from a new YouTube video (not
 
 ### US1 Routes & Integration
 
-- [ ] T034 Add routes to routes/api.php: POST /api/youtube-import/preview and POST /api/youtube-import/confirm
+- [X] T034 Add routes to routes/api.php: POST /api/youtube-import/preview and POST /api/youtube-import/confirm
 - [ ] T035 [P] Run full integration test: new video URL → preview → confirm → verify all comments in DB with correct relationships
 
 ---
@@ -185,20 +185,20 @@ Implement efficient updating of comments for videos that have been imported befo
 
 ### US2 - Incremental Logic Tests & Implementation
 
-- [ ] T036 Implement YouTubeApiServiceTest::test_incremental_fetch_with_after_date_parameter in tests/Unit/Services/YouTubeApiServiceTest.php
-- [ ] T037 Implement YouTubeApiServiceTest::test_fetch_stops_at_duplicate_comment_id in tests/Unit/Services/YouTubeApiServiceTest.php
-- [ ] T038 Implement incremental mode logic in YouTubeApiImportController::confirm() method:
+- [X] T036 Implement YouTubeApiServiceTest::test_incremental_fetch_with_after_date_parameter in tests/Unit/Services/YouTubeApiServiceTest.php
+- [X] T037 Implement YouTubeApiServiceTest::test_fetch_stops_at_duplicate_comment_id in tests/Unit/Services/YouTubeApiServiceTest.php
+- [X] T038 Implement incremental mode logic in YouTubeApiImportController::confirm() method:
   - Find max(published_at) from existing comments for video
   - Call fetchAllComments with afterDate parameter
   - Stop processing when duplicate comment_id detected
 
-- [ ] T039 Implement duplicate detection in confirm() endpoint:
+- [X] T039 Implement duplicate detection in confirm() endpoint:
   - Check if comment_id exists before insert
   - Skip insert if exists (no update to like_count)
   - Continue to next comment
   - Stop if duplicate found in incremental mode
 
-- [ ] T040 Implement YouTubeApiImportTest::test_incremental_import_fetches_only_new_comments in tests/Feature/YouTubeApiImportTest.php
+- [X] T040 Implement YouTubeApiImportTest::test_incremental_import_fetches_only_new_comments in tests/Feature/YouTubeApiImportTest.php
 - [ ] T041 [P] Run incremental update tests and verify passing
 
 ---
@@ -225,15 +225,15 @@ Implement recursive fetching and storage of reply comments at all nesting levels
 
 ### US3 - Reply Handling Tests & Implementation
 
-- [ ] T042 Implement YouTubeApiServiceTest::test_fetch_comments_recursively_gets_all_reply_levels in tests/Unit/Services/YouTubeApiServiceTest.php
-- [ ] T043 Implement YouTubeApiServiceTest::test_parent_comment_id_set_correctly_for_multi_level_replies in tests/Unit/Services/YouTubeApiServiceTest.php
-- [ ] T044 Implement recursive reply fetching in YouTubeApiService::fetchAllComments():
+- [X] T042 Implement YouTubeApiServiceTest::test_fetch_comments_recursively_gets_all_reply_levels in tests/Unit/Services/YouTubeApiServiceTest.php
+- [X] T043 Implement YouTubeApiServiceTest::test_parent_comment_id_set_correctly_for_multi_level_replies in tests/Unit/Services/YouTubeApiServiceTest.php
+- [X] T044 Implement recursive reply fetching in YouTubeApiService::fetchAllComments():
   - For each top-level comment with totalReplyCount > 0
   - Call YouTube API comments.list with parentId filter
   - Process replies recursively (reply-to-reply, etc.)
   - Flatten all into single array with parent_comment_id set correctly
 
-- [ ] T045 Implement YouTubeApiImportTest::test_multi_level_reply_comments_imported_with_correct_hierarchy in tests/Feature/YouTubeApiImportTest.php
+- [X] T045 Implement YouTubeApiImportTest::test_multi_level_reply_comments_imported_with_correct_hierarchy in tests/Feature/YouTubeApiImportTest.php
 - [ ] T046 [P] Run reply handling tests and verify passing
 
 ---
