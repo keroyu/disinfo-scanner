@@ -34,12 +34,12 @@ class CommentController extends Controller
             $query->filterByChannel($channelKeyword);
         }
 
-        // Apply date range filter
-        if ($request->filled('from_date') && $request->filled('to_date')) {
-            $fromDate = $request->input('from_date');
-            $toDate = $request->input('to_date');
-            $query->filterByDateRange($fromDate, $toDate);
-        }
+        // Apply date range filter (default to last 30 days)
+        $fromDate = $request->input('from_date', now()->subDays(30)->format('Y-m-d'));
+        $toDate = $request->input('to_date', now()->format('Y-m-d'));
+
+        // Always apply date range filter (uses defaults if not provided)
+        $query->filterByDateRange($fromDate, $toDate);
 
         // Apply sorting
         $sort = $request->input('sort', 'date');
