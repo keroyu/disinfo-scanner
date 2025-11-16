@@ -18,6 +18,10 @@
 - Q: 回複評論的導入深度應該多深？ → A: 導入所有層級的回複（評論 → 回複 → 回複的回複...等全部），完整保留討論上下文
 - Q: 新影片的元數據獲取與標籤選擇流程應如何進行？ → A: 採用和「匯入」功能一樣的機制和介面。流程為：輸入 URL → 檢查 DB 存否 → 若新影片，調用現有「匯入」對話框 → 完整「匯入」流程（爬蟲、標籤選擇等） → 匯入完成後自動開始留言導入
 
+### Session 2025-11-17
+
+- Q: File Organization Strategy – API 導入功能應如何組織代碼，以確保與 urtubeapi 完全分離？ → A: 創建新的 `YouTubeApiService.php`（獨立於 `UrtubeapiService.php`），包含 YouTube API 留言導入邏輯；只重用標籤選擇和視頻元數據選擇的 UI 組件
+
 ---
 
 ## User Scenarios & Testing *(mandatory)*
@@ -146,6 +150,26 @@ The "API 導入" button appears alongside existing "匯入" button in the commen
 - **FR-017**: System MUST display an "API 導入" button alongside the existing "匯入" button in the comments interface
 - **FR-018**: System MUST provide user feedback during the import process (e.g., progress indication, success/failure messages)
 - **FR-019**: System MUST validate that all required comment fields are populated correctly before storing in the database
+
+---
+
+## Architecture & Code Organization
+
+### Service Separation
+
+The YouTube API comment import feature **MUST be implemented in a separate service file** to maintain clean separation from the existing urtubeapi-based implementation:
+
+- **New Service**: `app/Services/YouTubeApiService.php` (dedicated to YouTube API operations)
+- **Existing Service**: `app/Services/UrtubeapiService.php` (remains unchanged for web scraping)
+- **Reuse**: Tag selection and video metadata selection UI components may be shared with the existing import workflow, but all API interaction logic must be isolated
+
+**Rationale**:
+- Prevents cross-contamination between YouTube API and urtubeapi implementations
+- Simplifies testing and maintenance (each service has a single responsibility)
+- Facilitates future expansion of YouTube API features without affecting urtubeapi code
+- Ensures clear code boundaries and reduces regression risk
+
+---
 
 ### Key Entities *(include if feature involves data)*
 

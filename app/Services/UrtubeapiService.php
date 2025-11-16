@@ -20,16 +20,28 @@ class UrtubeapiService
     }
 
     /**
-     * Fetch comment data from urtubeapi endpoint
+     * Fetch comment data from urtubeapi endpoint with pagination support
+     *
+     * @param string $videoId YouTube video ID
+     * @param string $channelId Channel ID (used as token for urtubeapi)
+     * @param string|null $pageToken Optional pagination token for fetching additional pages
+     * @return array Comment data with optional nextPageToken for pagination
      */
-    public function fetchCommentData($videoId, $channelId): array
+    public function fetchCommentData($videoId, $channelId, $pageToken = null): array
     {
         try {
+            $query = [
+                'videoId' => $videoId,
+                'token' => $channelId,
+            ];
+
+            // Add pagination support if pageToken is provided
+            if ($pageToken !== null) {
+                $query['pageToken'] = $pageToken;
+            }
+
             $response = $this->client->get($this->baseUrl, [
-                'query' => [
-                    'videoId' => $videoId,
-                    'token' => $channelId,
-                ]
+                'query' => $query
             ]);
 
             $data = json_decode((string) $response->getBody(), true);

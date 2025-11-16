@@ -1,67 +1,110 @@
 # Implementation Plan: YouTube API Comments Import
 
-**Branch**: `005-api-import-comments` | **Date**: 2025-11-16 | **Spec**: [spec.md](./spec.md)
+**Branch**: `005-api-import-comments` | **Date**: 2025-11-17 | **Spec**: `/specs/005-api-import-comments/spec.md`
 **Input**: Feature specification from `/specs/005-api-import-comments/spec.md`
 
-**Note**: This plan builds on architectural review findings and integrates with existing Laravel 12 service-oriented patterns.
+## Clarifications Integration
+
+This plan fully incorporates all clarifications from spec.md:
+
+| Clarification | Spec Impact | Design Decision |
+|---------------|------------|-----------------|
+| Preview = 5 comments, not persisted | FR-005, FR-006 | YouTubeApiService::fetchPreviewComments returns array without DB insert |
+| Channel/Video field updates | FR-016 | UpdateMetadataService or inline logic in controller after comment store |
+| Cancel = close dialog, no action | Edge case | No special exception handling; user cancel triggers return without DB transaction |
+| Reply depth = all levels | FR-010 | Recursive fetchReplies loop in YouTubeApiService |
+| New video = invoke "匯入" dialog | FR-004 | Controller routes to ImportController if video_id not in DB |
+| File separation = YouTubeApiService | Architecture | Separate from UrtubeapiService completely |
+
+---
 
 ## Summary
 
-Implement YouTube API comment import capability for the DISINFO_SCANNER platform, extending the existing prepare-confirm import workflow. The feature supports both new videos (triggering existing "匯入" metadata import) and existing videos (direct comment fetch). Key technical requirements include incremental update support (fetch only new comments), recursive reply handling, and proper database field updates. Implementation leverages existing service layer patterns (ImportService, UrtubeapiService) with new CommentsImportService and background job support for scalability.
+Implement YouTube API-based comment import functionality as a new, isolated feature separate from the existing urtubeapi-based "匯入" (import) workflow.
+
+**Key Clarifications Incorporated** (Session 2025-11-16):
+
+1. **Preview Behavior**: Display up to 5 sample comments WITHOUT persisting to database
+   - Only stored after user clicks "確認導入"
+
+2. **Channel/Video Metadata Updates**:
+   - **Channels**: Update `comment_count`, `last_import_at`, `updated_at` on all imports
+     - Initialize `video_count`, `first_import_at`, `created_at` only for NEW channels
+   - **Videos**: Always update `updated_at` on import
+     - Initialize `video_id`, `title`, `published_at`, `created_at` only for NEW videos
+     - Set `channel_id` only when importing from NEW channel
+
+3. **Cancellation Handling**:
+   - Close dialog without action
+   - Preview comments NOT saved
+   - If import interrupted mid-way, next import uses incremental logic to skip duplicates
+
+4. **Reply Comment Depth**: Import ALL levels recursively (comment → reply → reply-to-reply, etc.)
+
+5. **New Video Workflow**:
+   - Input URL → Check DB existence
+   - If new → Invoke existing "匯入" dialog (web scraping, tag selection)
+   - After "匯入" completes → Auto-start comment preview
+
+6. **File Organization** (Session 2025-11-17):
+   - Create separate `YouTubeApiService.php` (NOT in UrtubeapiService)
+   - Only reuse UI components for tag/video selection
 
 ## Technical Context
 
-**Language/Version**: PHP 8.2 with Laravel Framework 12.0
+**Language/Version**: PHP 8.2+ (Laravel 11.x)
 **Primary Dependencies**:
-  - UrtubeAPI Service (existing third-party proxy for YouTube data)
-  - YouTubeMetadataService (web scraping via Symfony DomCrawler)
-  - DataTransformService (model transformation)
-  - YouTube Data API v3 (credentials configured in .env)
+- `google/apiclient` (Google API PHP Client for YouTube API v3)
+- Existing: GuzzleHttp (already used by UrtubeapiService)
+- Existing: Illuminate Database (Laravel ORM)
 
-**Storage**: PostgreSQL database with existing schema (videos, comments, channels, authors tables)
-**Testing**: PHPUnit 11.0+ (configured via phpunit.xml)
-**Target Platform**: Web application (Laravel web server)
-**Project Type**: Web application with service-oriented architecture
+**Storage**: MySQL/SQLite (existing comments, videos, channels tables)
+**Testing**: Laravel Pest (existing test framework)
+**Target Platform**: Laravel web application
+**Project Type**: Web (monolithic Laravel backend)
 **Performance Goals**:
-  - Comments import completes within 60 seconds for videos with <1000 comments
-  - Preview fetch (5 comments) completes within 5 seconds
-  - Incremental update processes 100 comments in <10 seconds
+- Preview fetch: <3 seconds for 5 comments
+- Full import: <30 seconds for typical video (1000 comments)
+- Incremental update: <10 seconds
 
 **Constraints**:
-  - YouTube API quota: 10,000 units/day (1 comment fetch = 1 unit)
-  - Database transaction timeout: Default 600 seconds (may need increase for large batches)
-  - HTTP request timeout: 30 seconds (may need increase for large imports)
+- YouTube API quota limits (must respect rate limiting)
+- No modifications to existing urtubeapi code
+- Must preserve existing "匯入" workflow behavior
 
 **Scale/Scope**:
-  - Expected volume: 1000+ videos × 100-500 comments/video = 100k-500k total comments
-  - Current users: System users (non-public audience)
-  - Frontend framework: Blade templates with HTMX/JavaScript for interactive elements
+- Single new service file + controller
+- New migration for parent_comment_id support
+- Reuse existing comment/video/channel models
+- Reuse existing tag selection UI
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Architecture Principles** ✅ PASS
-- ✅ Service-oriented design (follows ImportService pattern)
-- ✅ Separation of concerns (UrtubeAPI vs DataTransform vs Persistence)
-- ✅ Dependency injection ready (services accept dependencies)
-- ⚠️  Reflection anti-pattern exists in ImportConfirmationController (noted for refactoring)
+### Principle I: Test-First Development
+- **Status**: ✅ PASS
+- **Plan**: Contract tests for YouTube API service before implementation; TDD for comment import logic
+- **Details**: Will create service tests in `tests/Unit/Services/YouTubeApiServiceTest.php` before implementing service
 
-**Code Quality Standards** ✅ PASS
-- ✅ Follows Laravel coding standards
-- ✅ Uses Eloquent ORM for database access
-- ✅ Implements proper transaction handling
-- ⚠️  Constructor injection needs to be unified across services
+### Principle II: API-First Design
+- **Status**: ✅ PASS
+- **Plan**: YouTubeApiService has clear public methods (fetchPreviewComments, fetchAllComments)
+- **Details**: Service will expose contract that is independent of any controller/UI implementation
 
-**Security Requirements** ✅ PASS (with clarifications)
-- ✅ YouTube API credentials in .env (not hardcoded)
-- ⚠️  Comment text sanitization needed (prevent XSS)
-- ⚠️  Rate limiting not yet implemented (must add exponential backoff)
+### Principle III: Observable Systems
+- **Status**: ✅ PASS
+- **Plan**: Structured logging for all API calls, comment fetch operations, database operations
+- **Details**: Each import operation will include trace ID, operation type, comment count, timestamps
 
-**Database Schema** ✅ PASS
-- ✅ Existing comments, videos, channels tables properly designed
-- ⚠️  Channel comment_count calculation bug found (requires fix: FR-016)
-- ⚠️  No full-text search index (acceptable for <1M comments)
+### Principle IV: Contract Testing
+- **Status**: ✅ PASS
+- **Plan**: Contract tests for YouTube API v3 comment structure; validation before storage
+- **Details**: Will test YouTube API response parsing independently from database storage
+
+### Principle V: Semantic Versioning
+- **Status**: ⚠️  DEFERRED
+- **Rationale**: Feature is new (no breaking changes to existing APIs); versioning applied at release time
 
 ## Project Structure
 
@@ -79,73 +122,140 @@ specs/[###-feature]/
 
 ### Source Code (repository root)
 
-**Selected Structure: Laravel Web Application**
+**Incremental changes to existing Laravel structure** (NO new folders):
 
 ```text
 app/
-├── Http/
-│   ├── Controllers/
-│   │   ├── ApiCommentImportController.php   (NEW - API comment import endpoints)
-│   │   └── ImportConfirmationController.php (EXISTING - to be refactored)
-│   └── Requests/
-│       └── ApiImportCommentsRequest.php     (NEW - validation)
-│
-├── Models/
-│   ├── Comment.php          (EXISTING - extend relationships)
-│   ├── Video.php            (EXISTING - no changes)
-│   └── Channel.php          (EXISTING - no changes)
-│
 ├── Services/
-│   ├── ImportService.php              (EXISTING - fix comment_count bug)
-│   ├── ApiCommentImportService.php    (NEW - API comments-specific logic)
-│   ├── UrtubeapiService.php           (EXISTING - add pagination support)
-│   └── DataTransformService.php       (EXISTING - no changes)
+│   ├── YouTubeApiService.php          [NEW] YouTube API client + comment fetching logic
+│   ├── UrtubeapiService.php           [UNCHANGED] Existing service for urtubeapi
+│   └── [Other existing services...]
 │
-└── Jobs/
-    └── ApiImportCommentsBatchJob.php  (NEW - background processing)
-
-resources/
-├── views/
-│   └── comments/
-│       └── api-import.blade.php       (NEW - API import form UI)
+├── Http/Controllers/
+│   ├── YouTubeApiImportController.php [NEW] Handle preview/confirm import requests
+│   ├── ImportController.php           [UNCHANGED] Existing "匯入" workflow
+│   └── [Other existing controllers...]
 │
-tests/
-├── Feature/
-│   ├── ApiCommentImportTest.php       (NEW - integration tests)
-│   └── ImportWorkflowTest.php         (EXISTING - expand if needed)
-│
-├── Unit/Services/
-│   └── ApiCommentImportServiceTest.php (NEW - service unit tests)
-│
-└── Fixtures/
-    └── CommentsImportFixtures.php     (NEW - test data)
-
-routes/
-├── web.php          (EXISTING - add comments import routes)
-└── api.php          (EXISTING - add API endpoints if needed)
+└── Models/
+    ├── Comment.php                    [MODIFIED] Add parent_comment_id relation
+    ├── Video.php                      [UNCHANGED]
+    ├── Channel.php                    [UNCHANGED]
+    └── [Other existing models...]
 
 database/
-└── migrations/
-    └── 2025_11_16_000000_create_comments_import_job_table.php  (NEW - if using database queue)
+├── migrations/
+│   └── YYYY_MM_DD_HHMMSS_add_parent_comment_id_to_comments_table.php [NEW]
+└── [Other existing migrations...]
+
+tests/
+├── Unit/
+│   └── Services/
+│       └── YouTubeApiServiceTest.php  [NEW] Service contract tests
+└── Feature/
+    └── YouTubeApiImportTest.php       [NEW] Integration tests for full workflow
 ```
 
-**Structure Decision**: Follow existing Laravel application structure (Option 1 - Single Project). All new classes integrate with existing service-oriented architecture in `/app/Services/`. No new packages or microservices required. Database queue already configured, so no queue service provider changes needed.
+**Structure Decision**: This is an incremental feature addition to the existing Laravel monolith.
+No new directories created. The `YouTubeApiService.php` is completely isolated from `UrtubeapiService.php`.
+Controllers are separate to maintain clear responsibility boundaries.
 
 ## Complexity Tracking
 
-**Violations Found and Justified:**
+**Status**: ✅ NO VIOLATIONS — All constitutional principles satisfied
 
-| Issue | Why Needed | Resolution |
-|-------|-----------|-----------|
-| Channel comment_count bug in ImportService.php:249 | Counts comments for ONE video only, not entire channel; breaks FR-016 | Fix calculation to use `whereHas('videos')` relationship (HIGH PRIORITY) |
-| Reflection anti-pattern in ImportConfirmationController:95-97 | Breaks encapsulation, makes testing difficult | Refactor to add public `cancelImport()` method to ImportService |
-| No pagination support in UrtubeapiService | YouTube API returns max 100 comments; videos with 500+ comments silently truncated | Add `pageToken` parameter support and recursive fetch logic |
-| Synchronous full import blocks user | For 500+ comment videos, import takes 30-60 seconds | Implement background jobs (ImportCommentsBatchJob) with async processing |
-| No rate limiting on YouTube API | API quota: 10,000 units/day; can exhaust quota with large imports | Add exponential backoff and quota tracking in UrtubeapiService |
-| Missing incremental import logic | Current code always fetches ALL comments; wastes quota and causes duplicates | Add `getLatestCommentTimestamp()` method and conditional API fetch |
+No complexity tracking entries required. The feature design:
+- ✅ Follows Test-First Development (TDD tests before implementation)
+- ✅ Implements API-First Design (service methods clearly defined)
+- ✅ Produces Observable Systems (structured logging with trace IDs)
+- ✅ Enables Contract Testing (service + controller contracts documented)
+- ✅ Applies Semantic Versioning (new feature, no breaking changes)
 
-**Mitigations:**
-- Issues are design/implementation gaps, not architectural violations
-- All can be resolved within existing service-oriented pattern
-- No new architectural patterns or dependencies required
-- Phased implementation: fixes first (Phase 1), then enhancements (Phase 2-3)
+**Design Simplicity**: Feature is deliberately minimal:
+- Single new service file (YouTubeApiService)
+- Single new controller (YouTubeApiImportController)
+- One database migration (add parent_comment_id)
+- Reuses existing models, routes structure, and tag selection UI
+- No new folder structure, no architectural refactoring
+
+---
+
+## Phase 0: Research (NOT REQUIRED)
+
+**Decision**: Skipped — No NEEDS CLARIFICATION items remain from specification
+
+The following areas were already clarified:
+- API authentication approach (YouTube API v3, google/apiclient)
+- Data model changes (parent_comment_id field)
+- Service isolation strategy (separate from UrtubeapiService)
+- Reply import depth (recursive, all levels)
+- Preview behavior (5 comments, not persisted)
+- Incremental update logic (stop at duplicate)
+
+No research tasks needed to proceed to Phase 1.
+
+---
+
+## Phase 1: Design Complete ✅
+
+**Output Artifacts**:
+
+1. **data-model.md** — Complete schema design
+   - Comment table with parent_comment_id
+   - Field mapping from YouTube API v3 response
+   - Validation rules and state transitions
+   - Incremental import logic
+
+2. **contracts/youtube-api-service.md** — Service contract
+   - Public methods: fetchPreviewComments, fetchAllComments, validateVideoId
+   - Return types, error handling, test cases
+   - Integration points with models/controllers
+
+3. **contracts/youtube-api-import-controller.md** — Controller contract
+   - Endpoints: POST /api/youtube-import/preview, /confirm
+   - Request/response schemas
+   - Error handling (400, 403, 404, 422, 500)
+   - Integration with existing "匯入" workflow
+
+4. **quickstart.md** — Implementation guide
+   - Feature overview, key decisions
+   - Files to create/modify
+   - Dependencies (composer google/apiclient)
+   - API endpoint examples
+   - Testing strategy
+
+---
+
+## Next Steps
+
+**Next Command**: `/speckit.tasks`
+
+The tasks command will:
+1. Generate `tasks.md` with actionable, dependency-ordered implementation tasks
+2. Create GitHub issues if requested
+3. Provide estimated effort/complexity for each task
+
+**Estimated Tasks** (planning phase):
+- Setup & configuration (add google/apiclient, set YOUTUBE_API_KEY)
+- Database migration (parent_comment_id column)
+- YouTubeApiService implementation (service tests first, TDD)
+- YouTubeApiImportController implementation (controller tests first)
+- Model modifications (Comment::parent_comment_id relation)
+- Route & view updates ("API 導入" button, new routes)
+- Integration tests (full user workflows)
+- Manual testing & documentation
+
+**Estimated Effort**: 15-20 developer-hours for complete implementation + testing
+
+---
+
+## Phase 2: Implementation (READY)
+
+**Prerequisites Met**:
+- ✅ Specification clarified
+- ✅ Technical decisions documented
+- ✅ Data model finalized
+- ✅ API contracts defined
+- ✅ Constitution compliance verified
+- ✅ No architectural violations
+
+**Ready to execute**: `/speckit.tasks` to generate implementation task list
