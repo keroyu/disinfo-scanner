@@ -28,8 +28,9 @@
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900 w-1/4">頻道 ID</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900 w-1/4">頻道名稱</th>
                             <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 w-1/4">標籤</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900 w-1/6">留言數</th>
-                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 w-1/6">最後匯入時間</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap min-w-24">影片數</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap min-w-24">留言數</th>
+                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">最後匯入時間</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -63,6 +64,11 @@
                                             <span class="text-gray-400 text-sm">無標籤</span>
                                         @endforelse
                                     </div>
+                                </td>
+
+                                <!-- Video Count -->
+                                <td class="px-6 py-4 text-right">
+                                    <span class="text-gray-900 font-medium">{{ number_format($channel->videos_count ?? 0) }}</span>
                                 </td>
 
                                 <!-- Comment Count -->
