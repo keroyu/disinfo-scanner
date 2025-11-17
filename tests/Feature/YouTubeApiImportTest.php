@@ -32,12 +32,6 @@ class YouTubeApiImportTest extends TestCase
         $this->markTestIncomplete('Implementation pending');
     }
 
-    // T040: Test incremental import fetches only new comments
-    public function test_incremental_import_fetches_only_new_comments()
-    {
-        $this->markTestIncomplete('Implementation pending');
-    }
-
     // T045: Test multi level reply comments imported with correct hierarchy
     public function test_multi_level_reply_comments_imported_with_correct_hierarchy()
     {

@@ -122,7 +122,7 @@ class CommentImportService
     }
 
     /**
-     * Execute full import for new or existing video
+     * Execute full import for new video only
      * Wraps entire workflow in database transaction
      * NO data persists until ALL comments successfully fetched
      *
@@ -136,47 +136,36 @@ class CommentImportService
         $startTime = microtime(true);
 
         try {
-            // Check if video exists
+            // Check if video already exists - reject if it does
             $existingVideo = Video::where('video_id', $videoId)->first();
-            $isNewVideo = !$existingVideo;
 
-            // For new videos, fetch metadata if not provided
-            if ($isNewVideo && !$videoMetadata) {
-                $videoMetadata = $this->youtubeApiService->fetchVideoMetadata($videoId);
+            if ($existingVideo) {
+                Log::warning('Video already exists, import rejected', [
+                    'trace_id' => $traceId,
+                    'video_id' => $videoId,
+                ]);
+
+                return [
+                    'success' => false,
+                    'status' => 'video_already_exists',
+                    'error' => '影片已建檔，無法重複導入',
+                ];
             }
 
-            // Determine import mode and get existing comment timestamps
-            $maxPublishedAt = null;
-            $existingCommentIds = [];
-
-            if (!$isNewVideo) {
-                // Get max timestamp from existing comments for incremental import
-                $maxComment = Comment::where('video_id', $videoId)
-                    ->orderBy('published_at', 'desc')
-                    ->first();
-
-                if ($maxComment) {
-                    $maxPublishedAt = $maxComment->published_at->toDateTimeString();
-                }
-
-                // Get existing comment IDs for duplicate detection
-                $existingCommentIds = Comment::where('video_id', $videoId)
-                    ->pluck('comment_id')
-                    ->toArray();
+            // Fetch metadata if not provided
+            if (!$videoMetadata) {
+                $videoMetadata = $this->youtubeApiService->fetchVideoMetadata($videoId);
             }
 
             // Fetch ALL comments and replies from YouTube API
             // This happens BEFORE database transaction to maximize failure recovery
-            Log::info('Starting comment fetch', [
+            Log::info('Starting comment fetch for new video', [
                 'trace_id' => $traceId,
                 'video_id' => $videoId,
-                'import_mode' => $isNewVideo ? 'new' : 'incremental',
             ]);
 
             $allComments = $this->youtubeApiService->fetchAllComments(
                 $videoId,
-                $maxPublishedAt,
-                $existingCommentIds,
                 function ($count) use ($traceId) {
                     Log::debug('Comment fetch progress', [
                         'trace_id' => $traceId,
@@ -187,20 +176,19 @@ class CommentImportService
 
             // No comments to import
             if (empty($allComments)) {
-                Log::info('No new comments found', [
+                Log::info('No comments found for new video', [
                     'trace_id' => $traceId,
                     'video_id' => $videoId,
                 ]);
 
                 return [
                     'success' => true,
-                    'status' => 'import_complete_no_changes',
+                    'status' => 'import_complete_no_comments',
                     'data' => [
                         'video_id' => $videoId,
                         'comments_imported' => 0,
                         'replies_imported' => 0,
                         'total_imported' => 0,
-                        'import_mode' => $isNewVideo ? 'new' : 'incremental',
                         'import_duration_seconds' => round(microtime(true) - $startTime, 2),
                     ],
                 ];
@@ -212,7 +200,6 @@ class CommentImportService
                 $videoId,
                 $videoMetadata,
                 $allComments,
-                $isNewVideo,
                 $traceId
             ) {
                 // Step 1: Handle channel
@@ -230,15 +217,13 @@ class CommentImportService
                     );
                 }
 
-                // Step 2: Handle video
-                $video = $isNewVideo
-                    ? Video::create([
-                        'video_id' => $videoId,
-                        'channel_id' => $channelId,
-                        'title' => $videoMetadata['title'] ?? 'Imported from YouTube API',
-                        'published_at' => $videoMetadata['published_at'] ?? null,
-                    ])
-                    : $this->updateVideoTimestamp($videoId);
+                // Step 2: Create new video
+                $video = Video::create([
+                    'video_id' => $videoId,
+                    'channel_id' => $channelId,
+                    'title' => $videoMetadata['title'] ?? 'Imported from YouTube API',
+                    'published_at' => $videoMetadata['published_at'] ?? null,
+                ]);
 
                 // Step 3: Insert comments and replies
                 $topLevelCount = 0;
@@ -310,7 +295,6 @@ class CommentImportService
                     'comments_imported' => $result['top_level_count'],
                     'replies_imported' => $result['reply_count'],
                     'total_imported' => $result['top_level_count'] + $result['reply_count'],
-                    'import_mode' => $isNewVideo ? 'new' : 'incremental',
                     'import_duration_seconds' => $duration,
                 ],
             ];
@@ -327,18 +311,6 @@ class CommentImportService
                 'error' => $e->getMessage(),
             ];
         }
-    }
-
-    /**
-     * Update video's updated_at timestamp
-     */
-    private function updateVideoTimestamp(string $videoId): Video
-    {
-        $video = Video::where('video_id', $videoId)->first();
-        if ($video) {
-            $video->update(['updated_at' => now()]);
-        }
-        return $video;
     }
 
     // ========== NEW METHODS FOR 005-API-IMPORT-COMMENTS ========== //
