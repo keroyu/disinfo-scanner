@@ -149,7 +149,7 @@
                                 <td class="px-4 py-3 w-[100px]">
                                     @if($comment->video && $comment->video->channel)
                                         <a
-                                            href="https://www.youtube.com/c/{{ $comment->video->channel->channel_id }}"
+                                            href="https://www.youtube.com/channel/{{ $comment->video->channel->channel_id }}"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             class="text-blue-600 hover:text-blue-800 truncate block text-sm"

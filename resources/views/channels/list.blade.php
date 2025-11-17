@@ -42,7 +42,13 @@
 
                                 <!-- Channel Name -->
                                 <td class="px-6 py-4">
-                                    <span class="text-gray-900">{{ $channel->channel_name ?: '(未命名)' }}</span>
+                                    <a href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="text-blue-600 hover:text-blue-800"
+                                       title="{{ $channel->channel_name }}">
+                                        {{ $channel->channel_name ?: '(未命名)' }}
+                                    </a>
                                 </td>
 
                                 <!-- Tags -->

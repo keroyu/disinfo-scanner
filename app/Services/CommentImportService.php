@@ -13,11 +13,14 @@ use Illuminate\Support\Str;
 class CommentImportService
 {
     private YouTubeApiService $youtubeApiService;
-    private ?YoutubeApiClient $youtubeClient = null;
-    private ?ChannelTagManager $tagManager = null;
+    private YoutubeApiClient $youtubeClient;
+    private ChannelTagManager $tagManager;
 
-    public function __construct(YouTubeApiService $youtubeApiService, ?YoutubeApiClient $youtubeClient = null, ?ChannelTagManager $tagManager = null)
-    {
+    public function __construct(
+        YouTubeApiService $youtubeApiService,
+        YoutubeApiClient $youtubeClient,
+        ChannelTagManager $tagManager
+    ) {
         $this->youtubeApiService = $youtubeApiService;
         $this->youtubeClient = $youtubeClient;
         $this->tagManager = $tagManager;
@@ -483,10 +486,6 @@ class CommentImportService
         array $channelTags = [],
         bool $importReplies = true
     ): array {
-        if (!$this->youtubeClient) {
-            throw new \RuntimeException('YoutubeApiClient not initialized');
-        }
-
         $videoId = $this->youtubeClient->extractVideoId($videoUrl);
 
         if (!$videoId) {
@@ -508,7 +507,7 @@ class CommentImportService
             );
 
             // Stage 3: Sync channel tags
-            if (!empty($channelTags) && $this->tagManager) {
+            if (!empty($channelTags)) {
                 $this->tagManager->syncChannelTags($channel, $channelTags);
             }
 

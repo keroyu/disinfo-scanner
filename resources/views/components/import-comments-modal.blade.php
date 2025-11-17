@@ -236,8 +236,8 @@
                     </div>
                     <h3 class="text-xl font-semibold text-gray-800 mb-2">導入成功！</h3>
                     <div class="text-sm text-gray-600 space-y-1">
-                        <p>已成功導入 <span class="font-semibold" x-text="importResult?.comments_imported || 0"></span> 則留言</p>
-                        <p x-show="(importResult?.replies_imported || 0) > 0">包含 <span class="font-semibold" x-text="importResult?.replies_imported || 0"></span> 則回覆</p>
+                        <p>已成功導入 <span class="font-semibold" x-text="importResult?.imported_comment_count || 0"></span> 則留言</p>
+                        <p x-show="(importResult?.imported_reply_count || 0) > 0">包含 <span class="font-semibold" x-text="importResult?.imported_reply_count || 0"></span> 則回覆</p>
                     </div>
                 </div>
 

@@ -30,7 +30,7 @@
 --}}
 
 <a
-    href="https://www.youtube.com/@{{ $channelIdentifier ?? $channelId }}"
+    href="https://www.youtube.com/channel/{{ $channelId }}"
     target="_blank"
     rel="noopener noreferrer"
     class="text-blue-600 hover:text-blue-800 truncate block text-sm w-[100px] overflow-hidden text-ellipsis whitespace-nowrap"
