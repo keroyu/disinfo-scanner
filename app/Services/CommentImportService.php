@@ -366,7 +366,11 @@ class CommentImportService
     {
         $channel = Channel::firstOrCreate(
             ['channel_id' => $channelId],
-            ['channel_name' => $channelName]
+            [
+                'channel_name' => $channelName,
+                'first_import_at' => now(),
+                'last_import_at' => now(),
+            ]
         );
 
         Log::info('Channel imported/updated (005)', [
