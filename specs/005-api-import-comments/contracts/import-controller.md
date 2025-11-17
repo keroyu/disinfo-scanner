@@ -1,455 +1,438 @@
-# Contract: YoutubeApiImportController
+# API Contract: YouTubeApiImportController
 
-**Module**: `app/Http/Controllers/YoutubeApiImportController.php`
-**Responsibility**: Handle HTTP requests for YouTube API comment import workflow (URL input, metadata confirmation, preview, full import)
-**Testing**: Integration tests in `tests/Integration/CommentImportWorkflowTest.php` and feature tests for controller actions
+**Feature**: YouTube API 官方導入留言 | **Date**: 2025-11-17 | **Status**: 已實作
 
 ---
 
-## Controller Contract
+## Overview
 
-The `YoutubeApiImportController` implements the complete import workflow with distinct HTTP endpoints/actions.
-
-### Constructor
-
-```php
-public function __construct(
-    YouTubeApiService $youtubeApiService,
-    CommentImportService $importService,
-    LoggerInterface $logger
-)
-```
+YouTubeApiImportController 提供四個主要端點，支持完整的影片導入流程：檢查→預覽→確認→完成。所有端點採用 JSON 格式，包含詳細的錯誤訊息。
 
 ---
 
-## HTTP Endpoints
+## Endpoint: GET /api/youtube-import/show-form
 
-### 1. Show Import Form
+**目的**: 返回 import modal Blade 視圖
 
-**Route**: `GET /comments/import`
-**Action Method**: `showImportForm()`
-**Response**: HTML view with YouTube URL input form
+**Request**:
+```http
+GET /api/youtube-import/show-form HTTP/1.1
+Host: localhost:8000
+Accept: text/html
+```
 
-#### Response Body (HTML)
+**Response** (200 OK):
+```html
+<!-- Blade 模板: import-modal.blade.php -->
+<!-- 包含完整的 modal HTML 和 JavaScript 邏輯 -->
+```
 
-Returns Blade view `import-modal.blade.php` with:
-- Text input for YouTube URL (id: `youtube_url`)
-- Submit button labeled "取得影片資訊" (Get video info)
-- Cancel button
-
-#### Status Codes
-
-- `200 OK` - Form rendered successfully
+**使用場景**:
+- 「留言列表」頁面右上角按鈕點擊事件
+- 動態載入 modal HTML
 
 ---
 
-### 2. Submit Video URL & Get Metadata
+## Endpoint: POST /api/youtube-import/metadata
 
-**Route**: `POST /comments/import/metadata`
-**Action Method**: `getMetadata()`
-**Request**: FormRequest `ImportVideoRequest`
+**目的**: 檢查影片/頻道存在，取得元資料
 
-#### Request Body
+**Request**:
+```json
+POST /api/youtube-import/metadata HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+X-CSRF-TOKEN: {csrf_token}
 
+{
+  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+}
 ```
-Content-Type: application/x-www-form-urlencoded
-youtube_url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
-```
 
-#### Request Validation
+**Request 欄位**:
+| 欄位 | 型別 | 必需 | 說明 |
+|------|------|------|------|
+| `video_url` | string | ✓ | YouTube 影片 URL（支援 youtube.com/watch?v= 和 youtu.be 格式） |
 
-`ImportVideoRequest` validates:
-- `youtube_url` is required
-- `youtube_url` matches YouTube video URL pattern (extract video ID)
-- Video ID is extracted and validated (11 alphanumeric chars)
-
-#### Response (Success - New Video)
-
-**Status**: `200 OK`
-**Content-Type**: `application/json`
-
+**Response (200 OK) - 影片已存在**:
 ```json
 {
-  "status": "success",
+  "success": true,
+  "status": "existing_video",
+  "message": "影片已建檔，請利用更新功能導入留言",
   "data": {
-    "video_id": "dQw4w9WgXcQ",
-    "is_new": true,
-    "metadata": {
-      "title": "Rick Astley - Never Gonna Give You Up (Official Video)",
-      "channel_id": "UCuAXFkgsw1L7xaCfnd5J JzQ",
-      "channel_name": "Rick Astley",
-      "published_at": "2009-10-25T06:57:33Z"
-    },
-    "action": "show_metadata_dialog"
-  }
-}
-```
-
-#### Response (Success - Existing Video)
-
-**Status**: `200 OK`
-
-```json
-{
-  "status": "success",
-  "data": {
-    "video_id": "dQw4w9WgXcQ",
-    "is_new": false,
-    "action": "show_preview"
-  }
-}
-```
-
-#### Response (Error - Invalid URL)
-
-**Status**: `422 Unprocessable Entity`
-
-```json
-{
-  "status": "error",
-  "message": "Invalid YouTube URL format",
-  "error_code": "INVALID_URL"
-}
-```
-
-#### Response (Error - Video Not Found)
-
-**Status**: `404 Not Found`
-
-```json
-{
-  "status": "error",
-  "message": "Video not found on YouTube API",
-  "error_code": "VIDEO_NOT_FOUND"
-}
-```
-
-#### Response (Error - API Error)
-
-**Status**: `503 Service Unavailable`
-
-```json
-{
-  "status": "error",
-  "message": "YouTube API error: quota exceeded",
-  "error_code": "API_QUOTA_EXCEEDED"
-}
-```
-
-#### Side Effects
-
-- Logs metadata fetch attempt with trace ID
-- No data persisted to database
-
----
-
-### 3. Confirm Metadata & Get Tags (New Videos Only)
-
-**Route**: `POST /comments/import/confirm-metadata`
-**Action Method**: `confirmMetadata()`
-
-#### Request Body
-
-```json
-{
-  "video_id": "dQw4w9WgXcQ",
-  "tags": ["politics", "election"],
-  "title": "Rick Astley - Never Gonna Give You Up (Official Video)",
-  "channel_name": "Rick Astley"
-}
-```
-
-#### Validation
-
-- `video_id`: Must match previously fetched video
-- `tags`: Array of tag strings (optional, can be empty)
-- `title`: Must match fetched metadata (prevents tampering)
-- `channel_name`: Must match fetched metadata
-
-#### Response (Success)
-
-**Status**: `200 OK`
-
-```json
-{
-  "status": "success",
-  "data": {
-    "action": "show_preview",
     "video_id": "dQw4w9WgXcQ"
   }
 }
 ```
 
-#### Response (Error - Metadata Mismatch)
-
-**Status**: `409 Conflict`
-
+**Response (202 Accepted) - 新影片 + 新頻道**:
 ```json
 {
-  "status": "error",
-  "message": "Metadata mismatch - please refetch video info",
-  "error_code": "METADATA_MISMATCH"
+  "success": true,
+  "status": "metadata_ready",
+  "message": "頻道和影片都未建檔！",
+  "data": {
+    "video_id": "dQw4w9WgXcQ",
+    "channel_id": "UCXXXXXXXXXXXXXX",
+    "title": "影片標題",
+    "channel_name": "頻道名稱",
+    "published_at": "2025-11-15 14:30:00",
+    "import_mode": "new",
+    "next_action": "show_preview"
+  }
 }
 ```
 
-#### Side Effects
+**Response (202 Accepted) - 新影片 + 既有頻道**:
+```json
+{
+  "success": true,
+  "status": "metadata_ready",
+  "message": "這是已存在頻道的新影片",
+  "data": {
+    "video_id": "dQw4w9WgXcQ",
+    "channel_id": "UCXXXXXXXXXXXXXX",
+    "title": "影片標題",
+    "channel_name": "頻道名稱",
+    "published_at": "2025-11-15 14:30:00",
+    "import_mode": "incremental",
+    "next_action": "show_preview",
+    "existing_tags": [
+      { "tag_id": 1, "name": "政治", "color_hex": "#FF0000" },
+      { "tag_id": 2, "name": "社會", "color_hex": "#0000FF" }
+    ]
+  }
+}
+```
 
-- Metadata NOT yet persisted to database (stored only in request session/temporary storage)
-- Logs confirmation action
+**Response (400 Bad Request) - 無效 URL**:
+```json
+{
+  "success": false,
+  "error": "無效的 YouTube URL 格式。請輸入有效的 YouTube URL。",
+  "status": "invalid_url"
+}
+```
+
+**Response (502 Bad Gateway) - YouTube API 失敗**:
+```json
+{
+  "success": false,
+  "error": "無法連接 YouTube API，請檢查網路連線或稍後重試。",
+  "status": "api_error",
+  "message": "YouTube API error: quotaExceeded"
+}
+```
+
+**業務邏輯**:
+1. 驗證 URL 格式
+2. 抽取 video_id
+3. 查詢 videos 表 (是否存在)
+4. 若存在 → 回傳 status: "existing_video"
+5. 若不存在 → 呼叫 YouTube API 取得元資料
+6. 查詢 channels 表 (決定新建或更新)
+7. 回傳 status: "metadata_ready" + import_mode (new/incremental)
 
 ---
 
-### 4. Fetch Comment Preview (5 Sample Comments)
+## Endpoint: POST /api/youtube-import/preview
 
-**Route**: `POST /comments/import/preview`
-**Action Method**: `getPreview()`
+**目的**: 取得 5 則預覽留言，不持久化任何資料
 
-#### Request Body
-
+**Request**:
 ```json
+POST /api/youtube-import/preview HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+X-CSRF-TOKEN: {csrf_token}
+
 {
   "video_id": "dQw4w9WgXcQ"
 }
 ```
 
-#### Response (Success - New Video)
+**Request 欄位**:
+| 欄位 | 型別 | 必需 | 說明 |
+|------|------|------|------|
+| `video_id` | string | ✓ | YouTube 影片 ID（由 metadata 端點取得） |
 
-**Status**: `200 OK`
-
+**Response (200 OK)**:
 ```json
 {
-  "status": "success",
+  "success": true,
+  "status": "preview_ready",
+  "message": "預覽留言已準備好",
   "data": {
-    "video_id": "dQw4w9WgXcQ",
-    "is_new": true,
     "preview_comments": [
       {
-        "comment_id": "UgfABC123...",
-        "author_name": "John Doe",
-        "author_channel_id": "UCxyz...",
-        "text": "This is a great video! [truncated if >200 chars]",
+        "comment_id": "CjIKGXdJd3d...",
+        "text": "很好的影片！",
+        "author_name": "User123",
+        "author_channel_id": "UCYYYYYYYYYYYYYYY",
         "like_count": 42,
-        "published_at": "2023-01-16T08:15:00Z",
-        "reply_count": 3
-      }
-    ],
-    "total_available_comments": 156,
-    "estimated_fetch_time_seconds": 15
-  }
-}
-```
-
-#### Response (Success - Existing Video, New Comments)
-
-**Status**: `200 OK`
-
-```json
-{
-  "status": "success",
-  "data": {
-    "video_id": "dQw4w9WgXcQ",
-    "is_new": false,
-    "preview_comments": [
+        "published_at": "2025-11-15 10:00:00",
+        "reply_count": 3,
+        "depth": 0
+      },
       {
-        "comment_id": "UgfNEW123...",
-        "text": "New comment since last import",
-        "like_count": 5,
-        "published_at": "2023-11-15T10:30:00Z",
-        "reply_count": 0
+        "comment_id": "CjMKGXdJd3d...",
+        "text": "感謝分享",
+        "author_name": "User456",
+        "author_channel_id": "UCZZZZZZZZZZZZZZZ",
+        "like_count": 15,
+        "published_at": "2025-11-15 09:30:00",
+        "reply_count": 0,
+        "depth": 0
       }
     ],
-    "new_comments_available": 12,
-    "last_import_at": "2023-11-10T..."
+    "total_preview_count": 5,
+    "estimated_total_comments": 156
   }
 }
 ```
 
-#### Response (Success - Existing Video, No New Comments)
-
-**Status**: `200 OK`
-
+**Response (422 Unprocessable Entity) - 無效 video_id**:
 ```json
 {
-  "status": "success",
-  "data": {
-    "video_id": "dQw4w9WgXcQ",
-    "is_new": false,
-    "preview_comments": [],
-    "new_comments_available": 0,
-    "message": "No new comments since last import (2023-11-10)"
-  }
+  "success": false,
+  "error": "無效的 YouTube 影片 ID 格式。",
+  "status": "invalid_video_id"
 }
 ```
 
-#### Response (Error)
-
-**Status**: `503 Service Unavailable`
-
+**Response (502 Bad Gateway) - API 失敗 + 重試按鈕**:
 ```json
 {
-  "status": "error",
-  "message": "Failed to fetch comment preview",
-  "error_code": "PREVIEW_FETCH_FAILED"
+  "success": false,
+  "error": "無法取得預覽留言。請檢查網路連線或稍後重試。",
+  "status": "api_error",
+  "retry_available": true,
+  "message": "YouTube API error: accessDenied"
 }
 ```
 
-#### Side Effects
-
-- NO data persisted to database
-- Logs preview fetch attempt
+**業務邏輯**:
+1. 驗證 video_id 格式
+2. 呼叫 YouTubeApiService.fetchPreviewComments()
+3. 返回 5 則留言（按發佈時間遞減）
+4. **重要**: 不持久化任何資料到資料庫
 
 ---
 
-### 5. Execute Full Comment Import
+## Endpoint: POST /api/youtube-import/confirm-import
 
-**Route**: `POST /comments/import/confirm-import`
-**Action Method**: `confirmImport()`
+**目的**: 執行完整導入流程，包括所有留言和回覆
 
-#### Request Body
-
+**Request**:
 ```json
+POST /api/youtube-import/confirm-import HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+X-CSRF-TOKEN: {csrf_token}
+
 {
   "video_id": "dQw4w9WgXcQ",
-  "tags": ["politics"],
-  "title": "Video Title (for new videos)",
-  "channel_name": "Channel Name (for new videos)"
+  "video_metadata": {
+    "title": "影片標題",
+    "channel_id": "UCXXXXXXXXXXXXXX",
+    "channel_name": "頻道名稱",
+    "published_at": "2025-11-15 14:30:00"
+  },
+  "selected_tags": [1, 3, 5],
+  "import_mode": "new"
 }
 ```
 
-#### Response (Success)
+**Request 欄位**:
+| 欄位 | 型別 | 必需 | 說明 |
+|------|------|------|------|
+| `video_id` | string | ✓ | YouTube 影片 ID |
+| `video_metadata` | object | ✓ | 影片和頻道元資料（由 metadata 端點取得） |
+| `selected_tags` | array[int] | ✓ | 選定的標籤 ID 列表（新頻道至少 1 個） |
+| `import_mode` | string | ✓ | "new" 或 "incremental" |
 
-**Status**: `200 OK`
-
+**Response (200 OK) - 導入成功**:
 ```json
 {
-  "status": "success",
+  "success": true,
+  "status": "import_complete",
+  "message": "成功導入",
   "data": {
     "video_id": "dQw4w9WgXcQ",
-    "message": "Import completed successfully",
-    "import_result": {
-      "total_comments_imported": 156,
-      "total_replies_imported": 89,
-      "new_video_created": true,
-      "new_channel_created": false,
-      "import_duration_seconds": 18
-    }
+    "channel_id": "UCXXXXXXXXXXXXXX",
+    "comments_imported": 142,
+    "replies_imported": 28,
+    "total_imported": 170,
+    "import_mode": "new",
+    "import_duration_seconds": 12.5,
+    "timestamp": "2025-11-17 15:45:32"
   }
 }
 ```
 
-#### Response (Error - API Failure, No Data Persisted)
-
-**Status**: `503 Service Unavailable`
-
+**Response (400 Bad Request) - 缺少必需欄位**:
 ```json
 {
-  "status": "error",
-  "message": "Failed to fetch comments from YouTube API",
-  "error_code": "IMPORT_FETCH_FAILED",
-  "details": "Comment fetch failed at page 3 of 5"
+  "success": false,
+  "error": "缺少必需的欄位：video_id, video_metadata, selected_tags",
+  "status": "validation_error"
 }
 ```
 
-#### Response (Error - Database Transaction Failure)
-
-**Status**: `500 Internal Server Error`
-
+**Response (400 Bad Request) - 標籤驗證失敗（新頻道）**:
 ```json
 {
-  "status": "error",
-  "message": "Database transaction failed",
-  "error_code": "DB_TRANSACTION_FAILED"
+  "success": false,
+  "error": "新頻道必須選擇至少一個標籤。",
+  "status": "invalid_tags",
+  "validation_errors": {
+    "selected_tags": ["至少需要選擇 1 個標籤"]
+  }
 }
 ```
 
-#### Side Effects
-
-- **On Success**:
-  - Inserts/updates video, channel, all comments and replies to database (within transaction)
-  - Logs import completion with trace ID and comment count
-  - Returns counts to user
-
-- **On Failure**:
-  - Rolls back entire transaction (NO partial data)
-  - Logs error with trace ID
-  - User can retry from same step
-
----
-
-## Workflow State Diagram
-
-```
-START
-  ↓
-[Show Form] --POST--> [Get Metadata]
-  ↓
-[Check if New/Existing]
-  ├─ NEW VIDEO: [Show Metadata Dialog] --confirm--> [Get Preview]
-  └─ EXISTING: [Get Preview]
-  ↓
-[Show Preview Dialog]
-  ├─ Accept: [Confirm Import] --execute--> [Fetch & Save]
-  └─ Cancel: [Form]
-  ↓
-[Success or Error with rollback]
+**Response (502 Bad Gateway) - YouTube API 失敗**:
+```json
+{
+  "success": false,
+  "error": "在取得留言時發生錯誤。部分資料可能已導入，請稍後重試以完成導入。",
+  "status": "api_error",
+  "partially_imported": true,
+  "data": {
+    "channel_created": true,
+    "video_created": true,
+    "comments_imported": 45,
+    "total_comments": null
+  }
+}
 ```
 
----
+**Response (500 Internal Server Error) - 資料庫錯誤（自動回滾）**:
+```json
+{
+  "success": false,
+  "error": "資料庫操作失敗，導入已回滾。請稍後重試。",
+  "status": "database_error"
+}
+```
 
-## Error Handling Strategy
-
-| Error Type | HTTP Status | Message | User Action |
-|-----------|------------|---------|-------------|
-| Invalid URL | 422 | "Invalid YouTube URL format" | Re-enter URL |
-| Video not found | 404 | "Video not found on YouTube API" | Verify URL, check video exists |
-| Comments disabled | 403 | "This video has comments disabled" | Choose different video |
-| API quota exceeded | 503 | "YouTube API quota exceeded" | Retry later (provide ETA if possible) |
-| API rate limit | 429 | "API rate limited, please retry in X seconds" | Automatic retry or manual retry |
-| Network timeout | 504 | "Fetch timeout (>30s), please retry" | Automatic retry |
-| DB transaction failed | 500 | "Database error, please contact admin" | Retry entire flow |
-
----
-
-## Session Management
-
-For multi-step workflow, maintain state across requests:
-
-- **Session Storage**: Store `video_id`, `metadata`, `tags` in Laravel session
-- **Session Timeout**: 30 minutes (user must complete workflow within this time)
-- **On Session Timeout**: Return 419 error, user must start over
-- **On Cancel**: Clear session, return to form
-
----
-
-## Request/Response Format
-
-- **Request Content-Type**: `application/x-www-form-urlencoded` (forms) or `application/json` (AJAX)
-- **Response Content-Type**: `application/json`
-- **Charset**: UTF-8
-- **CSRF Protection**: Laravel middleware (enable for POST/PUT/DELETE routes)
+**業務邏輯** (事務內):
+1. 驗證 video_id, 元資料, 標籤
+2. 新頻道: 驗證至少 1 個標籤已選
+3. 呼叫 YouTubeApiService.fetchAllComments() (所有留言 + 回覆)
+4. 建立 Channel (若不存在)
+5. 建立 Video
+6. 批量建立 Authors (get or create)
+7. 批量建立 Comments (帶 parent_comment_id)
+8. 計算 comment_count = top_level + replies
+9. 寫入 videos.comment_count
+10. 更新 channel_tags (新增或替換)
+11. 更新 channels.last_import_at
+12. 事務提交 → 成功回應
+13. 異常 → 回滾 + 錯誤回應
 
 ---
 
-## Testing Strategy
+## Common Response Headers
 
-Integration tests verify:
+所有端點回應包含以下 header:
 
-1. **Happy Path**: New video → metadata → preview → import → success
-2. **Happy Path**: Existing video → preview → import → success
-3. **Error Handling**: Each error scenario returns correct status and message
-4. **Session State**: Data persists across steps, cleared on cancel
-5. **Transaction Rollback**: DB unchanged if any step fails
-6. **Idempotency**: Retry same request after failure doesn't create duplicates
-7. **Input Validation**: Invalid URLs/metadata rejected before API calls
-8. **Concurrency**: Two users importing same video simultaneously handled correctly (last write wins on counts)
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+X-Request-ID: {uuid}
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+```
 
 ---
 
-## Accessibility & UX Considerations
+## Error Response Format
 
-- All responses include `status` and `message` fields for clarity
-- Error codes (like `VIDEO_NOT_FOUND`) are machine-parseable
-- `estimated_fetch_time_seconds` helps manage user expectations
-- Progress indicators recommended for long-running import (>5 seconds)
-- Buttons labeled in Chinese per user context (取得影片資訊, 確認導入, 取消)
+**標準錯誤格式**:
+```json
+{
+  "success": false,
+  "error": "中文錯誤訊息（用戶可見）",
+  "status": "error_code",
+  "message": "（可選）詳細說明",
+  "validation_errors": {
+    "field_name": ["錯誤訊息 1", "錯誤訊息 2"]
+  }
+}
+```
 
+**HTTP 狀態碼對應**:
+| 狀態碼 | 情況 | 使用者動作 |
+|-------|------|----------|
+| 200 OK | 操作成功 | 無 |
+| 202 Accepted | 元資料準備就緒，等待確認 | 檢視預覽或下一步 |
+| 400 Bad Request | 驗證失敗或無效輸入 | 修正輸入 |
+| 422 Unprocessable Entity | 業務規則驗證失敗 | 修正輸入或重試 |
+| 500 Internal Server Error | 伺服器錯誤 | 聯繫支持 |
+| 502 Bad Gateway | YouTube API 或外部服務失敗 | 重試或稍後 |
+
+---
+
+## Rate Limiting
+
+目前無速率限制實裝，但應考慮：
+- YouTube API 配額限制（每日 10,000 配額單位）
+- 每個用戶每分鐘最多 3 個導入請求
+- 大型影片（>5000 留言）應提示警告
+
+---
+
+## Authentication & Security
+
+**CSRF Protection**: 所有 POST 請求必須包含 X-CSRF-TOKEN header 或表單欄位
+
+**Authorization**: 目前允許所有已登入用戶使用此功能（未來可加 Permission 控制）
+
+**Validation**:
+- 所有輸入在伺服器端驗證
+- 不信任客戶端提供的元資料（重新從 YouTube API 驗證）
+
+---
+
+## Implementation Notes
+
+### 實作位置
+- **Controller**: `/app/Http/Controllers/YouTubeApiImportController.php`
+- **Service**: `/app/Services/CommentImportService.php`, `/app/Services/YouTubeApiService.php`
+- **Routes**: `/routes/api.php` (前綴 `/api`)
+
+### 事務處理
+```php
+DB::transaction(function () {
+    // 所有資料庫操作
+}, attempts: 3);
+```
+
+### 日誌記錄
+所有操作記錄到 `storage/logs/youtube-import.log`:
+```json
+{
+  "timestamp": "2025-11-17 15:45:32",
+  "trace_id": "uuid-123",
+  "action": "import_start|channel_created|video_created|comments_imported|import_complete|import_failed",
+  "video_id": "...",
+  "comments_count": 170,
+  "duration_ms": 12500
+}
+```
+
+### 進度回呼（未來）
+```php
+// YouTubeApiService 支持 progressCallback
+fetchAllComments($videoId, $afterDate, $existingIds, function ($progress) {
+    // $progress: ['current' => 50, 'total' => 200, 'stage' => 'fetching_replies']
+    Log::info('Import progress', $progress);
+});
+```
+
+---
+
+**API 契約版本**: 1.0 | **最後確認**: 2025-11-17 | **實作狀態**: ✅ 已實作
