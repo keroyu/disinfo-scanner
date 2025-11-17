@@ -145,30 +145,89 @@ Research agenda will address:
 
 ### 1a. Data Model Design (`data-model.md`)
 
-**Entities**:
+**Current Database Schema**:
 
-- **Video** (modifications):
-  - Add: `comment_count` (nullable int, calculated after import)
-  - Add: `published_at` (datetime, from YouTube API `snippet.publishedAt`)
-  - Relationship: `hasMany(Comment)`
+- **channels**:
+  ```sql
+  channel_id VARCHAR PRIMARY KEY
+  channel_name VARCHAR NULLABLE
+  tag_ids VARCHAR NULLABLE              -- Comma-separated tag IDs (e.g., "6,9")
+  first_import_at DATETIME NULLABLE
+  last_import_at DATETIME NULLABLE
+  created_at DATETIME
+  updated_at DATETIME
+  ```
+  - **Relationship**: `hasMany(Video, 'channel_id')`
+  - **Tag Storage**: `tag_ids` stores comma-separated tag IDs instead of pivot table
+  - **Deleted Fields**: `video_count`, `comment_count` (removed; use aggregation instead)
 
-- **Channel** (modifications):
-  - Add: `last_import_at` (nullable datetime format: 2025-06-13 21:00:03)
-  - Relationship: `belongsToMany(Tag, 'channel_tags')`
+- **videos**:
+  ```sql
+  video_id VARCHAR PRIMARY KEY
+  channel_id VARCHAR NOT NULL         -- FK to channels.channel_id
+  title VARCHAR NULLABLE
+  published_at DATETIME NULLABLE
+  comment_count INTEGER NULLABLE      -- Calculated after comment import
+  created_at DATETIME
+  updated_at DATETIME
+  ```
+  - **Relationship**: `belongsTo(Channel, 'channel_id')`, `hasMany(Comment, 'video_id')`
+  - **Index**: `channel_id`
 
-- **Comment** (modifications):
-  - Add: `parent_comment_id` (nullable int, foreign key to Comments.id)
-  - Ensures reply hierarchy
+- **comments**:
+  ```sql
+  comment_id VARCHAR PRIMARY KEY
+  video_id VARCHAR NOT NULL           -- FK to videos.video_id
+  author_channel_id VARCHAR NOT NULL  -- FK to authors.author_channel_id
+  text TEXT NOT NULL
+  like_count INTEGER DEFAULT 0
+  published_at DATETIME NULLABLE
+  parent_comment_id VARCHAR NULLABLE  -- FK to comments.comment_id (reply hierarchy)
+  imported_at DATETIME NULLABLE
+  created_at DATETIME
+  updated_at DATETIME
+  ```
+  - **Relationship**: `belongsTo(Video, 'video_id')`, `belongsTo(Author, 'author_channel_id')`
+  - **Self-referencing**: `belongsTo(Comment, 'parent_comment_id')` for replies
+  - **Indexes**: `video_id`, `author_channel_id`, `parent_comment_id`, `like_count`, `published_at`
 
-- **Tag** (existing):
-  - No changes; already has `id`, `name`, relationship to Channel via `channel_tags` pivot
+- **tags**:
+  ```sql
+  tag_id INTEGER PRIMARY KEY AUTOINCREMENT
+  code VARCHAR UNIQUE NOT NULL
+  name VARCHAR NOT NULL
+  description TEXT NULLABLE
+  color VARCHAR NOT NULL
+  created_at DATETIME
+  updated_at DATETIME
+  ```
+  - **No direct relationship to Channel** (tags stored as comma-separated IDs in channels.tag_ids)
+
+- **authors**:
+  ```sql
+  author_channel_id VARCHAR PRIMARY KEY
+  name VARCHAR NULLABLE
+  profile_url VARCHAR NULLABLE
+  created_at DATETIME
+  updated_at DATETIME
+  ```
+  - **Relationship**: `hasMany(Comment, 'author_channel_id')`
+
+**Data Model Notes**:
+- **Tag Storage**: `channels.tag_ids` uses comma-separated format (e.g., "6,9" for multiple tags)
+  - Helper methods: `getTagIdsArray()` converts to `[6, 9]`, `setTagIdsFromArray()` converts back
+  - No `channel_tags` pivot table (removed for simplicity)
+- **Comment Count**: Stored in `videos.comment_count`, updated after each import
+  - Channel total = SUM of all videos' comment_count (calculated via aggregation)
+- **Reply Hierarchy**: `comments.parent_comment_id` creates self-referencing tree (max 3 levels)
+- **Timestamps**: All datetime fields in format `2025-06-13 21:00:03` (UTC)
 
 **Validation Rules**:
 - Video URL: Must be valid YouTube URL (youtu.be or youtube.com/watch?v=)
-- Video published_at: Must be valid ISO 8601 or datetime, converted to `2025-06-13 21:00:03` format
-- Comment content: Non-null, max 5000 chars (YouTube limit)
+- Video published_at: Valid ISO 8601 or datetime, converted to `2025-06-13 21:00:03` format
+- Comment text: Non-null, max 5000 chars (YouTube limit)
 - Channel name: Non-null, max 255 chars
-- Timestamps: All in format `2025-06-13 21:00:03` (UTC)
+- Tag IDs: Must exist in `tags` table before assignment
 
 ---
 
