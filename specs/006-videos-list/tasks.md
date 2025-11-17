@@ -147,9 +147,9 @@
 - [ ] T042 [P] Browser test: Visual consistency with Comments List (matching card styles, table layout, colors, spacing) in tests/Browser/VideosListBrowserTest.php
 - [ ] T043 [P] Feature test: Pagination displays 500 videos per page in tests/Feature/VideosListLayoutTest.php
 - [ ] T044 [P] Feature test: Page handles missing channel data gracefully in tests/Feature/VideosListLayoutTest.php
-- [ ] T045 Performance validation: Verify page load < 2s for 10,000 videos using Laravel Debugbar
-- [ ] T046 Code review: Ensure all Blade templates use {{ }} for XSS protection
-- [ ] T047 Run quickstart.md validation: Test all user workflows described in quickstart.md
+- [X] T045 Performance validation: Verify page load < 2s for 10,000 videos using Laravel Debugbar
+- [X] T046 Code review: Ensure all Blade templates use {{ }} for XSS protection
+- [X] T047 Run quickstart.md validation: Test all user workflows described in quickstart.md
 
 ---
 
