@@ -70,7 +70,7 @@ Analysts need to focus on comments within specific time periods to investigate e
 
 ---
 
-### User Story 6 - Sort Comments by Likes (Priority: P1)
+### User Story 7 - Sort Comments by Likes (Priority: P1)
 
 Analysts need to prioritize reviewing comments by engagement level. Sorting by like count allows them to focus on the most-liked (and potentially most influential) comments first.
 
@@ -86,7 +86,7 @@ Analysts need to prioritize reviewing comments by engagement level. Sorting by l
 
 ---
 
-### User Story 7 - Sort Comments by Date (Priority: P1)
+### User Story 8 - Sort Comments by Date (Priority: P1)
 
 Analysts need to review comments in chronological order to understand narrative evolution over time. Sorting by comment date allows them to see the temporal progression of discussions.
 
@@ -102,7 +102,23 @@ Analysts need to review comments in chronological order to understand narrative 
 
 ---
 
-### User Story 4 - Navigate to Channel Details (Priority: P2)
+### User Story 4 - Search Comments by Commenter (Priority: P2)
+
+Analysts need to track all activity from specific commenters to identify patterns of behavior, coordinated activity, or persistent actors. Clicking a commenter name should display all comments by that user from the past 2 years, enabling comprehensive commenter profiling.
+
+**Why this priority**: Tracking individual commenters is essential for identifying coordinated disinformation campaigns, bot networks, and repeat offenders who spread misleading content across multiple videos.
+
+**Independent Test**: Can be fully tested by clicking a commenter name and verifying that the comments list shows only that commenter's comments with a 2-year date range applied.
+
+**Acceptance Scenarios**:
+
+1. **Given** a comment is displayed in the list, **When** the analyst clicks the commenter name, **Then** the comments list filters to show all comments by that commenter with date range set to past 2 years
+2. **Given** a commenter search is active, **When** the results are displayed, **Then** the search field shows the commenter's name and date fields show from_date (2 years ago) to to_date (today)
+3. **Given** a commenter has comments across multiple videos and channels, **When** their name is clicked, **Then** all their comments from all sources are displayed in the filtered list
+
+---
+
+### User Story 5 - Navigate to Channel Details (Priority: P2)
 
 Analysts need quick access to channel information when investigating comment patterns. Clicking a channel name in the comments list should navigate to the channel's main page, allowing analysts to review channel metadata and overall engagement.
 
@@ -117,7 +133,7 @@ Analysts need quick access to channel information when investigating comment pat
 
 ---
 
-### User Story 5 - Navigate to Video with Comment Anchor (Priority: P2)
+### User Story 6 - Navigate to Video with Comment Anchor (Priority: P2)
 
 Analysts need to view a comment within its video context to understand the discussion thread and video content. Clicking a video title should navigate to the video with the specific comment highlighted or accessible via URL parameter.
 
@@ -162,8 +178,10 @@ Analysts need to view a comment within its video context to understand the discu
 - **FR-012**: System MUST preserve sort order when filters are applied (sorted results are paginated)
 - **FR-013**: System MUST render channel names as clickable links that navigate to the channel's YouTube main page
 - **FR-014**: System MUST render video titles as clickable links that navigate to the YouTube video page with comment_id parameter (format: https://www.youtube.com/watch?v=[VIDEO_ID]&lc=[COMMENT_ID])
-- **FR-015**: System MUST display a "Comments List" button in the main navigation alongside the existing "Channel List" button
-- **FR-016**: System MUST display "no results" messaging when filters produce empty result sets
+- **FR-015**: System MUST render commenter names as clickable links that filter comments list to show all comments by that commenter from the past 2 years
+- **FR-016**: System MUST apply a 2-year date range filter automatically when clicking a commenter name (from_date = today - 2 years, to_date = today)
+- **FR-017**: System MUST display a "Comments List" button in the main navigation alongside the existing "Channel List" button
+- **FR-018**: System MUST display "no results" messaging when filters produce empty result sets
 
 ### Key Entities
 

@@ -54,7 +54,10 @@ As a content analyst, I need to click on video information (channel name, video 
 **Acceptance Scenarios**:
 
 1. **Given** I am viewing the Videos List, **When** I click on a channel name, **Then** I am redirected to the Comments List page with the channel name pre-filled in the search filter
-2. **Given** I am viewing the Videos List, **When** I click on a video title, **Then** I am redirected to the Comments List page with the video title pre-filled in the keyword search filter
+2. **Given** I am viewing the Videos List, **When** I click on a video title, **Then** I am redirected to the Comments List page with:
+   - The video title pre-filled in the keyword search filter
+   - Date range set from the video's publication date to today
+   - All comments for that video within the date range are displayed
 3. **Given** I am viewing the Videos List and a video's last comment time is "2025-07-23 09:58", **When** I click on that timestamp, **Then** I am redirected to the Comments List page with:
    - The video title pre-filled in the keyword search
    - Date range set from 90 days before the clicked date to the clicked date (approximately 2025-04-24 to 2025-07-23)
@@ -116,7 +119,7 @@ As a user, I need to access the Videos List page from the main navigation, posit
 - **FR-003**: Comment Count MUST accurately reflect the total number of comments associated with each video
 - **FR-004**: Last Comment Time MUST display the timestamp of the most recent comment for that video in format "YYYY-MM-DD HH:MM"
 - **FR-005**: Channel Name MUST be clickable and redirect to Comments List with the channel name as search filter
-- **FR-006**: Video Title MUST be clickable and redirect to Comments List with the video title as keyword search filter
+- **FR-006**: Video Title MUST be clickable and redirect to Comments List with the video title as keyword search filter AND date range set from the video's publication date to today
 - **FR-007**: Last Comment Time MUST be clickable and redirect to Comments List with video title as keyword search AND date range set from 90 days before the clicked date to the clicked date, filtering only comments for that specific video
 - **FR-008**: System MUST provide a search interface matching the Comments List styling with keyword search field
 - **FR-009**: Search functionality MUST filter videos by channel name and video title using case-insensitive matching
