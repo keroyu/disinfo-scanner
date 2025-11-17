@@ -196,27 +196,22 @@
 
                                 <!-- Commenter ID Cell -->
                                 <td class="px-4 py-3">
-                                    @if($comment->author)
-                                        @if($comment->author->profile_url)
-                                            <a
-                                                href="{{ $comment->author->profile_url }}"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                class="text-blue-600 hover:text-blue-800 text-sm"
-                                                title="{{ $comment->author->name ?? $comment->author->author_channel_id }}"
-                                            >
-                                                {{ Str::limit($comment->author->name ?? $comment->author->author_channel_id, 20) }}
-                                            </a>
-                                        @else
-                                            <span class="text-sm text-gray-700" title="{{ $comment->author->author_channel_id }}">
-                                                {{ Str::limit($comment->author->author_channel_id, 20) }}
-                                            </span>
-                                        @endif
-                                    @else
-                                        <span class="text-sm text-gray-700" title="{{ $comment->author_channel_id }}">
-                                            {{ Str::limit($comment->author_channel_id, 20) }}
-                                        </span>
-                                    @endif
+                                    @php
+                                        $commenterName = $comment->author?->name ?? $comment->author_channel_id;
+                                        $fromDate = now()->subYears(2)->format('Y-m-d');
+                                        $toDate = now()->format('Y-m-d');
+                                    @endphp
+                                    <a
+                                        href="{{ route('comments.index', [
+                                            'search' => $commenterName,
+                                            'from_date' => $fromDate,
+                                            'to_date' => $toDate
+                                        ]) }}"
+                                        class="text-blue-600 hover:text-blue-800 text-sm"
+                                        title="View all comments by {{ $commenterName }} (past 2 years)"
+                                    >
+                                        {{ Str::limit($commenterName, 20) }}
+                                    </a>
                                 </td>
 
                                 <!-- Comment Content Cell -->
