@@ -77,6 +77,29 @@
                 </div>
             </div>
 
+            <!-- Step 2.5: No Comments -->
+            <div x-show="currentStep === 'no_comments'">
+                <div class="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-circle text-orange-600 mt-1 mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold text-orange-800 mb-1">此影片沒有留言</h3>
+                            <p class="text-sm text-orange-700 mb-2" x-text="previewData?.details || '該影片目前沒有任何留言可以導入。'"></p>
+                            <div class="text-sm text-gray-600 space-y-1">
+                                <p><strong>影片標題：</strong><span x-text="previewData?.video_title || ''"></span></p>
+                                <p><strong>頻道名稱：</strong><span x-text="previewData?.channel_title || ''"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button @click="closeModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                        關閉
+                    </button>
+                </div>
+            </div>
+
             <!-- Step 3: Preview (New Video + Existing Channel) -->
             <div x-show="currentStep === 'new_video_existing_channel'">
                 <div class="space-y-4">

@@ -7,6 +7,29 @@
 
 ---
 
+## Y-API 與 U-API 的差異
+
+本系統支援兩種 API 導入方式：
+
+1. **Y-API (YouTube Official API)** - 本文件
+   - 使用 YouTube 官方 API
+   - 直接從 YouTube 伺服器獲取留言數據
+   - 需要 API key 和配額管理
+   - 提供完整的元數據（影片標題、頻道名稱、發布時間等）
+   - 功能完全獨立於 urtubeapi
+   - 頁面入口：`/comments` 留言列表頁面右上角「官方API導入」按鈕
+
+2. **U-API (urtubeapi - Third-Party)**
+   - 使用第三方 urtubeapi 服務
+   - 僅提供 YouTube 留言的 JSON 數據
+   - 不需要 API key
+   - 元數據需額外從 YouTube 網頁抓取
+   - 相關文件：`specs/001-comment-import`
+
+**重要提醒**：本功能（Y-API）全程通過 YouTube 官方 API 取得資料，和網頁爬蟲或 Metadata 抓取沒有任何關係！請勿調用相關功能！
+
+---
+
 ## Clarifications
 
 ### Session 2025-11-17

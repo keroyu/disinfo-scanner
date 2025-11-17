@@ -10,6 +10,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
+// ===============================
+// == Y-API (AUTHORITATIVE) ==
+// == YouTube Official API ==
+// == DO NOT USE U-API HERE ==
+// ===============================
+//
+// SYSTEM ARCHITECTURE:
+// 本系統共有 2 種 API 導入方式：
+// 1. Y-API = YouTube 官方 API (此文件)
+// 2. U-API = 第三方 urtubeapi，只取得 YouTube 留言的 JSON
+//
+// 此控制器僅處理 Y-API (YouTube 官方 API) 相關功能
+
 class ImportCommentsController extends Controller
 {
     private YoutubeApiClient $youtubeClient;
@@ -29,6 +42,9 @@ class ImportCommentsController extends Controller
     /**
      * Check video and channel existence, return preview data
      * POST /api/comments/check
+     *
+     * @API: Y
+     * @PURPOSE: Check video/channel existence and validate comment availability for Y-API import
      */
     public function check(Request $request)
     {
@@ -80,6 +96,17 @@ class ImportCommentsController extends Controller
                     'message' => '找不到該影片',
                     'details' => '該影片可能已被刪除、設為私密，或不允許評論。',
                 ], 404);
+            }
+
+            // Check if video has comments
+            if (!isset($videoMetadata['comment_count']) || $videoMetadata['comment_count'] === 0) {
+                return response()->json([
+                    'status' => 'no_comments',
+                    'message' => '此影片沒有留言',
+                    'details' => '該影片目前沒有任何留言可以導入。',
+                    'video_title' => $videoMetadata['title'] ?? '',
+                    'channel_title' => $videoMetadata['channel_title'] ?? '',
+                ], 200);
             }
 
             // Get preview comments (latest 5)
@@ -152,6 +179,9 @@ class ImportCommentsController extends Controller
     /**
      * Import comments for a video
      * POST /api/comments/import
+     *
+     * @API: Y
+     * @PURPOSE: Execute full comment import using Y-API (YouTube Official API)
      */
     public function import(Request $request)
     {

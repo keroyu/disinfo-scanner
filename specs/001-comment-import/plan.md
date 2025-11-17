@@ -12,6 +12,30 @@ Build a Laravel 10 web application that imports YouTube comments from external A
 
 ---
 
+## U-API vs Y-API Differentiation
+
+**IMPORTANT**: This feature spec is for **U-API (urtubeapi Third-Party Import System) ONLY**.
+
+本系統有兩種獨立的 API 導入方式：
+
+1. **U-API (此文檔)** = urtubeapi 第三方服務
+   - **目的**: 從第三方服務 urtubeapi.analysis.tw 導入已爬取的 YouTube 留言 JSON 資料
+   - **資料來源**: https://urtubeapi.analysis.tw/api/api_comment.php
+   - **特色**: 無需 YouTube API 金鑰，使用第三方預先爬取的資料
+   - **相關檔案**: `app/Services/ImportService.php`, `app/Services/UrtubeapiService.php`
+   - **文檔**: `/specs/001-comment-import/`
+
+2. **Y-API (不在此文檔範圍)** = YouTube Official API
+   - **目的**: 直接從 YouTube Data API v3 官方服務導入留言
+   - **資料來源**: Google YouTube Data API v3
+   - **特色**: 需要 API 金鑰，取得完整官方元資料
+   - **相關檔案**: `app/Services/CommentImportService.php`, `app/Services/YouTubeApiService.php`, `app/Http/Controllers/Api/ImportCommentsController.php`
+   - **文檔**: `/specs/005-api-import-comments/`
+
+**這兩個系統完全獨立**，沒有共用程式碼或介面。請勿混淆。
+
+---
+
 ## Technical Context
 
 **Language/Version**: PHP 8.2 (Laravel 10.x minimum requirement)

@@ -9,6 +9,32 @@
 
 Implement a **standalone YouTube API official comment import feature** (independent of urtubeapi) that allows users to import video comments and replies from YouTube's official API into the DISINFO_SCANNER database. Users input a video URL via modal, system checks if video/channel exist in DB, fetches preview data from YouTube API, allows optional channel tag selection, and performs staged import (channels → videos → comments) with reply recursion limited to 3 levels. Success is confirmed via modal message with dynamic AJAX list update (no page refresh).
 
+---
+
+## Y-API vs U-API Differentiation
+
+**IMPORTANT**: This feature spec is for **Y-API (YouTube Official API Import System) ONLY**.
+
+本系統有兩種獨立的 API 導入方式：
+
+1. **Y-API (此文檔)** = YouTube Official API
+   - **目的**: 直接從 YouTube Data API v3 官方服務導入留言
+   - **資料來源**: Google YouTube Data API v3 (https://www.googleapis.com/youtube/v3/)
+   - **特色**: 需要 API 金鑰，取得完整官方元資料（影片標題、頻道名稱、發布時間等）
+   - **相關檔案**: `app/Services/CommentImportService.php`, `app/Services/YouTubeApiService.php`, `app/Http/Controllers/Api/ImportCommentsController.php`
+   - **文檔**: `/specs/005-api-import-comments/` (此目錄)
+
+2. **U-API (不在此文檔範圍)** = urtubeapi Third-Party
+   - **目的**: 從第三方服務 urtubeapi.analysis.tw 導入已爬取的 YouTube 留言 JSON 資料
+   - **資料來源**: https://urtubeapi.analysis.tw/api/api_comment.php
+   - **特色**: 無需 YouTube API 金鑰，使用第三方預先爬取的資料
+   - **相關檔案**: `app/Services/ImportService.php`, `app/Services/UrtubeapiService.php`
+   - **文檔**: `/specs/001-comment-import/`
+
+**這兩個系統完全獨立**，沒有共用程式碼或介面。請勿混淆。
+
+---
+
 ## Technical Context
 
 **Language/Version**: PHP 8.2+ (Laravel 11.x framework)

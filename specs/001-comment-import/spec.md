@@ -16,6 +16,24 @@ YouTube does not provide functionality to search comments by commenter ID (autho
 3. **Enabling future queries** by commenter ID and political stance to find all comments from a specific user across videos
 4. **Detecting campaigns** by identifying patterns in tagged channels and their comment activity (future phase)
 
+### Y-API 與 U-API 的差異
+
+本系統支援兩種 API 導入方式：
+
+1. **Y-API (YouTube Official API)**
+   - 使用 YouTube 官方 API
+   - 直接從 YouTube 伺服器獲取留言數據
+   - 需要 API key 和配額管理
+   - 提供完整的元數據（影片標題、頻道名稱、發布時間等）
+   - 相關文件：`specs/005-api-import-comments`
+
+2. **U-API (urtubeapi - Third-Party)**
+   - 使用第三方 urtubeapi 服務
+   - 僅提供 YouTube 留言的 JSON 數據
+   - 不需要 API key
+   - 元數據需額外從 YouTube 網頁抓取
+   - 相關文件：本文件 (`specs/001-comment-import`)
+
 This MVP includes:
 - **Database design** with proper schema for comments, channels, tags, and relationships
 - **Web import interface** supporting both urtubeapi URLs and YouTube video URLs

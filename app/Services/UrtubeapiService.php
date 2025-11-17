@@ -6,6 +6,19 @@ use App\Exceptions\UrtubeapiException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
+// ===============================
+// == U-API (THIRD-PARTY) ==
+// == urtubeapi Service ==
+// == DO NOT USE Y-API HERE ==
+// ===============================
+//
+// SYSTEM ARCHITECTURE:
+// 本系統共有 2 種 API 導入方式：
+// 1. Y-API = YouTube 官方 API
+// 2. U-API = 第三方 urtubeapi，只取得 YouTube 留言的 JSON (此文件)
+//
+// 此服務僅處理 U-API (urtubeapi) 相關功能
+
 class UrtubeapiService
 {
     protected $client;
@@ -22,6 +35,8 @@ class UrtubeapiService
     /**
      * Fetch comment data from urtubeapi endpoint with pagination support
      *
+     * @API: U
+     * @PURPOSE: Fetch YouTube comments JSON from third-party urtubeapi service
      * @param string $videoId YouTube video ID
      * @param string $channelId Channel ID (used as token for urtubeapi)
      * @param string|null $pageToken Optional pagination token for fetching additional pages
@@ -66,6 +81,9 @@ class UrtubeapiService
      * Validate JSON structure from urtubeapi
      * Supports both old format and new format from API
      * IMPORTANT: channelId is NOT in API response (it's a request parameter only)
+     *
+     * @API: U
+     * @PURPOSE: Validate U-API JSON response structure
      */
     public function validateJsonStructure(array &$data): bool
     {

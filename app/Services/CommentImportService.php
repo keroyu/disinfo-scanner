@@ -10,6 +10,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+// ===============================
+// == Y-API (AUTHORITATIVE) ==
+// == YouTube Official API ==
+// == DO NOT USE U-API HERE ==
+// ===============================
+//
+// SYSTEM ARCHITECTURE:
+// 本系統共有 2 種 API 導入方式：
+// 1. Y-API = YouTube 官方 API (此文件)
+// 2. U-API = 第三方 urtubeapi，只取得 YouTube 留言的 JSON
+//
+// 此服務僅處理 Y-API (YouTube 官方 API) 相關功能
+
 class CommentImportService
 {
     private YouTubeApiService $youtubeApiService;
@@ -33,6 +46,8 @@ class CommentImportService
      * 3. Fetch preview comments
      * 4. Upon confirmation, fetch all comments and store to database
      *
+     * @API: Y
+     * @PURPOSE: Import new video using Y-API (YouTube Official API)
      * @param string $videoId YouTube video ID
      * @return array {success, status, data}
      */
@@ -82,6 +97,8 @@ class CommentImportService
      * Fetch preview comments for a video (no persistence)
      * Returns up to 5 comments
      *
+     * @API: Y
+     * @PURPOSE: Fetch preview comments using Y-API without database persistence
      * @param string $videoId YouTube video ID
      * @return array {success, data: {preview_comments, total_count}}
      */
@@ -126,6 +143,8 @@ class CommentImportService
      * Wraps entire workflow in database transaction
      * NO data persists until ALL comments successfully fetched
      *
+     * @API: Y
+     * @PURPOSE: Execute atomic full import for new videos using Y-API
      * @param string $videoId YouTube video ID
      * @param array $videoMetadata {title, channel_name, channel_id, published_at}
      * @return array {success, status, data: {comments_imported, replies_imported, ...}}

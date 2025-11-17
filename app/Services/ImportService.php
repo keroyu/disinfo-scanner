@@ -10,6 +10,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+// ===============================
+// == U-API (THIRD-PARTY) ==
+// == urtubeapi Service ==
+// == DO NOT USE Y-API HERE ==
+// ===============================
+//
+// SYSTEM ARCHITECTURE:
+// 本系統共有 2 種 API 導入方式：
+// 1. Y-API = YouTube 官方 API
+// 2. U-API = 第三方 urtubeapi，只取得 YouTube 留言的 JSON (此文件)
+//
+// 此服務僅處理 U-API (urtubeapi) 相關功能
+
 class ImportService
 {
     protected $urlParsingService;
@@ -35,6 +48,8 @@ class ImportService
      * Prepare import: Parse URL, scrape metadata, fetch API data, cache for confirmation
      * NO database writes - read-only operation
      *
+     * @API: U
+     * @PURPOSE: Prepare import using U-API (urtubeapi) - read-only validation
      * @param string $url YouTube or urtubeapi URL
      * @return object {import_id, video_id, channel_id, video_title, channel_name, comment_count, requires_tags}
      */
@@ -76,6 +91,11 @@ class ImportService
             $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
             $metadata['channel_name'] = $apiData['channelTitle'] ?? null;
             $metadata['comment_count'] = count($apiData['comments'] ?? []);
+
+            // Check if video has any comments
+            if ($metadata['comment_count'] === 0) {
+                throw new \Exception('此影片未在U-API建檔，無法匯入');
+            }
 
             // Step 4: Scrape video metadata (title, channel name, published date) from YouTube
             // This is optional and gracefully degrades if it fails
@@ -139,6 +159,8 @@ class ImportService
      * Confirm import: Write cached import data to database atomically
      * Wraps all writes in a database transaction
      *
+     * @API: U
+     * @PURPOSE: Execute atomic database write for U-API import after user confirmation
      * @param string $importId UUID from prepareImport
      * @param array|null $tags Optional tag codes for new channels
      * @return object {newly_added, updated, skipped, total_processed}
