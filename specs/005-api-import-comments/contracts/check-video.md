@@ -57,6 +57,7 @@ Authorization: Bearer {session_token}
   "channel_id": "UCxxxxx",
   "channel_title": "Channel Name",
   "video_title": "Video Title",
+  "video_published_at": "2025-11-10 15:22:00",
   "comment_count_total": 1250,
   "preview_comments": [
     {
@@ -135,6 +136,7 @@ Authorization: Bearer {session_token}
   "channel_id": "UCxxxxx",
   "channel_title": "New Channel Name",
   "video_title": "New Video Title",
+  "video_published_at": "2025-11-08 08:30:15",
   "comment_count_total": 2847,
   "preview_comments": [
     {

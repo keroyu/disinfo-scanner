@@ -63,6 +63,7 @@ Authorization: Bearer {session_token}
   "channel_name": "Channel Name",
   "video_id": "dQw4w9WgXcQ",
   "video_title": "Video Title",
+  "video_published_at": "2025-11-10 15:22:00",
   "timestamp": "2025-11-15 10:30:45",
   "recursion_depth_reached": 3
 }
@@ -72,6 +73,7 @@ Authorization: Bearer {session_token}
 - `imported_comment_count`: Top-level comments only
 - `imported_reply_count`: Nested replies (depth 1-3)
 - `total_imported`: Sum of comments + replies
+- `video_published_at`: Video published date/time from YouTube API (format: `YYYY-MM-DD HH:MM:SS`)
 - `timestamp`: Import completion time (UTC format)
 - `recursion_depth_reached`: Actual maximum depth reached (1-3); indicates if replies were deeper but truncated
 

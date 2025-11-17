@@ -75,8 +75,8 @@ ChannelTag (existing pivot, NO CHANGES)
 | channel_id | BIGINT UNSIGNED | NO | FK | Videos.channel_id | |
 | video_id | VARCHAR(255) | NO | UNIQUE | YouTube API `snippet.videoId` | |
 | title | VARCHAR(255) | NO | - | YouTube API `snippet.title` | |
-| published_at | DATETIME | NO | - | YouTube API `snippet.publishedAt` | Format: `YYYY-MM-DD HH:MM:SS` |
-| comment_count | INT UNSIGNED | YES | - | System (COUNT aggregation) | NEW: Calculated after all comments imported |
+| published_at | DATETIME | NO | - | YouTube API `snippet.publishedAt` | Format: `YYYY-MM-DD HH:MM:SS` (已在之前的版本中支援) |
+| comment_count | INT UNSIGNED | YES | - | System (COUNT aggregation) | Calculated after all comments imported |
 | created_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | System | |
 | updated_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP ON UPDATE | System | |
 

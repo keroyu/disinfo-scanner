@@ -149,6 +149,7 @@ Research agenda will address:
 
 - **Video** (modifications):
   - Add: `comment_count` (nullable int, calculated after import)
+  - Add: `published_at` (datetime, from YouTube API `snippet.publishedAt`)
   - Relationship: `hasMany(Comment)`
 
 - **Channel** (modifications):
@@ -164,6 +165,7 @@ Research agenda will address:
 
 **Validation Rules**:
 - Video URL: Must be valid YouTube URL (youtu.be or youtube.com/watch?v=)
+- Video published_at: Must be valid ISO 8601 or datetime, converted to `2025-06-13 21:00:03` format
 - Comment content: Non-null, max 5000 chars (YouTube limit)
 - Channel name: Non-null, max 255 chars
 - Timestamps: All in format `2025-06-13 21:00:03` (UTC)

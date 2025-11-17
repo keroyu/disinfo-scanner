@@ -205,6 +205,7 @@ SELECT c.name AS channel_name, t.name AS tag_name
       <div class="bg-gray-50 p-4 rounded-lg mb-4">
         <p><strong>頻道：</strong> <span x-text="previewData.channel_title"></span></p>
         <p><strong>影片：</strong> <span x-text="previewData.video_title"></span></p>
+        <p><strong>發布時間：</strong> <span x-text="previewData.video_published_at"></span></p>
         <p><strong>留言數：</strong> <span x-text="previewData.comment_count_total"></span></p>
       </div>
 
@@ -251,6 +252,7 @@ SELECT c.name AS channel_name, t.name AS tag_name
       <div class="bg-gray-50 p-4 rounded-lg mb-4">
         <p><strong>頻道：</strong> <span x-text="previewData.channel_title"></span></p>
         <p><strong>影片：</strong> <span x-text="previewData.video_title"></span></p>
+        <p><strong>發布時間：</strong> <span x-text="previewData.video_published_at"></span></p>
         <p><strong>留言數：</strong> <span x-text="previewData.comment_count_total"></span></p>
       </div>
 
