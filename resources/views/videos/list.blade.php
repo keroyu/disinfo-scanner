@@ -112,10 +112,18 @@
 
                                 <!-- Video Title Cell -->
                                 <td class="px-4 py-3">
+                                    @php
+                                        $fromDate = $video->published_at ? \Carbon\Carbon::parse($video->published_at)->format('Y-m-d') : null;
+                                        $toDate = now()->format('Y-m-d');
+                                    @endphp
                                     <a
-                                        href="{{ route('comments.index', ['search' => $video->title]) }}"
+                                        href="{{ route('comments.index', array_filter([
+                                            'search' => $video->title,
+                                            'from_date' => $fromDate,
+                                            'to_date' => $toDate
+                                        ])) }}"
                                         class="text-blue-600 hover:text-blue-800 block text-sm"
-                                        title="{{ $video->title ?? 'Unknown Video' }}"
+                                        title="{{ $video->title ?? 'Unknown Video' }} ({{ $fromDate }} to {{ $toDate }})"
                                     >
                                         {{ Str::limit($video->title ?? 'Unknown Video', 60) }}
                                     </a>
