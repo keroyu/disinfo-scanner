@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('video_id')->primary();
             $table->string('channel_id');
             $table->string('title')->nullable();
-            $table->string('youtube_url')->nullable();
             $table->timestamp('published_at')->nullable();
+            $table->unsignedInteger('comment_count')->nullable();
             $table->timestamps();
 
             $table->index('channel_id');

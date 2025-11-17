@@ -18,14 +18,17 @@ return new class extends Migration
             $table->longText('text');
             $table->unsignedInteger('like_count')->default(0);
             $table->timestamp('published_at')->nullable();
+            $table->string('parent_comment_id')->nullable();
             $table->timestamps();
 
             $table->index('video_id');
             $table->index('author_channel_id');
+            $table->index('parent_comment_id');
             $table->index(['video_id', 'comment_id']);
 
             $table->foreign('video_id')->references('video_id')->on('videos')->onDelete('cascade');
             $table->foreign('author_channel_id')->references('author_channel_id')->on('authors')->onDelete('cascade');
+            $table->foreign('parent_comment_id')->references('comment_id')->on('comments')->onDelete('cascade');
         });
     }
 

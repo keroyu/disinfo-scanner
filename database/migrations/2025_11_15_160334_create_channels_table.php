@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('channels', function (Blueprint $table) {
             $table->string('channel_id')->primary();
             $table->string('channel_name')->nullable();
-            $table->unsignedInteger('video_count')->default(0);
-            $table->unsignedInteger('comment_count')->default(0);
+            $table->string('tag_ids')->nullable();
             $table->timestamp('first_import_at')->nullable();
             $table->timestamp('last_import_at')->nullable();
             $table->timestamps();

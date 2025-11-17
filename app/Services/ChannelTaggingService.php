@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Channel;
-use App\Models\ChannelTag;
 use App\Exceptions\ValidationException;
 use Illuminate\Support\Str;
 
@@ -61,18 +60,19 @@ class ChannelTaggingService
             throw new ValidationException('包含無效的標籤');
         }
 
-        // Ensure channel exists
-        if (!Channel::where('channel_id', $channelId)->exists()) {
-            throw new ValidationException('頻道不存在');
-        }
+        // Get or create channel
+        $channel = Channel::firstOrCreate(
+            ['channel_id' => $channelId],
+            [
+                'channel_name' => null,
+                'first_import_at' => now(),
+            ]
+        );
 
-        // Attach tags to channel
-        foreach ($tags as $tagId) {
-            ChannelTag::firstOrCreate([
-                'channel_id' => $channelId,
-                'tag_id' => $tagId,
-            ]);
-        }
+        // Update channel's tag_ids field with comma-separated tag IDs
+        $channel->update([
+            'tag_ids' => implode(',', $tags)
+        ]);
 
         return true;
     }

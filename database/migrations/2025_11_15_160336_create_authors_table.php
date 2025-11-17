@@ -16,8 +16,6 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('profile_url')->nullable();
             $table->timestamps();
-
-            $table->index('author_channel_id');
         });
     }
 
