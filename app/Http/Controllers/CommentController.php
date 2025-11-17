@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Channel;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
@@ -54,8 +55,12 @@ class CommentController extends Controller
         // Paginate results - 500 comments per page
         $comments = $query->paginate(500);
 
+        // Get all channels for the dropdown
+        $channels = Channel::orderBy('channel_name')->get();
+
         return view('comments.list', [
             'comments' => $comments,
+            'channels' => $channels,
         ]);
     }
 }

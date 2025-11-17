@@ -33,14 +33,33 @@
             <!-- Search Channel -->
             <div>
                 <label for="search_channel" class="block text-sm font-medium text-gray-700">Search Channel</label>
-                <input
-                    type="text"
-                    id="search_channel"
-                    name="search_channel"
-                    value="{{ request('search_channel', '') }}"
-                    placeholder="Search by channel name..."
-                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                >
+                <div class="mt-1 flex gap-2">
+                    <input
+                        type="text"
+                        id="search_channel"
+                        name="search_channel"
+                        value="{{ request('search_channel', '') }}"
+                        placeholder="Search by channel name..."
+                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                    <select
+                        id="channel_id"
+                        name="channel_id"
+                        onchange="selectChannel(this)"
+                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">-- Select Channel --</option>
+                        @foreach($channels as $channel)
+                            <option
+                                value="{{ $channel->channel_id }}"
+                                data-channel-name="{{ $channel->channel_name }}"
+                                {{ request('channel_id') == $channel->channel_id ? 'selected' : '' }}
+                            >
+                                {{ $channel->channel_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -286,6 +305,18 @@
 </div>
 
 <script>
+function selectChannel(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const channelName = selectedOption.getAttribute('data-channel-name');
+
+    // Update the search_channel input with the selected channel name
+    if (channelName) {
+        document.getElementById('search_channel').value = channelName;
+    } else {
+        document.getElementById('search_channel').value = '';
+    }
+}
+
 function handleSort(sortKey) {
     const currentSort = document.getElementById('sort').value;
     const currentDirection = document.getElementById('direction').value;
