@@ -224,8 +224,6 @@ class CommentImportService
                         ['channel_id' => $channelId],
                         [
                             'channel_name' => $videoMetadata['channel_name'] ?? $channelId,
-                            'video_count' => 0,
-                            'comment_count' => 0,
                             'first_import_at' => now(),
                             'last_import_at' => now(),
                         ]
@@ -279,24 +277,14 @@ class CommentImportService
                     }
                 }
 
-                // Step 4: Update channel with new counts
+                // Step 4: Update video comment count and channel timestamp
+                // Update the video's comment count
+                $commentCount = Comment::where('video_id', $videoId)->count();
+                $video->update(['comment_count' => $commentCount]);
+
+                // Update channel's last import timestamp
                 if ($channel) {
-                    // Recalculate comment count for this channel
-                    $commentCount = Comment::whereHas('video', function ($q) use ($channel) {
-                        $q->where('channel_id', $channel->channel_id);
-                    })->count();
-
-                    // For new videos, increment video count
-                    $newVideoCount = $channel->video_count;
-                    if ($isNewVideo) {
-                        $newVideoCount++;
-                    }
-
-                    $channel->update([
-                        'video_count' => $newVideoCount,
-                        'comment_count' => $commentCount,
-                        'last_import_at' => now(),
-                    ]);
+                    $channel->update(['last_import_at' => now()]);
                 }
 
                 Log::info('Comments imported successfully', [

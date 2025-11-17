@@ -243,15 +243,12 @@ class ImportService
                     $this->channelTaggingService->selectTagsForChannel($importId, $channelId, $tags);
                 }
 
-                // Update channel timestamps and increment video_count if new video
-                $updateData = [
-                    'last_import_at' => now(),
-                    'comment_count' => Comment::where('video_id', $models->video->video_id)->count(),
-                ];
-                if ($videoCreated) {
-                    $updateData['video_count'] = $channel->video_count + 1;
-                }
-                $channel->update($updateData);
+                // Update video's comment count
+                $commentCount = Comment::where('video_id', $models->video->video_id)->count();
+                $video->update(['comment_count' => $commentCount]);
+
+                // Update channel's last import timestamp
+                $channel->update(['last_import_at' => now()]);
             });
 
             // Step 6: Clear pending import from cache
@@ -364,18 +361,17 @@ class ImportService
 
             $stats['newly_added'] = $newComments;
 
-            // Update channel with cached metadata and increment video_count if new video
+            // Update video's comment count
+            $commentCount = Comment::where('video_id', $models->video->video_id)->count();
+            $video->update(['comment_count' => $commentCount]);
+
+            // Update channel with cached metadata
             $channel = Channel::find($channelId);
             if ($channel) {
-                $updateData = [
+                $channel->update([
                     'channel_name' => $pendingImport['channel_name'] ?? $channel->channel_name,
                     'last_import_at' => now(),
-                    'comment_count' => Comment::where('video_id', $models->video->video_id)->count(),
-                ];
-                if ($videoCreated) {
-                    $updateData['video_count'] = $channel->video_count + 1;
-                }
-                $channel->update($updateData);
+                ]);
             }
         });
 

@@ -67,7 +67,7 @@
 
                                 <!-- Comment Count -->
                                 <td class="px-6 py-4 text-right">
-                                    <span class="text-gray-900 font-medium">{{ number_format($channel->comment_count ?? 0) }}</span>
+                                    <span class="text-gray-900 font-medium">{{ number_format($channel->videos_sum_comment_count ?? 0) }}</span>
                                 </td>
 
                                 <!-- Last Import Time -->

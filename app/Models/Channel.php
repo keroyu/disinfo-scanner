@@ -13,7 +13,7 @@ class Channel extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['channel_id', 'channel_name', 'video_count', 'comment_count', 'first_import_at', 'last_import_at'];
+    protected $fillable = ['channel_id', 'channel_name', 'first_import_at', 'last_import_at'];
 
     protected $casts = [
         'first_import_at' => 'datetime',

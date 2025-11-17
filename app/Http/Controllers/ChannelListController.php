@@ -12,6 +12,8 @@ class ChannelListController extends Controller
     public function index()
     {
         $channels = Channel::with('tags')
+            ->withSum('videos', 'comment_count')
+            ->withCount('videos')
             ->orderBy('last_import_at', 'desc')
             ->get();
 
