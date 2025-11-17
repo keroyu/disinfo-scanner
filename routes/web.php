@@ -13,6 +13,9 @@ Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'in
 // Comments list page
 Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'])->name('comments.index');
 
+// Videos list page
+Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->name('videos.index');
+
 // YouTube API Import endpoints
 Route::prefix('api')->group(function () {
     Route::prefix('youtube-import')->group(function () {

@@ -19,7 +19,7 @@
 
 **Purpose**: Project initialization and basic route structure
 
-- [ ] T001 Add route `GET /videos` to routes/web.php with VideoController@index
+- [X] T001 Add route `GET /videos` to routes/web.php with VideoController@index
 
 ---
 
@@ -29,10 +29,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 [P] Add query scope `scopeWithCommentStats` to app/Models/Video.php (computes actual_comment_count and last_comment_time using subqueries)
-- [ ] T003 [P] Add query scope `scopeHasComments` to app/Models/Video.php (filters videos with comment count > 0)
-- [ ] T004 [P] Add query scope `scopeSearchByKeyword` to app/Models/Video.php (case-insensitive search in title and channel name)
-- [ ] T005 [P] Add query scope `scopeSortByColumn` to app/Models/Video.php (dynamic sorting with whitelist validation)
+- [X] T002 [P] Add query scope `scopeWithCommentStats` to app/Models/Video.php (computes actual_comment_count and last_comment_time using subqueries)
+- [X] T003 [P] Add query scope `scopeHasComments` to app/Models/Video.php (filters videos with comment count > 0)
+- [X] T004 [P] Add query scope `scopeSearchByKeyword` to app/Models/Video.php (case-insensitive search in title and channel name)
+- [X] T005 [P] Add query scope `scopeSortByColumn` to app/Models/Video.php (dynamic sorting with whitelist validation)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -48,23 +48,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Feature test: Videos list page displays correctly with default sort in tests/Feature/VideosListTest.php
-- [ ] T007 [P] [US1] Feature test: Only videos with comments are shown in tests/Feature/VideosListTest.php
-- [ ] T008 [P] [US1] Feature test: Comment counts are accurate in tests/Feature/VideosListTest.php
-- [ ] T009 [P] [US1] Feature test: Last comment time displays correctly in YYYY-MM-DD HH:MM format in tests/Feature/VideosListTest.php
-- [ ] T010 [P] [US1] Feature test: Sort by clicking column headers works (comment count, last comment time) in tests/Feature/VideosListTest.php
-- [ ] T011 [P] [US1] Feature test: Sort direction toggles between asc/desc on repeated clicks in tests/Feature/VideosListTest.php
+- [X] T006 [P] [US1] Feature test: Videos list page displays correctly with default sort in tests/Feature/VideosListTest.php
+- [X] T007 [P] [US1] Feature test: Only videos with comments are shown in tests/Feature/VideosListTest.php
+- [X] T008 [P] [US1] Feature test: Comment counts are accurate in tests/Feature/VideosListTest.php
+- [X] T009 [P] [US1] Feature test: Last comment time displays correctly in YYYY-MM-DD HH:MM format in tests/Feature/VideosListTest.php
+- [X] T010 [P] [US1] Feature test: Sort by clicking column headers works (comment count, last comment time) in tests/Feature/VideosListTest.php
+- [X] T011 [P] [US1] Feature test: Sort direction toggles between asc/desc on repeated clicks in tests/Feature/VideosListTest.php
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Create VideoController with index method in app/Http/Controllers/VideoController.php (implements query building with withCommentStats, hasComments, sortByColumn, and pagination with 500 per page)
-- [ ] T013 [US1] Add request validation in VideoController@index for search, sort, direction, and page parameters
-- [ ] T014 [US1] Create Blade view resources/views/videos/list.blade.php with table structure matching Comments List styling
-- [ ] T015 [US1] Implement table columns in list.blade.php: Channel Name, Video Title, Comment Count, Last Comment Time
-- [ ] T016 [US1] Add sortable column headers with visual indicators (arrows) in list.blade.php
-- [ ] T017 [US1] Add pagination controls with appends(request()->query()) in list.blade.php
-- [ ] T018 [US1] Add empty state handling ("No videos found") in list.blade.php
-- [ ] T019 [US1] Add missing channel fallback ("Unknown Channel") in list.blade.php
+- [X] T012 [US1] Create VideoController with index method in app/Http/Controllers/VideoController.php (implements query building with withCommentStats, hasComments, sortByColumn, and pagination with 500 per page)
+- [X] T013 [US1] Add request validation in VideoController@index for search, sort, direction, and page parameters
+- [X] T014 [US1] Create Blade view resources/views/videos/list.blade.php with table structure matching Comments List styling
+- [X] T015 [US1] Implement table columns in list.blade.php: Channel Name, Video Title, Comment Count, Last Comment Time
+- [X] T016 [US1] Add sortable column headers with visual indicators (arrows) in list.blade.php
+- [X] T017 [US1] Add pagination controls with appends(request()->query()) in list.blade.php
+- [X] T018 [US1] Add empty state handling ("No videos found") in list.blade.php
+- [X] T019 [US1] Add missing channel fallback ("Unknown Channel") in list.blade.php
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can view and sort videos list with accurate data
 
@@ -78,17 +78,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Feature test: Clicking channel name redirects to Comments List with channel filter in tests/Feature/VideosListTest.php
-- [ ] T021 [P] [US2] Feature test: Clicking video title redirects to Comments List with title search in tests/Feature/VideosListTest.php
-- [ ] T022 [P] [US2] Feature test: Clicking last comment time redirects with 90-day date range in tests/Feature/VideosListTest.php
-- [ ] T023 [P] [US2] Feature test: Navigation URLs are correctly URL-encoded for special characters in tests/Feature/VideosListTest.php
+- [X] T020 [P] [US2] Feature test: Clicking channel name redirects to Comments List with channel filter in tests/Feature/VideosListTest.php
+- [X] T021 [P] [US2] Feature test: Clicking video title redirects to Comments List with title search in tests/Feature/VideosListTest.php
+- [X] T022 [P] [US2] Feature test: Clicking last comment time redirects with 90-day date range in tests/Feature/VideosListTest.php
+- [X] T023 [P] [US2] Feature test: Navigation URLs are correctly URL-encoded for special characters in tests/Feature/VideosListTest.php
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Add clickable channel name links in list.blade.php (route to /comments?search_channel={channel_name})
-- [ ] T025 [US2] Add clickable video title links in list.blade.php (route to /comments?search={video_title})
-- [ ] T026 [US2] Add clickable last comment time links in list.blade.php with 90-day date range calculation using Carbon (route to /comments?search={title}&from_date={date-90d}&to_date={date})
-- [ ] T027 [US2] Add URL encoding for search parameters in all navigation links
+- [X] T024 [US2] Add clickable channel name links in list.blade.php (route to /comments?search_channel={channel_name})
+- [X] T025 [US2] Add clickable video title links in list.blade.php (route to /comments?search={video_title})
+- [X] T026 [US2] Add clickable last comment time links in list.blade.php with 90-day date range calculation using Carbon (route to /comments?search={title}&from_date={date-90d}&to_date={date})
+- [X] T027 [US2] Add URL encoding for search parameters in all navigation links
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - users can view videos and navigate to related comments
 
@@ -102,18 +102,18 @@
 
 ### Tests for User Story 3
 
-- [ ] T028 [P] [US3] Feature test: Search by keyword filters videos correctly (case-insensitive) in tests/Feature/VideosListTest.php
-- [ ] T029 [P] [US3] Feature test: Search matches both video title and channel name in tests/Feature/VideosListTest.php
-- [ ] T030 [P] [US3] Feature test: Clear Filters button resets search and shows all videos in tests/Feature/VideosListTest.php
-- [ ] T031 [P] [US3] Feature test: Pagination preserves search parameters in tests/Feature/VideosListTest.php
+- [X] T028 [P] [US3] Feature test: Search by keyword filters videos correctly (case-insensitive) in tests/Feature/VideosListTest.php
+- [X] T029 [P] [US3] Feature test: Search matches both video title and channel name in tests/Feature/VideosListTest.php
+- [X] T030 [P] [US3] Feature test: Clear Filters button resets search and shows all videos in tests/Feature/VideosListTest.php
+- [X] T031 [P] [US3] Feature test: Pagination preserves search parameters in tests/Feature/VideosListTest.php
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Add search form UI in list.blade.php (keyword input field matching Comments List styling)
-- [ ] T033 [US3] Add "Apply Filters" button in list.blade.php (submits form with GET method)
-- [ ] T034 [US3] Add "Clear Filters" button in list.blade.php (links to /videos without query parameters)
-- [ ] T035 [US3] Integrate searchByKeyword scope in VideoController@index when search parameter present
-- [ ] T036 [US3] Ensure pagination links preserve search parameters using appends()
+- [X] T032 [US3] Add search form UI in list.blade.php (keyword input field matching Comments List styling)
+- [X] T033 [US3] Add "Apply Filters" button in list.blade.php (submits form with GET method)
+- [X] T034 [US3] Add "Clear Filters" button in list.blade.php (links to /videos without query parameters)
+- [X] T035 [US3] Integrate searchByKeyword scope in VideoController@index when search parameter present
+- [X] T036 [US3] Ensure pagination links preserve search parameters using appends()
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently - full search and filtering functionality
 
@@ -133,8 +133,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T040 [US4] Add "Videos List" link to navigation in resources/views/layouts/app.blade.php (positioned after Channels List link)
-- [ ] T041 [US4] Add active state highlighting logic for Videos List link using request()->is('videos*')
+- [X] T040 [US4] Add "Videos List" link to navigation in resources/views/layouts/app.blade.php (positioned after Channels List link)
+- [X] T041 [US4] Add active state highlighting logic for Videos List link using request()->is('videos*')
 
 **Checkpoint**: All user stories should now be independently functional - complete navigation integration
 

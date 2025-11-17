@@ -29,4 +29,64 @@ class Video extends Model
     {
         return $this->hasMany(Comment::class, 'video_id');
     }
+
+    /**
+     * Scope to add computed comment statistics (actual_comment_count and last_comment_time)
+     */
+    public function scopeWithCommentStats($query)
+    {
+        return $query->selectRaw('
+            videos.*,
+            (SELECT COUNT(*) FROM comments WHERE comments.video_id = videos.video_id) as actual_comment_count,
+            (SELECT MAX(published_at) FROM comments WHERE comments.video_id = videos.video_id) as last_comment_time
+        ');
+    }
+
+    /**
+     * Scope to filter videos that have at least one comment
+     * Note: Must be called AFTER withCommentStats() as it uses the computed actual_comment_count
+     */
+    public function scopeHasComments($query)
+    {
+        return $query->having('actual_comment_count', '>', 0);
+    }
+
+    /**
+     * Scope to search videos by keyword (case-insensitive search in title and channel name)
+     */
+    public function scopeSearchByKeyword($query, $keyword)
+    {
+        if (empty($keyword)) {
+            return $query;
+        }
+
+        return $query->where(function($q) use ($keyword) {
+            $q->where('title', 'LIKE', "%{$keyword}%")
+              ->orWhereHas('channel', function($channelQuery) use ($keyword) {
+                  $channelQuery->where('channel_name', 'LIKE', "%{$keyword}%");
+              });
+        });
+    }
+
+    /**
+     * Scope to sort by specified column with direction validation
+     */
+    public function scopeSortByColumn($query, $column = 'published_at', $direction = 'desc')
+    {
+        // Whitelist of allowed sort columns
+        $allowedColumns = ['published_at', 'actual_comment_count', 'last_comment_time'];
+
+        // Validate column
+        if (!in_array($column, $allowedColumns)) {
+            $column = 'published_at';
+        }
+
+        // Validate direction
+        $direction = strtolower($direction);
+        if (!in_array($direction, ['asc', 'desc'])) {
+            $direction = 'desc';
+        }
+
+        return $query->orderBy($column, $direction);
+    }
 }
