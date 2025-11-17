@@ -15,7 +15,7 @@ class ChannelTagManager
     {
         return $channel->tags()->get()->map(function ($tag) {
             return [
-                'id' => $tag->id,
+                'id' => $tag->tag_id,
                 'name' => $tag->name,
                 'color' => $tag->color ?? '#3B82F6',
             ];
@@ -29,7 +29,7 @@ class ChannelTagManager
     {
         return Tag::all()->map(function ($tag) {
             return [
-                'id' => $tag->id,
+                'id' => $tag->tag_id,
                 'name' => $tag->name,
                 'color' => $tag->color ?? '#3B82F6',
             ];
@@ -46,7 +46,7 @@ class ChannelTagManager
     public function syncChannelTags(Channel $channel, array $tagIds): void
     {
         // Validate that all tag IDs exist
-        $validTags = Tag::whereIn('id', $tagIds)->pluck('id')->toArray();
+        $validTags = Tag::whereIn('tag_id', $tagIds)->pluck('tag_id')->toArray();
 
         if (count($validTags) !== count($tagIds)) {
             $invalid = array_diff($tagIds, $validTags);

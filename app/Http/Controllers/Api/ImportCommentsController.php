@@ -159,7 +159,7 @@ class ImportCommentsController extends Controller
             'video_url' => 'required|string',
             'scenario' => 'required|in:new_video_existing_channel,new_video_new_channel',
             'channel_tags' => 'array',
-            'channel_tags.*' => 'integer|exists:tags,id',
+            'channel_tags.*' => 'integer|exists:tags,tag_id',
             'import_replies' => 'boolean',
         ]);
 

@@ -7,6 +7,7 @@
     <title>@yield('title', 'YouTube 留言資料匯入系統')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
     <nav class="bg-white shadow">

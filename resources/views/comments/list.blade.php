@@ -8,7 +8,7 @@
             <h1 class="text-3xl font-bold text-gray-900">Comments List</h1>
             <p class="text-gray-600 mt-2">Browse and analyze all collected YouTube comments</p>
         </div>
-        <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" onclick="showYouTubeImportModal()">
+        <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">
             <i class="fab fa-youtube mr-2"></i>官方API導入
         </button>
     </div>
@@ -330,6 +330,6 @@ document.addEventListener('keydown', function(event) {
 </script>
 
 <!-- Include YouTube API Import Modal -->
-@include('comments.import-modal')
+<x-import-comments-modal />
 
 @endsection
