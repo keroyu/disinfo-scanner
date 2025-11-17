@@ -13,7 +13,12 @@ class ChannelTagManager
      */
     public function getChannelTags(Channel $channel): array
     {
-        return $channel->tags()->get()->map(function ($tag) {
+        $tagIds = $channel->getTagIdsArray();
+        if (empty($tagIds)) {
+            return [];
+        }
+
+        return Tag::whereIn('tag_id', $tagIds)->get()->map(function ($tag) {
             return [
                 'id' => $tag->tag_id,
                 'name' => $tag->name,
@@ -37,7 +42,7 @@ class ChannelTagManager
     }
 
     /**
-     * Sync channel tags (update pivot table)
+     * Sync channel tags (update tag_ids field)
      *
      * @param Channel $channel
      * @param array $tagIds Array of tag IDs
@@ -53,7 +58,10 @@ class ChannelTagManager
             throw new \InvalidArgumentException('Invalid tag IDs: ' . implode(', ', $invalid));
         }
 
-        $channel->tags()->sync($tagIds);
+        // Update tag_ids field with comma-separated string
+        $channel->update([
+            'tag_ids' => empty($tagIds) ? null : implode(',', $tagIds)
+        ]);
 
         Log::info('Channel tags synced', [
             'channel_id' => $channel->channel_id,

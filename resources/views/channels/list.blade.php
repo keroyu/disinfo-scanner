@@ -54,7 +54,7 @@
                                 <!-- Tags -->
                                 <td class="px-6 py-4">
                                     <div class="flex justify-center flex-wrap gap-2">
-                                        @forelse($channel->tags as $tag)
+                                        @forelse($channel->tags() as $tag)
                                             <span class="inline-flex items-center px-3 py-1 rounded-full text-white text-sm font-medium"
                                                   style="background-color: {{ getTagColor($tag->color) }}">
                                                 {{ $tag->name }}

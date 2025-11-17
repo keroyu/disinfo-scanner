@@ -11,11 +11,13 @@ class ChannelListController extends Controller
      */
     public function index()
     {
-        $channels = Channel::with('tags')
-            ->withSum('videos', 'comment_count')
+        $channels = Channel::withSum('videos', 'comment_count')
             ->withCount('videos')
             ->orderBy('last_import_at', 'desc')
             ->get();
+
+        // Load tags for each channel (tags() is now a method, not a relationship)
+        // No need for eager loading since we fetch tags on-demand in the view
 
         return view('channels.list', [
             'channels' => $channels,

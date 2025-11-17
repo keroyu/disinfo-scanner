@@ -14,9 +14,4 @@ class Tag extends Model
     protected $keyType = 'int';
 
     protected $fillable = ['code', 'name', 'description', 'color'];
-
-    public function channels()
-    {
-        return $this->belongsToMany(Channel::class, 'channel_tags', 'tag_id', 'channel_id');
-    }
 }

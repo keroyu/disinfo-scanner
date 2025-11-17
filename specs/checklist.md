@@ -110,3 +110,124 @@ $channel->videos_count             // 影片數量
 4. ✅ 修改: `app/Services/ImportService.php`
 5. ✅ 修改: `resources/views/channels/list.blade.php`
 6. ✅ 修改: `app/Http/Controllers/*Controller.php` (相關 Controller)
+
+
+----
+
+
+tag_id 的欄位，可以記錄複數的 tag，以半形
+逗號“,”作為分隔，方便複數tag讀取和寫入，記得一併告訴我你打算改哪些程式
+。 
+
+⏺ 明白了！我將在 channels 表新增 tag_ids
+  欄位（字串類型），以逗號分隔存儲多個 tag ID（例如："6,9"），然後刪除
+  channel_tags 表。
+
+  📋 我打算進行以下修改：
+
+  1. 資料庫層級
+
+  Migration: 新增 tag_ids 欄位到 channels 表
+  - 在 channels 表新增 tag_ids 欄位（varchar/text 類型）
+  - 將現有 channel_tags 的資料遷移到 channels.tag_ids（格式："6,9"）
+  - 刪除 channel_tags 表
+
+  ---
+  2. Model 層級
+
+  app/Models/Channel.php
+  - 移除 belongsToMany(Tag::class, 'channel_tags', ...) 關係
+  - 新增 tag_ids 到 $fillable
+  - 新增 accessor/helper 方法：
+    - getTagIdsArray(): 將 "6,9" 轉為 [6, 9]
+    - setTagIdsAttribute(): 自動處理陣列轉字串
+    - tags(): 新的關係方法，用 whereIn() 查詢 tags
+
+  app/Models/Tag.php
+  - 移除 belongsToMany(Channel::class, 'channel_tags', ...) 關係
+
+  刪除 app/Models/ChannelTag.php
+  - 整個檔案刪除（不再需要 pivot model）
+
+  ---
+  3. Service 層級
+
+  app/Services/ChannelTagManager.php
+  - 修改 getChannelTags(): 使用新的查詢方式
+  // 舊: $channel->tags()->get()
+  // 新: Tag::whereIn('tag_id', $channel->getTagIdsArray())->get()
+  - 修改 syncChannelTags(): 改為更新字串欄位
+  // 舊: $channel->tags()->sync($tagIds)
+  // 新: $channel->update(['tag_ids' => implode(',', $tagIds)])
+
+  app/Services/CommentImportService.php (行 499)
+  - 保持不變（使用 ChannelTagManager，內部邏輯已修改）
+
+  ---
+  4. Controller 層級
+
+  app/Http/Controllers/ChannelListController.php
+  - 修改預載方式：
+  // 舊: Channel::with('tags')
+  // 新: 需要手動處理或使用自定義 scope
+
+  ---
+  5. View 層級
+
+  resources/views/channels/list.blade.php (行 57)
+  - 修改 tags 顯示邏輯：
+  // 舊: @forelse($channel->tags as $tag)
+  // 新: @forelse($channel->getTagsCollection() as $tag)
+
+  ---
+  6. Migration 檔案
+
+  刪除 database/migrations/*_create_channel_tags_table.php
+  - 刪除建立 pivot table 的 migration
+
+  新增 database/migrations/*_add_tag_ids_to_channels_and_drop_channel_t
+  ags.php
+  - 資料遷移步驟：
+    a. 新增 channels.tag_ids 欄位
+    b. 將 channel_tags 資料轉換並寫入 channels.tag_ids
+    c. 刪除 channel_tags 表
+
+  ---
+  7. 其他可能受影響的檔案
+
+  檢查並修改：
+  - app/Services/ChannelTaggingService.php（如果存在）
+  - tests/Feature/ImportConfirmationFlowTest.php
+  - resources/views/components/import-comments-modal.blade.php
+
+  ---
+  📝 資料格式示例
+
+  目前（channel_tags 表）：
+  channel_id: UC_xVdv15MR17rQf-nUl92MA
+  tag_id: 6
+
+  channel_id: UCiWXd0nmBjlKROwzMyPV-Nw
+  tag_id: 6
+
+  channel_id: UCiWXd0nmBjlKROwzMyPV-Nw
+  tag_id: 9
+
+  修改後（channels 表）：
+  channel_id: UC_xVdv15MR17rQf-nUl92MA
+  tag_ids: "6"
+
+  channel_id: UCiWXd0nmBjlKROwzMyPV-Nw
+  tag_ids: "6,9"
+
+  ---
+  ✅ 修改檔案總覽
+
+  1. ✅ 新增 Migration（資料遷移 + 刪除 channel_tags）
+  2. ✅ 修改 app/Models/Channel.php
+  3. ✅ 修改 app/Models/Tag.php
+  4. ✅ 刪除 app/Models/ChannelTag.php
+  5. ✅ 修改 app/Services/ChannelTagManager.php
+  6. ✅ 修改 app/Http/Controllers/ChannelListController.php
+  7. ✅ 修改 resources/views/channels/list.blade.php
+  8. ✅ 刪除 database/migrations/*_create_channel_tags_table.php
