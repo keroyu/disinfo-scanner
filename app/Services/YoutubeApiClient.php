@@ -132,8 +132,9 @@ class YoutubeApiClient
                 $comments[] = [
                     'comment_id' => $topLevelComment->getId(),
                     'author_channel_id' => $snippet->getAuthorChannelId()->getValue(),
-                    'author_name' => $snippet->getAuthorDisplayName(),
-                    'content' => $snippet->getTextDisplay(),
+                    'author_display_name' => $snippet->getAuthorDisplayName(),
+                    'author_profile_image_url' => $snippet->getAuthorProfileImageUrl(),
+                    'text_display' => $snippet->getTextDisplay(),
                     'like_count' => $snippet->getLikeCount() ?? 0,
                     'published_at' => $this->formatTimestamp($snippet->getPublishedAt()),
                 ];
