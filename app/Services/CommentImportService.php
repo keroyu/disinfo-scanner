@@ -13,10 +13,14 @@ use Illuminate\Support\Str;
 class CommentImportService
 {
     private YouTubeApiService $youtubeApiService;
+    private ?YoutubeApiClient $youtubeClient = null;
+    private ?ChannelTagManager $tagManager = null;
 
-    public function __construct(YouTubeApiService $youtubeApiService)
+    public function __construct(YouTubeApiService $youtubeApiService, ?YoutubeApiClient $youtubeClient = null, ?ChannelTagManager $tagManager = null)
     {
         $this->youtubeApiService = $youtubeApiService;
+        $this->youtubeClient = $youtubeClient;
+        $this->tagManager = $tagManager;
     }
 
     /**
@@ -344,5 +348,214 @@ class CommentImportService
             $video->update(['updated_at' => now()]);
         }
         return $video;
+    }
+
+    // ========== NEW METHODS FOR 005-API-IMPORT-COMMENTS ========== //
+
+    /**
+     * Check if video exists in database
+     */
+    public function checkVideoExists(string $videoId): bool
+    {
+        return Video::where('video_id', $videoId)->exists();
+    }
+
+    /**
+     * Check if channel exists in database
+     */
+    public function checkChannelExists(string $channelId): bool
+    {
+        return Channel::where('channel_id', $channelId)->exists();
+    }
+
+    /**
+     * Import or update channel (for 005 feature)
+     */
+    public function importChannel(string $channelId, string $channelName): Channel
+    {
+        $channel = Channel::firstOrCreate(
+            ['channel_id' => $channelId],
+            ['channel_name' => $channelName]
+        );
+
+        Log::info('Channel imported/updated (005)', [
+            'channel_id' => $channelId,
+            'channel_name' => $channelName,
+            'was_new' => $channel->wasRecentlyCreated,
+        ]);
+
+        return $channel;
+    }
+
+    /**
+     * Import video (for 005 feature)
+     */
+    public function importVideo(array $videoData): Video
+    {
+        $video = Video::create([
+            'video_id' => $videoData['video_id'],
+            'channel_id' => $videoData['channel_id'],
+            'title' => $videoData['title'],
+            'published_at' => $videoData['published_at'],
+            'comment_count' => null, // Will be calculated after comment import
+        ]);
+
+        Log::info('Video imported (005)', [
+            'video_id' => $videoData['video_id'],
+            'title' => $videoData['title'],
+        ]);
+
+        return $video;
+    }
+
+    /**
+     * Import all comments and replies for a video (for 005 feature)
+     */
+    public function importComments(string $videoId, array $comments): int
+    {
+        $imported = 0;
+
+        foreach ($comments as $commentData) {
+            try {
+                // Create or update author first
+                if (isset($commentData['author_channel_id'])) {
+                    Author::firstOrCreate(
+                        ['author_channel_id' => $commentData['author_channel_id']],
+                        ['name' => $commentData['author_channel_id']]
+                    );
+                }
+
+                Comment::create([
+                    'comment_id' => $commentData['comment_id'],
+                    'video_id' => $videoId,
+                    'author_channel_id' => $commentData['author_channel_id'],
+                    'text' => $commentData['content'],
+                    'like_count' => $commentData['like_count'],
+                    'published_at' => $commentData['published_at'],
+                    'parent_comment_id' => $commentData['parent_comment_id'],
+                ]);
+                $imported++;
+            } catch (\Exception $e) {
+                Log::warning('Failed to import comment (005)', [
+                    'comment_id' => $commentData['comment_id'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        Log::info('Comments imported (005)', [
+            'video_id' => $videoId,
+            'total_imported' => $imported,
+        ]);
+
+        return $imported;
+    }
+
+    /**
+     * Calculate and update comment count for a video (for 005 feature)
+     */
+    public function calculateCommentCount(string $videoId): int
+    {
+        $count = Comment::where('video_id', $videoId)->count();
+
+        Video::where('video_id', $videoId)->update(['comment_count' => $count]);
+
+        Log::info('Comment count calculated (005)', [
+            'video_id' => $videoId,
+            'count' => $count,
+        ]);
+
+        return $count;
+    }
+
+    /**
+     * Perform full import with transaction (for 005 feature)
+     *
+     * @param string $videoUrl YouTube video URL
+     * @param string $scenario 'new_video_existing_channel' or 'new_video_new_channel'
+     * @param array $channelTags Tag IDs to assign to channel
+     * @param bool $importReplies Whether to import replies
+     * @return array Import result with statistics
+     */
+    public function performFullImport(
+        string $videoUrl,
+        string $scenario,
+        array $channelTags = [],
+        bool $importReplies = true
+    ): array {
+        if (!$this->youtubeClient) {
+            throw new \RuntimeException('YoutubeApiClient not initialized');
+        }
+
+        $videoId = $this->youtubeClient->extractVideoId($videoUrl);
+
+        if (!$videoId) {
+            throw new \InvalidArgumentException('Invalid YouTube URL');
+        }
+
+        return DB::transaction(function () use ($videoId, $scenario, $channelTags, $importReplies) {
+            // Stage 1: Get video metadata from YouTube API
+            $videoMetadata = $this->youtubeClient->getVideoMetadata($videoId);
+
+            if (!$videoMetadata) {
+                throw new \RuntimeException('Video not found on YouTube');
+            }
+
+            // Stage 2: Import/update channel
+            $channel = $this->importChannel(
+                $videoMetadata['channel_id'],
+                $videoMetadata['channel_title']
+            );
+
+            // Stage 3: Sync channel tags
+            if (!empty($channelTags) && $this->tagManager) {
+                $this->tagManager->syncChannelTags($channel, $channelTags);
+            }
+
+            // Stage 4: Import video
+            $video = $this->importVideo([
+                'video_id' => $videoMetadata['video_id'],
+                'channel_id' => $videoMetadata['channel_id'],
+                'title' => $videoMetadata['title'],
+                'published_at' => $videoMetadata['published_at'],
+            ]);
+
+            // Stage 5: Import all comments
+            $allComments = $this->youtubeClient->getAllComments($videoId);
+            $importedCount = $this->importComments($videoId, $allComments);
+
+            // Stage 6: Calculate and update comment count
+            $totalCount = $this->calculateCommentCount($videoId);
+
+            // Stage 7: Update channel's last_import_at
+            $channel->update(['last_import_at' => now()->format('Y-m-d H:i:s')]);
+
+            Log::info('Full import completed successfully (005)', [
+                'video_id' => $videoId,
+                'channel_id' => $channel->channel_id,
+                'imported_comments' => $importedCount,
+                'total_comments' => $totalCount,
+                'scenario' => $scenario,
+            ]);
+
+            // Calculate reply count
+            $replyCount = Comment::where('video_id', $videoId)
+                ->whereNotNull('parent_comment_id')
+                ->count();
+
+            return [
+                'status' => 'success',
+                'message' => "成功導入 {$totalCount} 則留言",
+                'imported_comment_count' => $totalCount - $replyCount,
+                'imported_reply_count' => $replyCount,
+                'total_imported' => $totalCount,
+                'channel_id' => $channel->channel_id,
+                'channel_name' => $channel->channel_name,
+                'video_id' => $videoId,
+                'video_title' => $video->title,
+                'video_published_at' => $video->published_at->format('Y-m-d H:i:s'),
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ];
+        });
     }
 }

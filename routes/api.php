@@ -25,6 +25,10 @@ Route::get('/tags', [\App\Http\Controllers\TagSelectionController::class, 'index
 Route::post('/youtube-import/preview', [\App\Http\Controllers\YouTubeApiImportController::class, 'preview']);
 Route::post('/youtube-import/confirm', [\App\Http\Controllers\YouTubeApiImportController::class, 'confirm']);
 
+// Official YouTube API comment import endpoints (005-api-import-comments)
+Route::post('/comments/check', [\App\Http\Controllers\Api\ImportCommentsController::class, 'check']);
+Route::post('/comments/import', [\App\Http\Controllers\Api\ImportCommentsController::class, 'import']);
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
