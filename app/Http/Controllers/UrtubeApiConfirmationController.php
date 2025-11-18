@@ -3,14 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\ImportService;
+use App\Services\UrtubeApiImportService;
 use Illuminate\Support\Facades\Log;
 
 class UrtubeApiConfirmationController extends Controller
 {
     protected $importService;
 
-    public function __construct(ImportService $importService)
+    public function __construct(UrtubeApiImportService $importService)
     {
         $this->importService = $importService;
     }

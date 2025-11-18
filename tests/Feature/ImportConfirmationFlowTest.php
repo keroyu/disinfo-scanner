@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Services\ImportService;
+use App\Services\UrtubeApiImportService;
 use App\Models\Channel;
 use App\Models\Video;
 use App\Models\Comment;
@@ -19,7 +19,7 @@ class ImportConfirmationFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->importService = new ImportService();
+        $this->importService = new UrtubeApiImportService();
     }
 
     /**

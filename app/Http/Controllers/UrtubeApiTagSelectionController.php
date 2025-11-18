@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\ImportService;
+use App\Services\UrtubeApiImportService;
 use App\Services\ChannelTaggingService;
 use App\Models\Tag;
 
@@ -12,7 +12,7 @@ class UrtubeApiTagSelectionController extends Controller
     protected $importService;
     protected $channelTaggingService;
 
-    public function __construct(ImportService $importService, ChannelTaggingService $channelTaggingService)
+    public function __construct(UrtubeApiImportService $importService, ChannelTaggingService $channelTaggingService)
     {
         $this->importService = $importService;
         $this->channelTaggingService = $channelTaggingService;

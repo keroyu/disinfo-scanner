@@ -6,7 +6,7 @@ use App\Models\Video;
 use App\Models\Comment;
 use App\Models\Author;
 
-class DataTransformService
+class UrtubeApiDataTransformService
 {
     /**
      * Transform urtubeapi JSON to Eloquent models

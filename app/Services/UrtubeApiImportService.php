@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
 //
 // 此服務僅處理 U-API (urtubeapi) 相關功能
 
-class ImportService
+class UrtubeApiImportService
 {
     protected $urlParsingService;
     protected $youTubePageService;
@@ -39,7 +39,7 @@ class ImportService
         $this->youTubePageService = new YouTubePageService();
         $this->youTubeMetadataService = new YouTubeMetadataService();
         $this->urtubeapiService = new UrtubeapiService();
-        $this->dataTransformService = new DataTransformService();
+        $this->dataTransformService = new UrtubeApiDataTransformService();
         $this->duplicateDetectionService = new DuplicateDetectionService();
         $this->channelTaggingService = new ChannelTaggingService();
     }
