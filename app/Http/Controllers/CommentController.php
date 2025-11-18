@@ -58,9 +58,27 @@ class CommentController extends Controller
         // Get all channels for the dropdown
         $channels = Channel::orderBy('channel_name')->get();
 
+        // Calculate commenter repeat counts per video (for "重複" label)
+        // Build a map: [video_id][author_channel_id] => count
+        $videoIds = $comments->pluck('video_id')->unique()->toArray();
+        $repeatCounts = [];
+
+        if (!empty($videoIds)) {
+            $commentCounts = Comment::whereIn('video_id', $videoIds)
+                ->whereNotNull('author_channel_id')
+                ->selectRaw('video_id, author_channel_id, COUNT(*) as count')
+                ->groupBy('video_id', 'author_channel_id')
+                ->get();
+
+            foreach ($commentCounts as $row) {
+                $repeatCounts[$row->video_id][$row->author_channel_id] = $row->count;
+            }
+        }
+
         return view('comments.list', [
             'comments' => $comments,
             'channels' => $channels,
+            'repeatCounts' => $repeatCounts,
         ]);
     }
 }

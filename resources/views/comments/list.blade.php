@@ -132,10 +132,10 @@
                             <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 w-[200px]">
                                 Video Title
                             </th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 w-[215px]">
                                 Commenter
                             </th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 max-w-[400px]">
                                 Comment
                             </th>
                             <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 hidden md:table-cell">
@@ -150,7 +150,7 @@
                                     @endif
                                 </button>
                             </th>
-                            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 hidden md:table-cell">
+                            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 hidden md:table-cell w-[160px]">
                                 <button
                                     type="button"
                                     onclick="handleSort('date')"
@@ -200,27 +200,37 @@
                                 </td>
 
                                 <!-- Commenter ID Cell -->
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 w-[215px]">
                                     @php
                                         $commenterName = $comment->author?->name ?? $comment->author_channel_id;
                                         $fromDate = now()->subYears(2)->format('Y-m-d');
                                         $toDate = now()->format('Y-m-d');
+                                        // Check if commenter has 3+ comments on this video
+                                        $commentCount = $repeatCounts[$comment->video_id][$comment->author_channel_id] ?? 1;
+                                        $isRepeat = $commentCount >= 3;
                                     @endphp
-                                    <a
-                                        href="{{ route('comments.index', [
-                                            'search' => $commenterName,
-                                            'from_date' => $fromDate,
-                                            'to_date' => $toDate
-                                        ]) }}"
-                                        class="text-blue-600 hover:text-blue-800 text-sm"
-                                        title="View all comments by {{ $commenterName }} (past 2 years)"
-                                    >
-                                        {{ Str::limit($commenterName, 20) }}
-                                    </a>
+                                    <div class="flex items-center gap-1">
+                                        <a
+                                            href="{{ route('comments.index', [
+                                                'search' => $commenterName,
+                                                'from_date' => $fromDate,
+                                                'to_date' => $toDate
+                                            ]) }}"
+                                            class="text-blue-600 hover:text-blue-800 text-sm"
+                                            title="View all comments by {{ $commenterName }} (past 2 years)"
+                                        >
+                                            {{ Str::limit($commenterName, 10) }}
+                                        </a>
+                                        @if($isRepeat)
+                                            <span class="inline-block px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded font-medium">
+                                                重複
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
 
                                 <!-- Comment Content Cell -->
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 max-w-[400px]">
                                     <div
                                         class="text-sm text-gray-700 break-words cursor-pointer hover:text-blue-600 hover:underline transition-colors"
                                         onclick="openCommentModal(this)"
@@ -243,7 +253,7 @@
                                 </td>
 
                                 <!-- Date Cell (Hidden on Tablet) -->
-                                <td class="px-4 py-3 text-right text-sm text-gray-700 hidden md:table-cell">
+                                <td class="px-4 py-3 text-right text-sm text-gray-700 hidden md:table-cell w-[160px]">
                                     {{ $comment->published_at?->format('Y-m-d H:i') ?? 'N/A' }}
                                 </td>
                             </tr>
