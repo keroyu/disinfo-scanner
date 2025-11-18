@@ -438,6 +438,72 @@ class CommentImportService
     }
 
     /**
+     * Import incremental comments with idempotent insert logic (007 feature)
+     * Uses firstOrCreate to prevent duplicate inserts during concurrent updates
+     *
+     * @API: Y
+     * @PURPOSE: Incremental import with 500-comment limit
+     * @param string $videoId YouTube video ID
+     * @param array $comments Comments data from YouTube API
+     * @param int $limit Maximum comments to import (default 500)
+     * @return int Number of new comments actually imported
+     */
+    public function importIncrementalComments(string $videoId, array $comments, int $limit = 500): int
+    {
+        $imported = 0;
+        $skipped = 0;
+
+        // Enforce limit
+        $commentsToImport = array_slice($comments, 0, $limit);
+
+        foreach ($commentsToImport as $commentData) {
+            try {
+                // Create or update author first
+                if (isset($commentData['author_channel_id'])) {
+                    Author::firstOrCreate(
+                        ['author_channel_id' => $commentData['author_channel_id']],
+                        ['name' => $commentData['author_channel_id']]
+                    );
+                }
+
+                // Use firstOrCreate for idempotent insert
+                $comment = Comment::firstOrCreate(
+                    ['comment_id' => $commentData['comment_id']], // Unique key
+                    [
+                        'video_id' => $videoId,
+                        'author_channel_id' => $commentData['author_channel_id'],
+                        'text' => $commentData['text'],
+                        'like_count' => $commentData['like_count'],
+                        'published_at' => $commentData['published_at'],
+                        'parent_comment_id' => $commentData['parent_comment_id'],
+                    ]
+                );
+
+                // Check if it was newly created
+                if ($comment->wasRecentlyCreated) {
+                    $imported++;
+                } else {
+                    $skipped++;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to import incremental comment (007)', [
+                    'comment_id' => $commentData['comment_id'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        Log::info('Incremental comments imported (007)', [
+            'video_id' => $videoId,
+            'total_imported' => $imported,
+            'skipped_duplicates' => $skipped,
+            'limit_enforced' => $limit,
+        ]);
+
+        return $imported;
+    }
+
+    /**
      * Calculate and update comment count for a video (for 005 feature)
      */
     public function calculateCommentCount(string $videoId): int

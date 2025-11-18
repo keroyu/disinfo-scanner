@@ -64,6 +64,9 @@
                             <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                                 Video Title
                             </th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 w-[100px]">
+                                Actions
+                            </th>
                             <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 w-[120px]">
                                 <button
                                     type="button"
@@ -115,18 +118,35 @@
                                     @php
                                         $fromDate = $video->published_at ? \Carbon\Carbon::parse($video->published_at)->format('Y-m-d') : null;
                                         $toDate = now()->format('Y-m-d');
+                                        $fullTitle = $video->title ?? 'Unknown Video';
+                                        // Truncate to 15 Chinese characters using mb_substr
+                                        $truncatedTitle = mb_strlen($fullTitle) > 15
+                                            ? mb_substr($fullTitle, 0, 15) . '...'
+                                            : $fullTitle;
                                     @endphp
                                     <a
                                         href="{{ route('comments.index', array_filter([
-                                            'search' => $video->title,
+                                            'search' => $fullTitle,
                                             'from_date' => $fromDate,
                                             'to_date' => $toDate
                                         ])) }}"
                                         class="text-blue-600 hover:text-blue-800 block text-sm"
-                                        title="{{ $video->title ?? 'Unknown Video' }} ({{ $fromDate }} to {{ $toDate }})"
+                                        title="{{ $fullTitle }} ({{ $fromDate }} to {{ $toDate }})"
                                     >
-                                        {{ Str::limit($video->title ?? 'Unknown Video', 60) }}
+                                        {{ $truncatedTitle }}
                                     </a>
+                                </td>
+
+                                <!-- Actions Cell (Update Button) -->
+                                <td class="px-4 py-3 text-center">
+                                    <button
+                                        type="button"
+                                        onclick="openUpdateModal('{{ $video->video_id }}', '{{ addslashes($fullTitle) }}')"
+                                        class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                        title="更新此影片的新留言"
+                                    >
+                                        更新
+                                    </button>
                                 </td>
 
                                 <!-- Comment Count Cell -->
@@ -196,4 +216,7 @@
         document.querySelector('form').submit();
     }
 </script>
+
+<!-- Include Incremental Update Modal -->
+@include('videos.incremental-update-modal')
 @endsection

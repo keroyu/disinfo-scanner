@@ -90,6 +90,89 @@ class YouTubeApiService
     }
 
     /**
+     * Fetch comments published after a specific timestamp (for incremental updates)
+     * NOTE: YouTube API doesn't support publishedAfter parameter, so we fetch and filter client-side
+     *
+     * @param string $videoId The YouTube video ID
+     * @param string|null $publishedAfter ISO 8601 timestamp (e.g., "2025-11-05 15:00:00")
+     * @param int $maxResults Maximum number of NEW comments to return (default 500)
+     * @return array Flattened array of comments published after the timestamp
+     */
+    public function fetchCommentsAfter(string $videoId, ?string $publishedAfter = null, int $maxResults = 500): array
+    {
+        $this->validateVideoId($videoId);
+
+        try {
+            $allComments = [];
+            $newComments = [];
+            $nextPageToken = null;
+
+            // Convert publishedAfter to Carbon for comparison
+            $cutoffTime = $publishedAfter ? \Carbon\Carbon::parse($publishedAfter) : null;
+
+            Log::info('Fetching comments for incremental update', [
+                'video_id' => $videoId,
+                'cutoff_time' => $cutoffTime?->toDateTimeString(),
+                'max_results' => $maxResults,
+            ]);
+
+            // Fetch comments in pages, ordered by time (newest first)
+            do {
+                $params = [
+                    'videoId' => $videoId,
+                    'maxResults' => 100,
+                    'order' => 'time',
+                    'textFormat' => 'plainText',
+                ];
+
+                if ($nextPageToken) {
+                    $params['pageToken'] = $nextPageToken;
+                }
+
+                $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
+
+                $fetchedComments = $this->flattenCommentThreads($response->getItems());
+
+                // Filter comments published after cutoff time
+                foreach ($fetchedComments as $comment) {
+                    $commentTime = \Carbon\Carbon::parse($comment['published_at']);
+
+                    // Only include comments AFTER the cutoff time
+                    if (!$cutoffTime || $commentTime->greaterThan($cutoffTime)) {
+                        $newComments[] = $comment;
+
+                        // Stop if we've collected enough new comments
+                        if (count($newComments) >= $maxResults) {
+                            break 2; // Break both foreach and do-while
+                        }
+                    }
+                }
+
+                $allComments = array_merge($allComments, $fetchedComments);
+                $nextPageToken = $response->getNextPageToken();
+
+                // Stop if no more pages or we have enough new comments
+            } while ($nextPageToken && count($newComments) < $maxResults);
+
+            Log::info('Comments fetched and filtered', [
+                'video_id' => $videoId,
+                'total_fetched' => count($allComments),
+                'new_comments' => count($newComments),
+                'cutoff_time' => $cutoffTime?->toDateTimeString(),
+            ]);
+
+            return $newComments;
+        } catch (\Exception $e) {
+            Log::error('YouTube API error in fetchCommentsAfter', [
+                'video_id' => $videoId,
+                'published_after' => $publishedAfter,
+                'error' => $e->getMessage(),
+            ]);
+            throw new YouTubeApiException('Failed to fetch comments after timestamp: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Fetch all comments for a video
      * Recursively fetches replies at all levels
      *

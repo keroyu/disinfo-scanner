@@ -29,6 +29,12 @@ Route::post('/youtube-import/confirm', [\App\Http\Controllers\YouTubeApiImportCo
 Route::post('/comments/check', [\App\Http\Controllers\Api\ImportCommentsController::class, 'check']);
 Route::post('/comments/import', [\App\Http\Controllers\Api\ImportCommentsController::class, 'import']);
 
+// Video Incremental Update endpoints (007-video-incremental-update)
+Route::prefix('video-update')->group(function () {
+    Route::post('/preview', [\App\Http\Controllers\Api\VideoUpdateController::class, 'preview']);
+    Route::post('/import', [\App\Http\Controllers\Api\VideoUpdateController::class, 'import']);
+});
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
