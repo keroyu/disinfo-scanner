@@ -26,6 +26,23 @@
         </div>
     </nav>
 
+    @if(isset($breadcrumbs) && count($breadcrumbs) > 0)
+    <div class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <nav class="flex text-sm text-gray-600">
+                @foreach($breadcrumbs as $index => $crumb)
+                    @if($index > 0)<span class="mx-2 text-gray-400">></span>@endif
+                    @if(isset($crumb['url']))
+                        <a href="{{ $crumb['url'] }}" class="hover:text-blue-600 transition-colors">{{ $crumb['label'] }}</a>
+                    @else
+                        <span class="text-gray-900 font-medium">{{ $crumb['label'] }}</span>
+                    @endif
+                @endforeach
+            </nav>
+        </div>
+    </div>
+    @endif
+
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         @yield('content')
     </main>

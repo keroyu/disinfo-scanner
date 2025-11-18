@@ -75,10 +75,16 @@ class CommentController extends Controller
             }
         }
 
+        $breadcrumbs = [
+            ['label' => '首頁', 'url' => route('import.index')],
+            ['label' => '留言列表'],
+        ];
+
         return view('comments.list', [
             'comments' => $comments,
             'channels' => $channels,
             'repeatCounts' => $repeatCounts,
+            'breadcrumbs' => $breadcrumbs,
         ]);
     }
 }

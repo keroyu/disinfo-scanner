@@ -19,8 +19,14 @@ class ChannelListController extends Controller
         // Load tags for each channel (tags() is now a method, not a relationship)
         // No need for eager loading since we fetch tags on-demand in the view
 
+        $breadcrumbs = [
+            ['label' => '首頁', 'url' => route('import.index')],
+            ['label' => '頻道列表'],
+        ];
+
         return view('channels.list', [
             'channels' => $channels,
+            'breadcrumbs' => $breadcrumbs,
         ]);
     }
 }

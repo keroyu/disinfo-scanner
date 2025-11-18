@@ -45,10 +45,16 @@ class VideoController extends Controller
         // Paginate results - 500 videos per page
         $videos = $query->paginate(500);
 
+        $breadcrumbs = [
+            ['label' => '首頁', 'url' => route('import.index')],
+            ['label' => '影片列表'],
+        ];
+
         return view('videos.list', [
             'videos' => $videos,
             'sort' => $sort,
             'direction' => $direction,
+            'breadcrumbs' => $breadcrumbs,
         ]);
     }
 }

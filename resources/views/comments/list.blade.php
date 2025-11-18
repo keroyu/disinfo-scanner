@@ -111,8 +111,9 @@
                 Clear Filters
             </a>
         </div>
+    </form>
 
-        <!-- Comments Table Section -->
+    <!-- Comments Table Section -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
         @if($comments->isEmpty())
             <div class="p-8 text-center text-gray-500">
@@ -273,7 +274,6 @@
             </div>
         @endif
     </div>
-    </form>
 </div>
 
 <!-- Comment Modal -->
