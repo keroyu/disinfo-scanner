@@ -7,7 +7,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Support\Facades\Log;
 
-class YouTubeMetadataService
+class UrtubeApiMetadataService
 {
     protected $client;
     protected $timeout = 10; // 10-second timeout per spec

@@ -6,7 +6,7 @@ use App\Exceptions\YouTubePageException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
-class YouTubePageService
+class UrtubeApiYouTubePageService
 {
     protected $client;
     protected $timeout = 30;

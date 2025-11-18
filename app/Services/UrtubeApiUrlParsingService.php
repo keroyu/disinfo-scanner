@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Exceptions\InvalidUrlException;
 use App\Exceptions\UrlParsingException;
 
-class UrlParsingService
+class UrtubeApiUrlParsingService
 {
     /**
      * Identify URL type and extract parameters

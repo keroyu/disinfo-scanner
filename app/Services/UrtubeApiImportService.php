@@ -35,9 +35,9 @@ class UrtubeApiImportService
 
     public function __construct()
     {
-        $this->urlParsingService = new UrlParsingService();
-        $this->youTubePageService = new YouTubePageService();
-        $this->youTubeMetadataService = new YouTubeMetadataService();
+        $this->urlParsingService = new UrtubeApiUrlParsingService();
+        $this->youTubePageService = new UrtubeApiYouTubePageService();
+        $this->youTubeMetadataService = new UrtubeApiMetadataService();
         $this->urtubeapiService = new UrtubeapiService();
         $this->dataTransformService = new UrtubeApiDataTransformService();
         $this->duplicateDetectionService = new DuplicateDetectionService();
