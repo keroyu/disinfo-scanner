@@ -7,7 +7,7 @@ use App\Services\ImportService;
 use App\Services\ChannelTaggingService;
 use App\Models\Tag;
 
-class TagSelectionController extends Controller
+class UrtubeApiTagSelectionController extends Controller
 {
     protected $importService;
     protected $channelTaggingService;

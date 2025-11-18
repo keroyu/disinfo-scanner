@@ -12,14 +12,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Import endpoints
-Route::post('/import', [\App\Http\Controllers\ImportController::class, 'store']);
-Route::post('/import/confirm', [\App\Http\Controllers\ImportConfirmationController::class, 'confirm']);
-Route::post('/import/cancel', [\App\Http\Controllers\ImportConfirmationController::class, 'cancel']);
+// U-API (urtubeapi Third-Party) Import endpoints
+Route::post('/import', [\App\Http\Controllers\UrtubeApiImportController::class, 'store']);
+Route::post('/import/confirm', [\App\Http\Controllers\UrtubeApiConfirmationController::class, 'confirm']);
+Route::post('/import/cancel', [\App\Http\Controllers\UrtubeApiConfirmationController::class, 'cancel']);
 
-// Tag selection endpoints
-Route::post('/tags/select', [\App\Http\Controllers\TagSelectionController::class, 'store']);
-Route::get('/tags', [\App\Http\Controllers\TagSelectionController::class, 'index']);
+// U-API Tag selection endpoints
+Route::post('/tags/select', [\App\Http\Controllers\UrtubeApiTagSelectionController::class, 'store']);
+Route::get('/tags', [\App\Http\Controllers\UrtubeApiTagSelectionController::class, 'index']);
 
 // YouTube API import endpoints
 Route::post('/youtube-import/preview', [\App\Http\Controllers\YouTubeApiImportController::class, 'preview']);

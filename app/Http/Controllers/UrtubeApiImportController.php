@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\ImportService;
 
-class ImportController extends Controller
+class UrtubeApiImportController extends Controller
 {
     protected $importService;
 

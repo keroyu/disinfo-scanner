@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Services\ImportService;
 use Illuminate\Support\Facades\Log;
 
-class ImportConfirmationController extends Controller
+class UrtubeApiConfirmationController extends Controller
 {
     protected $importService;
 
