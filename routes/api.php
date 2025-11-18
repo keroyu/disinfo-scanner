@@ -35,6 +35,25 @@ Route::prefix('video-update')->group(function () {
     Route::post('/import', [\App\Http\Controllers\Api\VideoUpdateController::class, 'import']);
 });
 
+// Get single comment data (for parent comment display in modal)
+Route::get('/comments/{commentId}', function (string $commentId) {
+    $comment = \App\Models\Comment::where('comment_id', $commentId)
+        ->with('author')
+        ->first();
+
+    if (!$comment) {
+        return response()->json(['error' => 'Comment not found'], 404);
+    }
+
+    return response()->json([
+        'comment_id' => $comment->comment_id,
+        'text' => $comment->text,
+        'author_name' => $comment->author?->name ?? $comment->author_channel_id,
+        'like_count' => $comment->like_count ?? 0,
+        'published_at' => $comment->published_at?->format('Y-m-d H:i') ?? 'N/A',
+    ]);
+});
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

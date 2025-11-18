@@ -224,7 +224,13 @@
                                     <div
                                         class="text-sm text-gray-700 break-words cursor-pointer hover:text-blue-600 hover:underline transition-colors"
                                         onclick="openCommentModal(this)"
+                                        data-comment-id="{{ $comment->comment_id }}"
                                         data-comment-text="{{ $comment->text }}"
+                                        data-author-id="{{ $comment->author_channel_id }}"
+                                        data-author-name="{{ $comment->author?->name ?? $comment->author_channel_id }}"
+                                        data-like-count="{{ $comment->like_count ?? 0 }}"
+                                        data-published-at="{{ $comment->published_at?->format('Y-m-d H:i') ?? 'N/A' }}"
+                                        data-parent-id="{{ $comment->parent_comment_id }}"
                                         title="Click to view full comment"
                                     >
                                         {{Str::limit($comment->text, 150)}}
@@ -279,7 +285,55 @@
 
         <!-- Modal Body -->
         <div class="flex-1 overflow-y-auto p-6">
-            <div id="modalCommentText" class="text-gray-700 whitespace-pre-wrap break-words text-sm leading-relaxed"></div>
+            <!-- Parent Comment Section (shown only if this is a reply) -->
+            <div id="parentCommentSection" class="hidden mb-4 pb-4 border-b border-gray-200">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span id="parentAuthorName" class="font-semibold text-gray-900 text-sm"></span>
+                            <span class="text-gray-500 text-xs">•</span>
+                            <span id="parentPublishedAt" class="text-gray-500 text-xs"></span>
+                        </div>
+                        <div id="parentCommentText" class="text-gray-700 whitespace-pre-wrap break-words text-sm leading-relaxed mb-2"></div>
+                        <div class="flex items-center gap-1 text-gray-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span id="parentLikeCount" class="text-sm"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Comment Section -->
+            <div id="currentCommentSection">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span id="currentAuthorName" class="font-semibold text-gray-900 text-sm"></span>
+                            <span class="text-gray-500 text-xs">•</span>
+                            <span id="currentPublishedAt" class="text-gray-500 text-xs"></span>
+                        </div>
+                        <div id="modalCommentText" class="text-gray-700 whitespace-pre-wrap break-words text-sm leading-relaxed mb-2"></div>
+                        <div class="flex items-center gap-1 text-gray-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span id="currentLikeCount" class="text-sm"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Modal Footer -->
@@ -334,9 +388,49 @@ function handleSort(sortKey) {
     document.querySelector('form').submit();
 }
 
-function openCommentModal(element) {
-    const fullText = element.getAttribute('data-comment-text');
-    document.getElementById('modalCommentText').textContent = fullText;
+async function openCommentModal(element) {
+    // Extract all comment data
+    const commentId = element.getAttribute('data-comment-id');
+    const commentText = element.getAttribute('data-comment-text');
+    const authorName = element.getAttribute('data-author-name');
+    const likeCount = element.getAttribute('data-like-count');
+    const publishedAt = element.getAttribute('data-published-at');
+    const parentId = element.getAttribute('data-parent-id');
+
+    // Fill current comment data
+    document.getElementById('currentAuthorName').textContent = authorName || '匿名用戶';
+    document.getElementById('currentPublishedAt').textContent = publishedAt || 'N/A';
+    document.getElementById('modalCommentText').textContent = commentText;
+    document.getElementById('currentLikeCount').textContent = likeCount || '0';
+
+    // Check if this is a reply (has parent_comment_id)
+    if (parentId && parentId !== 'null' && parentId !== '') {
+        // Show loading state
+        document.getElementById('parentCommentSection').classList.remove('hidden');
+        document.getElementById('parentCommentText').textContent = '載入中...';
+
+        try {
+            // Fetch parent comment data from server
+            const response = await fetch(`/api/comments/${parentId}`);
+            if (!response.ok) throw new Error('Failed to fetch parent comment');
+
+            const parentData = await response.json();
+
+            // Fill parent comment data
+            document.getElementById('parentAuthorName').textContent = parentData.author_name || '匿名用戶';
+            document.getElementById('parentPublishedAt').textContent = parentData.published_at || 'N/A';
+            document.getElementById('parentCommentText').textContent = parentData.text || '';
+            document.getElementById('parentLikeCount').textContent = parentData.like_count || '0';
+        } catch (error) {
+            console.error('Error fetching parent comment:', error);
+            document.getElementById('parentCommentText').textContent = '無法載入父留言';
+        }
+    } else {
+        // Hide parent section if this is not a reply
+        document.getElementById('parentCommentSection').classList.add('hidden');
+    }
+
+    // Show modal
     document.getElementById('commentModal').classList.remove('hidden');
 }
 
