@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load available tags
     async function loadTags() {
         try {
-            const response = await fetch('/api/tags');
+            const response = await fetch('/api/uapi/tags');
             const data = await response.json();
 
             if (data.success) {
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
         importBtn.disabled = true;
 
         try {
-            const response = await fetch('/api/import', {
+            const response = await fetch('/api/uapi/import', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tagError.classList.add('hidden');
 
         try {
-            const response = await fetch('/api/import/confirm', {
+            const response = await fetch('/api/uapi/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
     modalCancel.addEventListener('click', async () => {
         // Optionally call cancel API to clear cache
         try {
-            await fetch('/api/import/cancel', {
+            await fetch('/api/uapi/cancel', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
