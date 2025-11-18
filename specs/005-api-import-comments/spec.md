@@ -2,8 +2,51 @@
 
 **Feature Branch**: `005-api-import-comments`
 **Created**: 2025-11-17
+**Last Updated**: 2025-11-18 (Refactoring Update)
 **Status**: Draft
 **Input**: 新增：用官方API導入留言的功能。功能完全獨立於 urtubeapi，請勿share重複頁面，僅 model 採用相同樣式。user 的YouTube API金鑰寫在 .env 檔案中。頁面入口在 /comments「留言列表」頁面右上角按鈕，文字為「官方API導入」。點擊按鈕後，進入可輸入網址的 modal 視窗。
+
+---
+
+## 2025-11-18 Refactoring Update
+
+為了明確區分兩個API系統並避免命名混淆，進行了以下重大重構：
+
+### Y-API (本文件) - **保持原有命名**
+本功能（YouTube Official API）的所有元件**未重新命名**，維持原有清晰的命名慣例：
+- **Controllers**: `ImportCommentsController` (保持不變)
+- **Services**: `CommentImportService`, `YouTubeApiService`, `TaggingService` (保持不變)
+- **Routes**: `/api/youtube/import/*` (保持不變)
+- **Modal**: `import-comments-modal.blade.php` (Component: `<x-import-comments-modal />`)
+- **入口點**: 留言列表頁面「官方API導入」按鈕 (紅色背景 bg-red-600)
+
+### U-API (第三方 urtubeapi) - **全面重新命名**
+為避免與Y-API混淆，U-API所有元件已統一加上 `UrtubeApi` 前綴：
+- **Controllers**: `UrtubeApiImportController`, `UrtubeApiConfirmationController`, `UrtubeApiTagSelectionController`
+- **Services**: `UrtubeApiImportService`, `UrtubeApiMetadataService`, `UrtubeApiDataTransformService`, 等
+- **Routes**: 全部移至 `/api/uapi/*` 群組
+- **Modal**: `uapi-import-modal.blade.php` (Include: `@include('comments.uapi-import-modal')`)
+- **入口點**: 留言列表頁面「U-API導入」按鈕 (藍色背景 bg-blue-600)
+
+### 命名對照表
+
+| 類別 | Y-API (YouTube Official) | U-API (urtubeapi Third-Party) |
+|------|-------------------------|-------------------------------|
+| **Import Controller** | `ImportCommentsController` | `UrtubeApiImportController` |
+| **Import Service** | `CommentImportService` | `UrtubeApiImportService` |
+| **Route Prefix** | `/api/youtube/import/*` | `/api/uapi/*` |
+| **Modal File** | `import-comments-modal.blade.php` | `uapi-import-modal.blade.php` |
+| **Modal Usage** | `<x-import-comments-modal />` | `@include('comments.uapi-import-modal')` |
+| **Button Text** | 官方API導入 | U-API導入 |
+| **Button Color** | Red (bg-red-600) | Blue (bg-blue-600) |
+| **API Source** | YouTube Data API v3 | urtubeapi.analysis.tw |
+| **API Key Required** | Yes (YOUTUBE_API_KEY) | No |
+
+### 重構原因
+1. **消除歧義**: 原有U-API元件使用通用名稱（如 `ImportController`），容易與Y-API混淆
+2. **清晰分離**: 現在任何人看到 `UrtubeApi` 前綴就知道是第三方服務，沒有前綴則是YouTube官方API
+3. **易於維護**: 兩個系統完全獨立，修改其中一個不會影響另一個
+4. **路由明確**: `/api/youtube/import/*` vs `/api/uapi/*` 一目了然
 
 ---
 

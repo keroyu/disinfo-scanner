@@ -2,8 +2,43 @@
 
 **Feature Branch**: `001-comment-import`
 **Created**: 2025-11-15
-**Status**: Draft
+**Last Updated**: 2025-11-18 (Refactoring completed)
+**Status**: Implemented with Refactoring
 **Input**: User description: "YouTube comment data management system MVP with web UI and political stance channel tagging"
+
+---
+
+## 📝 Refactoring Updates (2025-11-18)
+
+本功能已完成重大重構，以明確區分 U-API 和 Y-API：
+
+### 命名變更
+- **Controllers**: 所有 controller 加上 `UrtubeApi` 前綴
+  - `ImportController` → `UrtubeApiImportController`
+  - `ImportConfirmationController` → `UrtubeApiConfirmationController`
+  - `TagSelectionController` → `UrtubeApiTagSelectionController`
+
+- **Services**: 所有 service 加上 `UrtubeApi` 前綴
+  - `ImportService` → `UrtubeApiImportService`
+  - `DataTransformService` → `UrtubeApiDataTransformService`
+  - `UrlParsingService` → `UrtubeApiUrlParsingService`
+  - `YouTubePageService` → `UrtubeApiYouTubePageService`
+  - `YouTubeMetadataService` → `UrtubeApiMetadataService`
+
+### 路由變更
+- **API Routes**: 統一在 `/api/uapi/*` 群組下
+  - `POST /api/import` → `POST /api/uapi/import`
+  - `POST /api/import/confirm` → `POST /api/uapi/confirm`
+  - `POST /api/import/cancel` → `POST /api/uapi/cancel`
+  - `GET /api/tags` → `GET /api/uapi/tags`
+  - `POST /api/tags/select` → `POST /api/uapi/tags/select`
+
+### UI 變更
+- **首頁**: 簡化為歡迎頁面（不再包含導入表單）
+- **導入位置**: 移至留言列表頁的「U-API導入」按鈕（modal 視窗）
+- **入口**: `resources/views/comments/uapi-import-modal.blade.php`
+
+詳見：`specs/refactoring-plan.md`
 
 ---
 

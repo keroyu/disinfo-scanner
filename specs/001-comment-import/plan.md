@@ -1,6 +1,6 @@
 # Implementation Plan: YouTube Comment Data Management System with Political Stance Tagging
 
-**Branch**: `001-comment-import` | **Date**: 2025-11-15 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-comment-import` | **Date**: 2025-11-15 | **Last Updated**: 2025-11-18 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-comment-import/spec.md`
 
@@ -9,6 +9,8 @@
 ## Summary
 
 Build a Laravel 10 web application that imports YouTube comments from external API (urtubeapi.analysis.tw) into MySQL database, with required political stance channel tagging via web UI. Core components: database schema (6 tables), REST/AJAX import endpoint with YouTube URL parsing, tag selection modal, and channel list view page styled with Tailwind CSS. Follows DISINFO_SCANNER constitution: Test-First Development, API-First Design, Observable Systems, Contract Testing, and Semantic Versioning.
+
+**Refactoring Note (2025-11-18)**: All U-API components have been renamed with `UrtubeApi` prefix for clarity. Routes moved to `/api/uapi/*`. UI moved to modal in comments list page.
 
 ---
 
@@ -22,14 +24,22 @@ Build a Laravel 10 web application that imports YouTube comments from external A
    - **目的**: 從第三方服務 urtubeapi.analysis.tw 導入已爬取的 YouTube 留言 JSON 資料
    - **資料來源**: https://urtubeapi.analysis.tw/api/api_comment.php
    - **特色**: 無需 YouTube API 金鑰，使用第三方預先爬取的資料
-   - **相關檔案**: `app/Services/ImportService.php`, `app/Services/UrtubeapiService.php`
+   - **相關檔案** (2025-11-18 更新):
+     - Controllers: `app/Http/Controllers/UrtubeApiImportController.php`, `UrtubeApiConfirmationController.php`, `UrtubeApiTagSelectionController.php`
+     - Services: `app/Services/UrtubeApiImportService.php`, `UrtubeApiDataTransformService.php`, `UrtubeapiService.php`, etc.
+     - Routes: `/api/uapi/import`, `/api/uapi/confirm`, `/api/uapi/cancel`, `/api/uapi/tags`
+     - View: `resources/views/comments/uapi-import-modal.blade.php`
    - **文檔**: `/specs/001-comment-import/`
 
 2. **Y-API (不在此文檔範圍)** = YouTube Official API
    - **目的**: 直接從 YouTube Data API v3 官方服務導入留言
    - **資料來源**: Google YouTube Data API v3
    - **特色**: 需要 API 金鑰，取得完整官方元資料
-   - **相關檔案**: `app/Services/CommentImportService.php`, `app/Services/YouTubeApiService.php`, `app/Http/Controllers/Api/ImportCommentsController.php`
+   - **相關檔案**:
+     - Controllers: `app/Http/Controllers/Api/YouTubeOfficialApiController.php` (原 ImportCommentsController)
+     - Services: `app/Services/CommentImportService.php`, `YouTubeApiService.php`
+     - Routes: `/api/youtube-official/check`, `/api/youtube-official/import`
+     - View: `resources/views/components/import-comments-modal.blade.php`
    - **文檔**: `/specs/005-api-import-comments/`
 
 **這兩個系統完全獨立**，沒有共用程式碼或介面。請勿混淆。
