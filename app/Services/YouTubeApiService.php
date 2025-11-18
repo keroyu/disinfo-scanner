@@ -131,24 +131,68 @@ class YouTubeApiService
 
                 $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
 
-                $fetchedComments = $this->flattenCommentThreads($response->getItems());
+                // Process each comment thread (including recursive replies)
+                foreach ($response->getItems() as $thread) {
+                    $topLevel = $thread->getSnippet()->getTopLevelComment();
+                    $topLevelData = $this->parseCommentData($topLevel);
 
-                // Filter comments published after cutoff time
-                foreach ($fetchedComments as $comment) {
-                    $commentTime = \Carbon\Carbon::parse($comment['published_at']);
+                    // Check if top-level comment is new
+                    $commentTime = \Carbon\Carbon::parse($topLevelData['published_at']);
+                    $isNew = !$cutoffTime || $commentTime->greaterThan($cutoffTime);
 
-                    // Only include comments AFTER the cutoff time
-                    if (!$cutoffTime || $commentTime->greaterThan($cutoffTime)) {
-                        $newComments[] = $comment;
+                    if ($isNew) {
+                        $newComments[] = $topLevelData;
+                        $allComments[] = $topLevelData;
 
-                        // Stop if we've collected enough new comments
                         if (count($newComments) >= $maxResults) {
-                            break 2; // Break both foreach and do-while
+                            break 2;
+                        }
+                    } else {
+                        $allComments[] = $topLevelData;
+                    }
+
+                    // Process inline replies (up to 5-20 per thread)
+                    if ($thread->getSnippet()->getTotalReplyCount() > 0 && $thread->getReplies()) {
+                        foreach ($thread->getReplies()->getComments() as $reply) {
+                            $replyData = $this->parseCommentData($reply, $topLevel->getId());
+                            $replyTime = \Carbon\Carbon::parse($replyData['published_at']);
+
+                            if (!$cutoffTime || $replyTime->greaterThan($cutoffTime)) {
+                                $newComments[] = $replyData;
+
+                                if (count($newComments) >= $maxResults) {
+                                    break 3;
+                                }
+                            }
+
+                            $allComments[] = $replyData;
+                        }
+                    }
+
+                    // Recursively fetch additional replies if more than 20
+                    if ($thread->getSnippet()->getTotalReplyCount() > 20) {
+                        $additionalReplies = $this->fetchRepliesRecursive(
+                            $videoId,
+                            $topLevel->getId()
+                        );
+
+                        // Filter additional replies
+                        foreach ($additionalReplies as $replyData) {
+                            $replyTime = \Carbon\Carbon::parse($replyData['published_at']);
+
+                            if (!$cutoffTime || $replyTime->greaterThan($cutoffTime)) {
+                                $newComments[] = $replyData;
+
+                                if (count($newComments) >= $maxResults) {
+                                    break 3;
+                                }
+                            }
+
+                            $allComments[] = $replyData;
                         }
                     }
                 }
 
-                $allComments = array_merge($allComments, $fetchedComments);
                 $nextPageToken = $response->getNextPageToken();
 
                 // Stop if no more pages or we have enough new comments

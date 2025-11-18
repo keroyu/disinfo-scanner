@@ -189,8 +189,8 @@ class YoutubeApiClient
 
                     $allComments[] = $comment;
 
-                    // Get replies if they exist
-                    if ($commentThread->getReplies()) {
+                    // Get inline replies (up to 5-20 per thread)
+                    if ($commentThread->getSnippet()->getTotalReplyCount() > 0 && $commentThread->getReplies()) {
                         foreach ($commentThread->getReplies()->getComments() as $reply) {
                             $replySnippet = $reply->getSnippet();
                             $allComments[] = [
@@ -202,6 +202,12 @@ class YoutubeApiClient
                                 'parent_comment_id' => $replySnippet->getParentId(),
                             ];
                         }
+                    }
+
+                    // Recursively fetch additional replies if more than 20
+                    if ($commentThread->getSnippet()->getTotalReplyCount() > 20) {
+                        $additionalReplies = $this->getCommentReplies($topLevelComment->getId());
+                        $allComments = array_merge($allComments, $additionalReplies);
                     }
                 }
 

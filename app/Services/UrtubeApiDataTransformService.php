@@ -55,6 +55,8 @@ class UrtubeApiDataTransformService
             $text = $commentData['textOriginal'] ?? $commentData['textDisplay'] ?? $commentData['text'] ?? '';
             $likeCount = $commentData['likeCount'] ?? $commentData['like_count'] ?? 0;
             $publishedAt = $commentData['publishedAt'] ?? $commentData['published_at'] ?? null;
+            // Parent comment ID for replies (support multiple field names)
+            $parentCommentId = $commentData['parentId'] ?? $commentData['parent_id'] ?? $commentData['parent_comment_id'] ?? null;
 
             // Collect unique authors
             if ($authorChannelId && !isset($authorChannelIds[$authorChannelId])) {
@@ -76,6 +78,7 @@ class UrtubeApiDataTransformService
                     'like_count' => $likeCount,
                     'published_at' => $publishedAt ?
                         \Carbon\Carbon::parse($publishedAt) : null,
+                    'parent_comment_id' => $parentCommentId,
                 ]);
             }
         }
