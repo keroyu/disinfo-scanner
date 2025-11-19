@@ -140,7 +140,7 @@
 
                     <!-- Preview Comments -->
                     <div>
-                        <h3 class="font-semibold text-gray-800 mb-2">預覽留言 (最新5則)</h3>
+                        <h3 class="font-semibold text-gray-800 mb-2">預覽留言 (實際要導入的前5則，從舊到新)</h3>
                         <div class="space-y-2 max-h-64 overflow-y-auto">
                             <template x-for="comment in (previewData?.preview_comments || [])" :key="comment.comment_id">
                                 <div class="bg-white border border-gray-200 p-3 rounded text-sm">
@@ -240,7 +240,7 @@
 
                     <!-- Preview Comments -->
                     <div>
-                        <h3 class="font-semibold text-gray-800 mb-2">預覽留言 (最新5則)</h3>
+                        <h3 class="font-semibold text-gray-800 mb-2">預覽留言 (實際要導入的前5則，從舊到新)</h3>
                         <div class="space-y-2 max-h-64 overflow-y-auto">
                             <template x-for="comment in (previewData?.preview_comments || [])" :key="comment.comment_id">
                                 <div class="bg-white border border-gray-200 p-3 rounded text-sm">

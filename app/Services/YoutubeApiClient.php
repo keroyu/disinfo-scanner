@@ -112,15 +112,17 @@ class YoutubeApiClient
     }
 
     /**
-     * Get preview comments (latest 5 comments)
+     * Get preview comments (oldest 5 comments - actual comments to be imported)
      */
     public function getPreviewComments(string $videoId, int $maxResults = 5): array
     {
         try {
+            // Fetch more comments to find the oldest ones
+            // We fetch 100 comments and sort them to get the oldest 5
             $response = $this->youtube->commentThreads->listCommentThreads('snippet', [
                 'videoId' => $videoId,
-                'maxResults' => $maxResults,
-                'order' => 'time', // Latest first
+                'maxResults' => 100,
+                'order' => 'time', // Latest first from YouTube API
                 'textFormat' => 'plainText',
             ]);
 
@@ -140,7 +142,12 @@ class YoutubeApiClient
                 ];
             }
 
-            return $comments;
+            // Sort by published_at ascending (oldest first) and return first 5
+            usort($comments, function($a, $b) {
+                return strtotime($a['published_at']) <=> strtotime($b['published_at']);
+            });
+
+            return array_slice($comments, 0, $maxResults);
         } catch (\Google\Service\Exception $e) {
             Log::error('YouTube API error fetching preview comments', [
                 'video_id' => $videoId,
