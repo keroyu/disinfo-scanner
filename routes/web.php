@@ -16,6 +16,9 @@ Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'
 // Videos list page
 Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->name('videos.index');
 
+// Video Analysis page (008-video-comment-density)
+Route::get('/videos/{video}/analysis', [\App\Http\Controllers\VideoAnalysisController::class, 'showAnalysisPage'])->name('videos.analysis');
+
 // YouTube API Import endpoints
 Route::prefix('api')->group(function () {
     Route::prefix('youtube-import')->group(function () {

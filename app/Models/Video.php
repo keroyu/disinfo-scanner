@@ -89,4 +89,12 @@ class Video extends Model
 
         return $query->orderBy($column, $direction);
     }
+
+    /**
+     * Get the URL for the video analysis page (008-video-comment-density)
+     */
+    public function analysisUrl(): string
+    {
+        return route('videos.analysis', ['video' => $this->video_id]);
+    }
 }

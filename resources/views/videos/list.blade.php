@@ -137,16 +137,25 @@
                                     </a>
                                 </td>
 
-                                <!-- Actions Cell (Update Button) -->
+                                <!-- Actions Cell (Update and Analysis Buttons) -->
                                 <td class="px-4 py-3 text-center">
-                                    <button
-                                        type="button"
-                                        onclick="openUpdateModal('{{ $video->video_id }}', '{{ addslashes($fullTitle) }}')"
-                                        class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                                        title="更新此影片的新留言"
-                                    >
-                                        更新
-                                    </button>
+                                    <div class="flex gap-2 justify-center">
+                                        <button
+                                            type="button"
+                                            onclick="openUpdateModal('{{ $video->video_id }}', '{{ addslashes($fullTitle) }}')"
+                                            class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                            title="更新此影片的新留言"
+                                        >
+                                            更新
+                                        </button>
+                                        <a
+                                            href="{{ $video->analysisUrl() }}"
+                                            class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors inline-block"
+                                            title="查看留言密度分析"
+                                        >
+                                            分析
+                                        </a>
+                                    </div>
                                 </td>
 
                                 <!-- Comment Count Cell -->
