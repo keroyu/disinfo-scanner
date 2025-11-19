@@ -225,7 +225,10 @@ class UrtubeApiImportService
                     $videoData['title'] = $pendingImport['video_title'];
                 }
                 if ($pendingImport['published_at']) {
-                    $videoData['published_at'] = $pendingImport['published_at'];
+                    // Convert timezone-aware datetime string to UTC before storing
+                    $videoData['published_at'] = \Carbon\Carbon::parse($pendingImport['published_at'])
+                        ->setTimezone('UTC')
+                        ->toDateTimeString();
                 }
                 $videoCreated = false;
                 $video = Video::updateOrCreate(
@@ -350,7 +353,10 @@ class UrtubeApiImportService
                 $videoData['title'] = $pendingImport['video_title'];
             }
             if ($pendingImport['published_at']) {
-                $videoData['published_at'] = $pendingImport['published_at'];
+                // Convert timezone-aware datetime string to UTC before storing
+                $videoData['published_at'] = \Carbon\Carbon::parse($pendingImport['published_at'])
+                    ->setTimezone('UTC')
+                    ->toDateTimeString();
             }
             $videoCreated = false;
             $video = Video::updateOrCreate(

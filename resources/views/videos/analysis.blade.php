@@ -20,43 +20,17 @@
             <!-- Preset Ranges -->
             <div class="flex flex-wrap gap-3">
                 <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="3days" checked class="mr-2 text-blue-600">
+                    <input type="radio" name="range" value="24hours" checked class="mr-2 text-blue-600">
+                    <span>發布後 24 小時內 (每小時)</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                    <input type="radio" name="range" value="3days" class="mr-2 text-blue-600">
                     <span>發布後 3 天 (每小時)</span>
                 </label>
                 <label class="flex items-center cursor-pointer">
                     <input type="radio" name="range" value="7days" class="mr-2 text-blue-600">
                     <span>發布後 7 天 (每小時)</span>
                 </label>
-                <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="14days" class="mr-2 text-blue-600">
-                    <span>發布後 14 天 (每小時)</span>
-                </label>
-                <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="30days" class="mr-2 text-blue-600">
-                    <span>發布後 30 天 (每日)</span>
-                </label>
-                <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="custom" class="mr-2 text-blue-600">
-                    <span>自訂範圍</span>
-                </label>
-            </div>
-
-            <!-- Custom Date Range (hidden by default) -->
-            <div id="customRangeInputs" class="hidden mt-4 p-4 bg-gray-50 rounded border">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">開始日期</label>
-                        <input type="date" id="customStartDate" class="w-full px-3 py-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">結束日期</label>
-                        <input type="date" id="customEndDate" class="w-full px-3 py-2 border rounded">
-                    </div>
-                </div>
-                <button id="applyCustomRange" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    套用自訂範圍
-                </button>
-                <div id="customRangeNotification" class="hidden mt-2 p-2 bg-yellow-100 text-yellow-800 rounded text-sm"></div>
             </div>
         </div>
 
@@ -130,20 +104,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Range selector logic
 function initializeRangeSelector() {
     const rangeInputs = document.querySelectorAll('input[name="range"]');
-    const customRangeDiv = document.getElementById('customRangeInputs');
 
     rangeInputs.forEach(input => {
         input.addEventListener('change', (e) => {
-            if (e.target.value === 'custom') {
-                customRangeDiv.classList.remove('hidden');
-            } else {
-                customRangeDiv.classList.add('hidden');
-                updateChartWithRange(e.target.value);
-            }
+            updateChartWithRange(e.target.value);
         });
     });
-
-    document.getElementById('applyCustomRange').addEventListener('click', applyCustomRange);
 }
 
 // Load data from API (ONE-TIME fetch)
@@ -174,8 +140,8 @@ async function loadInitialData() {
             return;
         }
 
-        // Initialize chart with default range (3 days)
-        updateChartWithRange('3days');
+        // Initialize chart with default range (24 hours)
+        updateChartWithRange('24hours');
         hideLoadingSkeleton();
 
     } catch (error) {
@@ -191,78 +157,18 @@ function updateChartWithRange(rangeType) {
     let filteredData;
 
     switch (rangeType) {
+        case '24hours':
+            filteredData = cachedDensityData.hourly_data.data.slice(0, 24);
+            break;
         case '3days':
             filteredData = cachedDensityData.hourly_data.data.slice(0, 72);
             break;
         case '7days':
             filteredData = cachedDensityData.hourly_data.data.slice(0, 168);
             break;
-        case '14days':
-            filteredData = cachedDensityData.hourly_data.data;
-            break;
-        case '30days':
-            filteredData = cachedDensityData.daily_data.data.slice(0, 30);
-            break;
         default:
-            filteredData = cachedDensityData.hourly_data.data.slice(0, 168); // Default 7 days
+            filteredData = cachedDensityData.hourly_data.data.slice(0, 24); // Default 24 hours
     }
-
-    renderChart(filteredData);
-    updateTotalComments(filteredData);
-}
-
-// Apply custom date range
-function applyCustomRange() {
-    const startInput = document.getElementById('customStartDate').value;
-    const endInput = document.getElementById('customEndDate').value;
-    const notification = document.getElementById('customRangeNotification');
-
-    if (!startInput || !endInput) {
-        notification.textContent = '請選擇開始和結束日期';
-        notification.classList.remove('hidden');
-        return;
-    }
-
-    const startDate = new Date(startInput);
-    const endDate = new Date(endInput);
-    const videoPublishedAt = new Date('{{ $video->published_at->setTimezone("UTC")->format("Y-m-d") }}');
-    const currentDate = new Date();
-
-    notification.classList.add('hidden');
-
-    // Validate date range
-    if (startDate > endDate) {
-        notification.textContent = '開始日期不能晚於結束日期';
-        notification.classList.remove('hidden');
-        return;
-    }
-
-    // Clamp dates
-    let adjusted = false;
-    if (startDate < videoPublishedAt) {
-        startDate.setTime(videoPublishedAt.getTime());
-        adjusted = true;
-        notification.textContent = '開始日期已調整為影片發布日期';
-    }
-    if (endDate > currentDate) {
-        endDate.setTime(currentDate.getTime());
-        adjusted = true;
-        notification.textContent += (adjusted ? '；' : '') + '結束日期已調整為當前日期';
-    }
-    if (adjusted) {
-        notification.classList.remove('hidden');
-    }
-
-    // Determine granularity and filter data
-    const daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);
-    const dataset = daysDiff <= 14
-        ? cachedDensityData.hourly_data.data
-        : cachedDensityData.daily_data.data;
-
-    const filteredData = dataset.filter(d => {
-        const timestamp = new Date(d.timestamp);
-        return timestamp >= startDate && timestamp <= endDate;
-    });
 
     renderChart(filteredData);
     updateTotalComments(filteredData);
