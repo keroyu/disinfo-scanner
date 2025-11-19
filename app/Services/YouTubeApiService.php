@@ -222,21 +222,23 @@ class YouTubeApiService
      *
      * @param string $videoId The YouTube video ID
      * @param ?callable $progressCallback Optional: callback for progress updates
+     * @param bool $isNewVideo Whether this is a new video (first import)
      * @return array Flattened array of all comments and replies with parent_comment_id set
      */
-    public function fetchAllComments(string $videoId, ?callable $progressCallback = null): array
+    public function fetchAllComments(string $videoId, ?callable $progressCallback = null, bool $isNewVideo = false): array
     {
         $this->validateVideoId($videoId);
 
         try {
             $allComments = [];
             $nextPageToken = null;
+            $maxCommentsLimit = $isNewVideo ? 1000 : PHP_INT_MAX;
 
             do {
                 $params = [
                     'videoId' => $videoId,
                     'maxResults' => 100,
-                    'order' => 'relevance',
+                    'order' => $isNewVideo ? 'time' : 'relevance', // For new videos, fetch oldest first
                     'textFormat' => 'plainText',
                 ];
 
@@ -247,6 +249,11 @@ class YouTubeApiService
                 $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
 
                 foreach ($response->getItems() as $thread) {
+                    // Stop if we've reached the limit for new videos
+                    if ($isNewVideo && count($allComments) >= $maxCommentsLimit) {
+                        break 2;
+                    }
+
                     $topLevel = $thread->getSnippet()->getTopLevelComment();
                     $commentData = $this->parseCommentData($topLevel);
                     $allComments[] = $commentData;
@@ -256,6 +263,11 @@ class YouTubeApiService
                         foreach ($thread->getReplies()->getComments() as $reply) {
                             $replyData = $this->parseCommentData($reply, $topLevel->getId());
                             $allComments[] = $replyData;
+
+                            // Stop if we've reached the limit for new videos
+                            if ($isNewVideo && count($allComments) >= $maxCommentsLimit) {
+                                break 3;
+                            }
                         }
                     }
 
@@ -265,7 +277,13 @@ class YouTubeApiService
                             $videoId,
                             $topLevel->getId()
                         );
-                        $allComments = array_merge($allComments, $additionalReplies);
+
+                        foreach ($additionalReplies as $replyData) {
+                            if ($isNewVideo && count($allComments) >= $maxCommentsLimit) {
+                                break 3;
+                            }
+                            $allComments[] = $replyData;
+                        }
                     }
                 }
 
@@ -274,7 +292,17 @@ class YouTubeApiService
                 }
 
                 $nextPageToken = $response->getNextPageToken();
-            } while ($nextPageToken);
+
+                // Stop pagination if we've reached the limit for new videos
+            } while ($nextPageToken && (!$isNewVideo || count($allComments) < $maxCommentsLimit));
+
+            if ($isNewVideo) {
+                Log::info('New video: limited comment fetch', [
+                    'video_id' => $videoId,
+                    'comments_fetched' => count($allComments),
+                    'limit' => $maxCommentsLimit,
+                ]);
+            }
 
             return $allComments;
         } catch (\Exception $e) {

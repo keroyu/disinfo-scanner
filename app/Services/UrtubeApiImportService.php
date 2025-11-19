@@ -90,7 +90,16 @@ class UrtubeApiImportService
             // Step 3: Fetch comment data from urtubeapi (determines comment count)
             $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
             $metadata['channel_name'] = $apiData['channelTitle'] ?? null;
-            $metadata['comment_count'] = count($apiData['comments'] ?? []);
+
+            // Calculate total comment count including replies
+            $totalComments = 0;
+            foreach ($apiData['comments'] ?? [] as $comment) {
+                $totalComments++; // Count top-level comment
+                if (isset($comment['replies']) && is_array($comment['replies'])) {
+                    $totalComments += count($comment['replies']); // Count replies
+                }
+            }
+            $metadata['comment_count'] = $totalComments;
 
             // Check if video has any comments
             if ($metadata['comment_count'] === 0) {

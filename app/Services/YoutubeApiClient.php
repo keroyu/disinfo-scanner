@@ -266,12 +266,19 @@ class YoutubeApiClient
     }
 
     /**
-     * Format ISO 8601 timestamp to Y-m-d H:i:s format (UTC)
+     * Format ISO 8601 timestamp - keep original ISO format to preserve timezone info
+     * YouTube API returns UTC timestamps in ISO 8601 format (e.g., 2025-01-12T01:44:14Z)
      */
     private function formatTimestamp(string $isoTimestamp): string
     {
-        return Carbon::parse($isoTimestamp)
-            ->setTimezone('UTC')
-            ->format('Y-m-d H:i:s');
+        Log::debug('YouTube API timestamp', [
+            'original_iso' => $isoTimestamp,
+            'parsed_utc' => Carbon::parse($isoTimestamp)->setTimezone('UTC')->toDateTimeString(),
+            'parsed_taipei' => Carbon::parse($isoTimestamp)->setTimezone('Asia/Taipei')->toDateTimeString(),
+        ]);
+
+        // Return original ISO 8601 format to preserve timezone information
+        // This ensures proper timezone conversion downstream
+        return $isoTimestamp;
     }
 }

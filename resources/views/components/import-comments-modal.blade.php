@@ -112,6 +112,20 @@
                         <p class="text-sm text-gray-600"><strong>留言數量：</strong><span x-text="previewData?.comment_count_total || ''"></span></p>
                     </div>
 
+                    <!-- Import Limit Warning -->
+                    <div x-show="previewData?.import_limit_warning" class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-1 mr-3"></i>
+                            <div>
+                                <h3 class="font-semibold text-yellow-800 mb-1">導入限制</h3>
+                                <p class="text-sm text-yellow-700" x-text="previewData?.import_limit_warning || ''"></p>
+                                <p class="text-sm text-yellow-700 mt-1">
+                                    實際將導入：<strong x-text="previewData?.will_import_count || ''"></strong> 則留言
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Existing Channel Tags -->
                     <div class="bg-blue-50 p-4 rounded-lg">
                         <h3 class="font-semibold text-gray-800 mb-2">
@@ -175,6 +189,20 @@
                         <p class="text-sm text-gray-600 mb-1"><strong>頻道：</strong><span x-text="previewData?.channel_title || ''"></span></p>
                         <p class="text-sm text-gray-600 mb-1"><strong>發布時間：</strong><span x-text="previewData?.video_published_at || ''"></span></p>
                         <p class="text-sm text-gray-600"><strong>留言數量：</strong><span x-text="previewData?.comment_count_total || ''"></span></p>
+                    </div>
+
+                    <!-- Import Limit Warning -->
+                    <div x-show="previewData?.import_limit_warning" class="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-orange-600 mt-1 mr-3"></i>
+                            <div>
+                                <h3 class="font-semibold text-orange-800 mb-1">導入限制</h3>
+                                <p class="text-sm text-orange-700" x-text="previewData?.import_limit_warning || ''"></p>
+                                <p class="text-sm text-orange-700 mt-1">
+                                    實際將導入：<strong x-text="previewData?.will_import_count || ''"></strong> 則留言
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- New Channel Notice -->

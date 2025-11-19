@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\YoutubeApiClient;
 use App\Services\CommentImportService;
 use App\Services\ChannelTagManager;
+use App\Services\UrtubeApiMetadataService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -28,15 +29,18 @@ class ImportCommentsController extends Controller
     private YoutubeApiClient $youtubeClient;
     private CommentImportService $importService;
     private ChannelTagManager $tagManager;
+    private UrtubeApiMetadataService $metadataService;
 
     public function __construct(
         YoutubeApiClient $youtubeClient,
         CommentImportService $importService,
-        ChannelTagManager $tagManager
+        ChannelTagManager $tagManager,
+        UrtubeApiMetadataService $metadataService
     ) {
         $this->youtubeClient = $youtubeClient;
         $this->importService = $importService;
         $this->tagManager = $tagManager;
+        $this->metadataService = $metadataService;
     }
 
     /**
@@ -98,6 +102,17 @@ class ImportCommentsController extends Controller
                 ], 404);
             }
 
+            // Scrape metadata from YouTube page to get correct published_at
+            // YouTube API's publishedAt is sometimes incorrect, so we use web scraping as the authoritative source
+            $scrapedMetadata = $this->metadataService->scrapeMetadata($videoId);
+            if ($scrapedMetadata['publishedAt']) {
+                $videoMetadata['published_at'] = $scrapedMetadata['publishedAt'];
+                Log::info('Using scraped published_at instead of YouTube API', [
+                    'video_id' => $videoId,
+                    'scraped_time' => $scrapedMetadata['publishedAt'],
+                ]);
+            }
+
             // Check if video has comments
             if (!isset($videoMetadata['comment_count']) || $videoMetadata['comment_count'] === 0) {
                 return response()->json([
@@ -129,18 +144,26 @@ class ImportCommentsController extends Controller
                     }
                 }
 
-                return response()->json([
+                $response = [
                     'status' => 'new_video_existing_channel',
                     'channel_id' => $videoMetadata['channel_id'],
                     'channel_title' => $videoMetadata['channel_title'],
                     'video_title' => $videoMetadata['title'],
                     'video_published_at' => \Carbon\Carbon::parse($videoMetadata['published_at'])
-                        ->setTimezone('Asia/Taipei')
-                        ->format('Y-m-d H:i:s'),
+                        ->setTimezone('UTC')
+                        ->format('Y-m-d H:i:s') . ' (UTC)',
                     'comment_count_total' => $videoMetadata['comment_count'],
                     'preview_comments' => $previewComments,
                     'existing_channel_tags' => $existingTags,
-                ], 200);
+                ];
+
+                // Add warning if comment count exceeds 1000 for first import
+                if ($videoMetadata['comment_count'] > 1000) {
+                    $response['import_limit_warning'] = '⚠️ 新影片首次導入最多只會導入最舊的 1000 則留言（按時間排序）';
+                    $response['will_import_count'] = 1000;
+                }
+
+                return response()->json($response, 200);
             } else {
                 // Scenario 3: New video + New channel
                 $availableTags = $this->tagManager->getAllTags();
@@ -154,18 +177,26 @@ class ImportCommentsController extends Controller
                     }
                 }
 
-                return response()->json([
+                $response = [
                     'status' => 'new_video_new_channel',
                     'channel_id' => $videoMetadata['channel_id'],
                     'channel_title' => $videoMetadata['channel_title'],
                     'video_title' => $videoMetadata['title'],
                     'video_published_at' => \Carbon\Carbon::parse($videoMetadata['published_at'])
-                        ->setTimezone('Asia/Taipei')
-                        ->format('Y-m-d H:i:s'),
+                        ->setTimezone('UTC')
+                        ->format('Y-m-d H:i:s') . ' (UTC)',
                     'comment_count_total' => $videoMetadata['comment_count'],
                     'preview_comments' => $previewComments,
                     'available_tags' => $availableTags,
-                ], 200);
+                ];
+
+                // Add warning if comment count exceeds 1000 for first import
+                if ($videoMetadata['comment_count'] > 1000) {
+                    $response['import_limit_warning'] = '⚠️ 新影片首次導入最多只會導入最舊的 1000 則留言（按時間排序）';
+                    $response['will_import_count'] = 1000;
+                }
+
+                return response()->json($response, 200);
             }
         } catch (\Google\Service\Exception $e) {
             Log::error('YouTube API error during check', [

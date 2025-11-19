@@ -178,6 +178,7 @@ class CommentImportService
 
             // Fetch ALL comments and replies from YouTube API
             // This happens BEFORE database transaction to maximize failure recovery
+            // For new videos, limit to oldest 1000 comments ordered by time
             Log::info('Starting comment fetch for new video', [
                 'trace_id' => $traceId,
                 'video_id' => $videoId,
@@ -190,7 +191,8 @@ class CommentImportService
                         'trace_id' => $traceId,
                         'fetched_count' => $count,
                     ]);
-                }
+                },
+                true // isNewVideo = true: limit to 1000 oldest comments
             );
 
             // No comments to import
