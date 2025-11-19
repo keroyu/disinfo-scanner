@@ -58,27 +58,44 @@
             </div>
         </div>
 
-        <!-- Date Range Filter (Default: Last 30 Days) -->
+        <!-- Date Range and Time Period Filter -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Date Range (From/To) -->
             <div>
-                <label for="from_date" class="block text-sm font-medium text-gray-700">From Date</label>
-                <input
-                    type="date"
-                    id="from_date"
-                    name="from_date"
-                    value="{{ request('from_date', now()->subDays(30)->format('Y-m-d')) }}"
-                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                >
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">From</span>
+                    <input
+                        type="date"
+                        id="from_date"
+                        name="from_date"
+                        value="{{ request('from_date', now()->subDays(30)->format('Y-m-d')) }}"
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                    <span class="text-sm text-gray-600">To</span>
+                    <input
+                        type="date"
+                        id="to_date"
+                        name="to_date"
+                        value="{{ request('to_date', now()->format('Y-m-d')) }}"
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
             </div>
+
+            <!-- Time Period Filter -->
             <div>
-                <label for="to_date" class="block text-sm font-medium text-gray-700">To Date</label>
-                <input
-                    type="date"
-                    id="to_date"
-                    name="to_date"
-                    value="{{ request('to_date', now()->format('Y-m-d')) }}"
+                <label for="time_period" class="block text-sm font-medium text-gray-700 mb-1">時間段選擇</label>
+                <select
+                    id="time_period"
+                    name="time_period"
                     class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 >
+                    <option value="">-- 全時段 --</option>
+                    <option value="daytime" {{ request('time_period') == 'daytime' ? 'selected' : '' }}>白天（06:00-17:59）</option>
+                    <option value="evening" {{ request('time_period') == 'evening' ? 'selected' : '' }}>夜間（18:00-00:59）</option>
+                    <option value="late_night" {{ request('time_period') == 'late_night' ? 'selected' : '' }}>深夜（01:00-05:59）</option>
+                </select>
             </div>
         </div>
 
@@ -111,6 +128,13 @@
                 <p class="text-sm mt-2">Try adjusting your search or date filters.</p>
             </div>
         @else
+            <!-- Results Count (Top) -->
+            <div class="px-6 py-3 border-b border-gray-200 bg-gray-50">
+                <div class="text-sm text-gray-700">
+                    顯示第 {{ $comments->firstItem() ?? 0 }} 至 {{ $comments->lastItem() ?? 0 }} 筆，共 {{ $comments->total() ?? 0 }} 筆留言
+                </div>
+            </div>
+
             <!-- Responsive Table Wrapper -->
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse comments-table">

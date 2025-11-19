@@ -42,6 +42,12 @@ class CommentController extends Controller
         // Always apply date range filter (uses defaults if not provided)
         $query->filterByDateRange($fromDate, $toDate);
 
+        // Apply time period filter
+        if ($request->filled('time_period')) {
+            $timePeriod = $request->input('time_period');
+            $query->filterByTimePeriod($timePeriod);
+        }
+
         // Apply sorting
         $sort = $request->input('sort', 'date');
         $direction = $request->input('direction', 'desc');

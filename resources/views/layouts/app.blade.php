@@ -17,7 +17,7 @@
                     <a href="/" class="text-xl font-bold text-blue-600">DISINFO_SCANNER</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-600 hover:text-gray-900">匯入</a>
+                    <a href="/" class="text-gray-600 hover:text-gray-900">首頁</a>
                     <a href="{{ route('channels.index') }}" class="{{ request()->is('channels*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">頻道列表</a>
                     <a href="{{ route('videos.index') }}" class="{{ request()->is('videos*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">影片列表</a>
                     <a href="{{ route('comments.index') }}" class="{{ request()->is('comments*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">留言列表</a>

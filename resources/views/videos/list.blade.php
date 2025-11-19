@@ -62,6 +62,13 @@
                 <p class="text-sm mt-2">Try adjusting your search filters.</p>
             </div>
         @else
+            <!-- Results Count (Top) -->
+            <div class="px-6 py-3 border-b border-gray-200 bg-gray-50">
+                <div class="text-sm text-gray-700">
+                    顯示第 {{ $videos->firstItem() ?? 0 }} 至 {{ $videos->lastItem() ?? 0 }} 筆，共 {{ $videos->total() ?? 0 }} 部影片
+                </div>
+            </div>
+
             <!-- Responsive Table Wrapper -->
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse videos-table">

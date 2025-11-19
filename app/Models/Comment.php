@@ -87,6 +87,31 @@ class Comment extends Model
     }
 
     /**
+     * Filter comments by time period of day (Taipei timezone)
+     * Database stores UTC time, but we filter by Taipei time (UTC+8)
+     *
+     * @param Builder $query
+     * @param string $timePeriod - 'daytime' (06:00-17:59), 'evening' (18:00-00:59), 'late_night' (01:00-05:59)
+     * @return Builder
+     */
+    public function scopeFilterByTimePeriod(Builder $query, string $timePeriod): Builder
+    {
+        return $query->where(function (Builder $q) use ($timePeriod) {
+            switch ($timePeriod) {
+                case 'daytime': // 白天 Taipei 06:00-17:59
+                    $q->whereRaw('HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) >= 6 AND HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) < 18');
+                    break;
+                case 'evening': // 夜間 Taipei 18:00-00:59 (includes 18:00-23:59 and 00:00-00:59)
+                    $q->whereRaw('(HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) >= 18 AND HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) <= 23) OR HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) = 0');
+                    break;
+                case 'late_night': // 深夜 Taipei 01:00-05:59
+                    $q->whereRaw('HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) >= 1 AND HOUR(CONVERT_TZ(published_at, "+00:00", "+08:00")) < 6');
+                    break;
+            }
+        });
+    }
+
+    /**
      * Sort comments by like count
      */
     public function scopeSortByLikes(Builder $query, string $direction = 'DESC'): Builder
