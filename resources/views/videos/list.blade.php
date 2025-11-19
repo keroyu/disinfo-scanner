@@ -158,7 +158,7 @@
                                 <td class="px-4 py-3 text-right text-sm">
                                     @if($video->last_comment_time)
                                         @php
-                                            $lastCommentDate = \Carbon\Carbon::parse($video->last_comment_time);
+                                            $lastCommentDate = \Carbon\Carbon::parse($video->last_comment_time)->setTimezone('Asia/Taipei');
                                             $fromDate = $lastCommentDate->copy()->subDays(90)->format('Y-m-d');
                                             $toDate = $lastCommentDate->format('Y-m-d');
                                         @endphp

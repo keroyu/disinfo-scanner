@@ -601,8 +601,8 @@ class CommentImportService
                 'channel_name' => $channel->channel_name,
                 'video_id' => $videoId,
                 'video_title' => $video->title,
-                'video_published_at' => $video->published_at->format('Y-m-d H:i:s'),
-                'timestamp' => now()->format('Y-m-d H:i:s'),
+                'video_published_at' => $video->published_at->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s'),
+                'timestamp' => now()->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s'),
             ];
         });
     }

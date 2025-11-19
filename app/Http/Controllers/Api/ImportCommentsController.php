@@ -120,12 +120,23 @@ class ImportCommentsController extends Controller
                 $channel = \App\Models\Channel::where('channel_id', $videoMetadata['channel_id'])->first();
                 $existingTags = $this->tagManager->getChannelTags($channel);
 
+                // Convert preview comments' published_at to Asia/Taipei
+                foreach ($previewComments as &$comment) {
+                    if (isset($comment['published_at'])) {
+                        $comment['published_at'] = \Carbon\Carbon::parse($comment['published_at'])
+                            ->setTimezone('Asia/Taipei')
+                            ->format('Y-m-d H:i:s');
+                    }
+                }
+
                 return response()->json([
                     'status' => 'new_video_existing_channel',
                     'channel_id' => $videoMetadata['channel_id'],
                     'channel_title' => $videoMetadata['channel_title'],
                     'video_title' => $videoMetadata['title'],
-                    'video_published_at' => $videoMetadata['published_at'],
+                    'video_published_at' => \Carbon\Carbon::parse($videoMetadata['published_at'])
+                        ->setTimezone('Asia/Taipei')
+                        ->format('Y-m-d H:i:s'),
                     'comment_count_total' => $videoMetadata['comment_count'],
                     'preview_comments' => $previewComments,
                     'existing_channel_tags' => $existingTags,
@@ -134,12 +145,23 @@ class ImportCommentsController extends Controller
                 // Scenario 3: New video + New channel
                 $availableTags = $this->tagManager->getAllTags();
 
+                // Convert preview comments' published_at to Asia/Taipei
+                foreach ($previewComments as &$comment) {
+                    if (isset($comment['published_at'])) {
+                        $comment['published_at'] = \Carbon\Carbon::parse($comment['published_at'])
+                            ->setTimezone('Asia/Taipei')
+                            ->format('Y-m-d H:i:s');
+                    }
+                }
+
                 return response()->json([
                     'status' => 'new_video_new_channel',
                     'channel_id' => $videoMetadata['channel_id'],
                     'channel_title' => $videoMetadata['channel_title'],
                     'video_title' => $videoMetadata['title'],
-                    'video_published_at' => $videoMetadata['published_at'],
+                    'video_published_at' => \Carbon\Carbon::parse($videoMetadata['published_at'])
+                        ->setTimezone('Asia/Taipei')
+                        ->format('Y-m-d H:i:s'),
                     'comment_count_total' => $videoMetadata['comment_count'],
                     'preview_comments' => $previewComments,
                     'available_tags' => $availableTags,

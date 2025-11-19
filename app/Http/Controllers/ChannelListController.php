@@ -13,6 +13,7 @@ class ChannelListController extends Controller
     {
         $channels = Channel::withSum('videos', 'comment_count')
             ->withCount('videos')
+            ->selectRaw('channels.*, (SELECT MAX(published_at) FROM videos WHERE videos.channel_id = channels.channel_id) as latest_video_published_at')
             ->orderBy('last_import_at', 'desc')
             ->get();
 

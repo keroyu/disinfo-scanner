@@ -38,12 +38,22 @@ class VideoIncrementalUpdateService
         $newComments = $this->youtubeApi->fetchCommentsAfter($videoId, $lastCommentTime, 500);
 
         // 4. Return preview (first 5 + count)
+        // Convert preview comments' published_at to Asia/Taipei timezone
+        $previewComments = array_slice($newComments, 0, 5);
+        foreach ($previewComments as &$comment) {
+            if (isset($comment['published_at'])) {
+                $comment['published_at'] = \Carbon\Carbon::parse($comment['published_at'])
+                    ->setTimezone('Asia/Taipei')
+                    ->format('Y-m-d H:i:s');
+            }
+        }
+
         return [
             'video_id' => $videoId,
             'video_title' => $video->title,
-            'last_comment_time' => $lastCommentTime ? \Carbon\Carbon::parse($lastCommentTime)->format('Y-m-d H:i:s') : null,
+            'last_comment_time' => $lastCommentTime ? \Carbon\Carbon::parse($lastCommentTime)->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s') : null,
             'new_comment_count' => count($newComments),
-            'preview_comments' => array_slice($newComments, 0, 5),
+            'preview_comments' => $previewComments,
             'has_more' => count($newComments) > 500,
             'import_limit' => 500,
         ];

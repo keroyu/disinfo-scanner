@@ -50,7 +50,7 @@ Route::get('/comments/{commentId}', function (string $commentId) {
         'text' => $comment->text,
         'author_name' => $comment->author?->name ?? $comment->author_channel_id,
         'like_count' => $comment->like_count ?? 0,
-        'published_at' => $comment->published_at?->format('Y-m-d H:i') ?? 'N/A',
+        'published_at' => $comment->published_at?->setTimezone('Asia/Taipei')->format('Y-m-d H:i') ?? 'N/A',
     ]);
 });
 

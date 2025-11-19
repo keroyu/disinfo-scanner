@@ -240,7 +240,7 @@
                                         data-author-id="{{ $comment->author_channel_id }}"
                                         data-author-name="{{ $comment->author?->name ?? $comment->author_channel_id }}"
                                         data-like-count="{{ $comment->like_count ?? 0 }}"
-                                        data-published-at="{{ $comment->published_at?->format('Y-m-d H:i') ?? 'N/A' }}"
+                                        data-published-at="{{ $comment->published_at?->setTimezone('Asia/Taipei')->format('Y-m-d H:i') ?? 'N/A' }}"
                                         data-parent-id="{{ $comment->parent_comment_id }}"
                                         title="Click to view full comment"
                                     >
@@ -255,7 +255,7 @@
 
                                 <!-- Date Cell (Hidden on Tablet) -->
                                 <td class="px-4 py-3 text-right text-sm text-gray-700 hidden md:table-cell w-[160px]">
-                                    {{ $comment->published_at?->format('Y-m-d H:i') ?? 'N/A' }}
+                                    {{ $comment->published_at?->setTimezone('Asia/Taipei')->format('Y-m-d H:i') ?? 'N/A' }}
                                 </td>
                             </tr>
                         @endforeach

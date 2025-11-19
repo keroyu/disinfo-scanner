@@ -25,9 +25,10 @@
                 <table class="w-full">
                     <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
                         <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900 w-1/4">頻道 ID</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900 w-1/4">頻道名稱</th>
-                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 w-1/4">標籤</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900 w-1/5">頻道 ID</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900 w-1/5">頻道名稱</th>
+                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 whitespace-nowrap min-w-32">最新影片時間</th>
+                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 w-1/5">標籤</th>
                             <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap min-w-24">影片數</th>
                             <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap min-w-24">留言數</th>
                             <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900 whitespace-nowrap">最後匯入時間</th>
@@ -50,6 +51,17 @@
                                        title="{{ $channel->channel_name }}">
                                         {{ $channel->channel_name ?: '(未命名)' }}
                                     </a>
+                                </td>
+
+                                <!-- Latest Video Published Time -->
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-gray-700 text-sm">
+                                        @if($channel->latest_video_published_at)
+                                            {{ \Carbon\Carbon::parse($channel->latest_video_published_at)->setTimezone('Asia/Taipei')->format('Y-m-d H:i') }}
+                                        @else
+                                            <span class="text-gray-400">無影片</span>
+                                        @endif
+                                    </span>
                                 </td>
 
                                 <!-- Tags -->
