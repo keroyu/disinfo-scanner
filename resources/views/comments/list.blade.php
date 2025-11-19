@@ -365,7 +365,15 @@
                 </div>
             </div>
 
-            <!-- Current Comment Section -->
+            <!-- Replies Section (shown when there are sibling replies) -->
+            <div id="repliesSection" class="hidden space-y-3">
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">回覆留言（依時間排序）</h3>
+                <div id="repliesContainer" class="space-y-3 ml-6">
+                    <!-- Replies will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Current Comment Section (shown when no parent comment) -->
             <div id="currentCommentSection">
                 <div class="flex items-start gap-3">
                     <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -452,37 +460,85 @@ async function openCommentModal(element) {
     const publishedAt = element.getAttribute('data-published-at');
     const parentId = element.getAttribute('data-parent-id');
 
-    // Fill current comment data
-    document.getElementById('currentAuthorName').textContent = authorName || '匿名用戶';
-    document.getElementById('currentPublishedAt').textContent = publishedAt || 'N/A';
-    document.getElementById('modalCommentText').textContent = commentText;
-    document.getElementById('currentLikeCount').textContent = likeCount || '0';
+    // Reset sections visibility
+    document.getElementById('parentCommentSection').classList.add('hidden');
+    document.getElementById('repliesSection').classList.add('hidden');
+    document.getElementById('currentCommentSection').classList.add('hidden');
 
     // Check if this is a reply (has parent_comment_id)
     if (parentId && parentId !== 'null' && parentId !== '') {
         // Show loading state
         document.getElementById('parentCommentSection').classList.remove('hidden');
+        document.getElementById('repliesSection').classList.remove('hidden');
         document.getElementById('parentCommentText').textContent = '載入中...';
+        document.getElementById('repliesContainer').innerHTML = '<p class="text-sm text-gray-500">載入中...</p>';
 
         try {
-            // Fetch parent comment data from server
-            const response = await fetch(`/api/comments/${parentId}`);
-            if (!response.ok) throw new Error('Failed to fetch parent comment');
+            // Fetch comment data with parent and siblings from server
+            const response = await fetch(`/api/comments/${commentId}`);
+            if (!response.ok) throw new Error('Failed to fetch comment data');
 
-            const parentData = await response.json();
+            const data = await response.json();
 
             // Fill parent comment data
-            document.getElementById('parentAuthorName').textContent = parentData.author_name || '匿名用戶';
-            document.getElementById('parentPublishedAt').textContent = parentData.published_at || 'N/A';
-            document.getElementById('parentCommentText').textContent = parentData.text || '';
-            document.getElementById('parentLikeCount').textContent = parentData.like_count || '0';
+            if (data.parent) {
+                document.getElementById('parentAuthorName').textContent = data.parent.author_name || '匿名用戶';
+                document.getElementById('parentPublishedAt').textContent = data.parent.published_at || 'N/A';
+                document.getElementById('parentCommentText').textContent = data.parent.text || '';
+                document.getElementById('parentLikeCount').textContent = data.parent.like_count || '0';
+            }
+
+            // Render all sibling replies (including current comment)
+            const repliesContainer = document.getElementById('repliesContainer');
+            repliesContainer.innerHTML = '';
+
+            if (data.siblings && data.siblings.length > 0) {
+                data.siblings.forEach(reply => {
+                    const isCurrentComment = reply.comment_id === commentId;
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = 'flex items-start gap-3 pb-3 border-b border-gray-100 last:border-b-0';
+
+                    replyDiv.innerHTML = `
+                        <div class="flex-shrink-0 w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold ${isCurrentComment ? 'text-red-600' : 'text-gray-900'} text-sm">${reply.author_name || '匿名用戶'}</span>
+                                <span class="text-gray-500 text-xs">•</span>
+                                <span class="text-gray-500 text-xs">${reply.published_at || 'N/A'}</span>
+                            </div>
+                            <div class="whitespace-pre-wrap break-words text-sm leading-relaxed mb-2 ${isCurrentComment ? 'text-red-600 font-medium' : 'text-gray-700'}">${reply.text || ''}</div>
+                            <div class="flex items-center gap-1 text-gray-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                                </svg>
+                                <span class="text-sm">${reply.like_count || '0'}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    repliesContainer.appendChild(replyDiv);
+                });
+            } else {
+                repliesContainer.innerHTML = '<p class="text-sm text-gray-500">沒有其他回覆</p>';
+            }
+
         } catch (error) {
-            console.error('Error fetching parent comment:', error);
-            document.getElementById('parentCommentText').textContent = '無法載入父留言';
+            console.error('Error fetching comment data:', error);
+            document.getElementById('parentCommentText').textContent = '無法載入留言資料';
+            document.getElementById('repliesContainer').innerHTML = '<p class="text-sm text-red-500">載入失敗</p>';
         }
     } else {
-        // Hide parent section if this is not a reply
-        document.getElementById('parentCommentSection').classList.add('hidden');
+        // This is a top-level comment (no parent)
+        // Show current comment section
+        document.getElementById('currentCommentSection').classList.remove('hidden');
+        document.getElementById('currentAuthorName').textContent = authorName || '匿名用戶';
+        document.getElementById('currentPublishedAt').textContent = publishedAt || 'N/A';
+        document.getElementById('modalCommentText').textContent = commentText;
+        document.getElementById('currentLikeCount').textContent = likeCount || '0';
     }
 
     // Show modal
