@@ -184,11 +184,11 @@
             </div>
 
             <!-- Pagination -->
-            <div class="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-between">
-                <div class="text-sm text-gray-600">
-                    Showing {{ $videos->firstItem() ?? 0 }} to {{ $videos->lastItem() ?? 0 }} of {{ $videos->total() ?? 0 }} videos
+            <div class="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-between gap-6">
+                <div class="text-sm text-gray-700">
+                    顯示第 {{ $videos->firstItem() ?? 0 }} 至 {{ $videos->lastItem() ?? 0 }} 筆，共 {{ $videos->total() ?? 0 }} 部影片
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 pagination-container">
                     {{ $videos->appends(request()->query())->links() }}
                 </div>
             </div>
@@ -219,4 +219,62 @@
 
 <!-- Include Incremental Update Modal -->
 @include('videos.incremental-update-modal')
+
+<style>
+/* Custom Pagination Styles for White Background */
+.pagination-container nav {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.pagination-container nav span,
+.pagination-container nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+}
+
+/* Active page */
+.pagination-container nav span[aria-current="page"] {
+    background-color: #2563eb;
+    color: white;
+    border: 1px solid #2563eb;
+}
+
+/* Regular page links */
+.pagination-container nav a {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.pagination-container nav a:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+    color: #111827;
+}
+
+/* Disabled state */
+.pagination-container nav span[aria-disabled="true"] {
+    background-color: #f9fafb;
+    color: #9ca3af;
+    border: 1px solid #e5e7eb;
+    cursor: not-allowed;
+}
+
+/* Previous/Next arrows */
+.pagination-container nav a svg,
+.pagination-container nav span svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+</style>
+
 @endsection

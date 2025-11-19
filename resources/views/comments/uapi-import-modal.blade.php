@@ -23,7 +23,7 @@
             </div>
 
             <!-- Input Section -->
-            <div class="mb-4">
+            <div id="uapi-input-section" class="mb-4">
                 <form id="uapi-import-form">
                     <div class="mb-4">
                         <label for="uapi-url" class="block text-sm font-medium text-gray-700 mb-2">
@@ -208,6 +208,13 @@ document.addEventListener('DOMContentLoaded', function() {
         errorSection.classList.add('hidden');
         confirmationModal.classList.add('hidden');
         tagsSection.classList.add('hidden');
+
+        // Show input section again for next import
+        const inputSection = document.getElementById('uapi-input-section');
+        if (inputSection) {
+            inputSection.classList.remove('hidden');
+        }
+
         currentImportId = null;
         currentRequiresTags = false;
         currentChannelId = null;
@@ -432,6 +439,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper functions
     function showResults(stats) {
+        // Hide input section to prevent accidental operations before auto-close
+        const inputSection = document.getElementById('uapi-input-section');
+        if (inputSection) {
+            inputSection.classList.add('hidden');
+        }
+
         resultsSection.classList.remove('hidden');
         const resultsContent = document.getElementById('uapi-results-content');
         resultsContent.innerHTML = `
