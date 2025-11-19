@@ -25,11 +25,14 @@ class VideoIncrementalUpdateService
         // 1. Get video details
         $video = Video::where('video_id', $videoId)->firstOrFail();
 
-        // 2. Get last comment timestamp for this video
+        // 2. Get current comment count in database
+        $currentCommentCount = Comment::where('video_id', $videoId)->count();
+
+        // 3. Get last comment timestamp for this video
         $lastCommentTime = Comment::where('video_id', $videoId)
             ->max('published_at');
 
-        // 3. Fetch new comments from YouTube API (client-side filtering)
+        // 4. Fetch new comments from YouTube API (client-side filtering)
         Log::info('Fetching preview comments', [
             'video_id' => $videoId,
             'last_comment_time' => $lastCommentTime,
@@ -37,7 +40,11 @@ class VideoIncrementalUpdateService
 
         $newComments = $this->youtubeApi->fetchCommentsAfter($videoId, $lastCommentTime, 500);
 
-        // 4. Return preview (first 5 + count)
+        // 5. Calculate import details
+        $newCommentCount = count($newComments);
+        $willImportCount = min($newCommentCount, 500);
+
+        // 6. Return preview (first 5 + count)
         // Convert preview comments' published_at to Asia/Taipei timezone
         $previewComments = array_slice($newComments, 0, 5);
         foreach ($previewComments as &$comment) {
@@ -51,10 +58,12 @@ class VideoIncrementalUpdateService
         return [
             'video_id' => $videoId,
             'video_title' => $video->title,
+            'current_comment_count' => $currentCommentCount,
             'last_comment_time' => $lastCommentTime ? \Carbon\Carbon::parse($lastCommentTime)->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s') : null,
-            'new_comment_count' => count($newComments),
+            'new_comment_count' => $newCommentCount,
+            'will_import_count' => $willImportCount,
             'preview_comments' => $previewComments,
-            'has_more' => count($newComments) > 500,
+            'has_more' => $newCommentCount > 500,
             'import_limit' => 500,
         ];
     }

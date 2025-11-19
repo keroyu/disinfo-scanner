@@ -158,9 +158,20 @@
                 document.getElementById('preview-section').classList.remove('hidden');
                 document.getElementById('no-new-comments').classList.add('hidden');
 
-                // Update count info
-                document.getElementById('new-comment-count').textContent =
-                    `剩下 ${data.data.new_comment_count} 則留言需要導入`;
+                // Update count info with detailed message
+                const currentCount = data.data.current_comment_count;
+                const newCount = data.data.new_comment_count;
+                const willImport = data.data.will_import_count;
+                const totalCount = currentCount + newCount;
+
+                let countMessage = `留言總數 ${totalCount}，資料庫已有 ${currentCount} 則，剩下 ${newCount} 則留言`;
+                if (newCount > 500) {
+                    countMessage += `，本次實際導入 ${willImport} 則`;
+                } else {
+                    countMessage += `，本次將導入 ${willImport} 則`;
+                }
+
+                document.getElementById('new-comment-count').textContent = countMessage;
 
                 if (data.data.last_comment_time) {
                     document.getElementById('last-comment-info').textContent =

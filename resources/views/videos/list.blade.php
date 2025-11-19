@@ -64,7 +64,7 @@
                             <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                                 Video Title
                             </th>
-                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 w-[100px]">
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 w-[180px]">
                                 Actions
                             </th>
                             <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 w-[120px]">

@@ -106,6 +106,8 @@ class YouTubeApiService
             $allComments = [];
             $newComments = [];
             $nextPageToken = null;
+            $pageCount = 0;
+            $maxPages = 100; // Safety limit: max 100 pages (10,000 comments)
 
             // Convert publishedAfter to Carbon for comparison
             $cutoffTime = $publishedAfter ? \Carbon\Carbon::parse($publishedAfter) : null;
@@ -119,6 +121,7 @@ class YouTubeApiService
             // Fetch comments in pages, ordered by time (newest first from API)
             // We'll collect all new comments then reverse to get oldest-first order
             do {
+                $pageCount++;
                 $params = [
                     'videoId' => $videoId,
                     'maxResults' => 100,
@@ -143,12 +146,9 @@ class YouTubeApiService
 
                     if ($isNew) {
                         $newComments[] = $topLevelData;
-                        $allComments[] = $topLevelData;
-                    } else {
-                        $allComments[] = $topLevelData;
-                        // Stop fetching when we encounter an old comment (since API returns newest first)
-                        break 2;
                     }
+
+                    $allComments[] = $topLevelData;
 
                     // Process inline replies (up to 5-20 per thread)
                     if ($thread->getSnippet()->getTotalReplyCount() > 0 && $thread->getReplies()) {
@@ -186,19 +186,21 @@ class YouTubeApiService
 
                 $nextPageToken = $response->getNextPageToken();
 
-                // Continue fetching until we run out of pages
-                // (we already break when encountering old comments)
-            } while ($nextPageToken);
+                // Continue fetching until we run out of pages or hit the page limit
+            } while ($nextPageToken && $pageCount < $maxPages);
 
             // Reverse to get oldest-first order, then take only the oldest maxResults comments
             // This ensures incremental updates import in chronological order
+            $totalNewComments = count($newComments);
             $newComments = array_reverse($newComments);
             $newComments = array_slice($newComments, 0, $maxResults);
 
             Log::info('Comments fetched and filtered', [
                 'video_id' => $videoId,
+                'pages_fetched' => $pageCount,
                 'total_fetched' => count($allComments),
-                'new_comments' => count($newComments),
+                'new_comments_found' => $totalNewComments,
+                'will_import' => count($newComments),
                 'cutoff_time' => $cutoffTime?->toDateTimeString(),
                 'order' => 'oldest-first (reversed)',
             ]);
