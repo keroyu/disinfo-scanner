@@ -249,8 +249,13 @@ class UrtubeApiImportService
                 }
 
                 // Insert comments (skip duplicates)
+                // Sort comments: insert parent comments before replies to avoid foreign key constraint errors
+                $sortedComments = collect($models->comments)->sortBy(function ($comment) {
+                    return $comment->parent_comment_id === null ? 0 : 1;
+                })->values()->all();
+
                 $newComments = 0;
-                foreach ($models->comments as $comment) {
+                foreach ($sortedComments as $comment) {
                     $created = Comment::firstOrCreate(
                         ['comment_id' => $comment->comment_id],
                         $comment->toArray()
@@ -375,8 +380,13 @@ class UrtubeApiImportService
                 );
             }
 
+            // Sort comments: insert parent comments before replies to avoid foreign key constraint errors
+            $sortedComments = collect($models->comments)->sortBy(function ($comment) {
+                return $comment->parent_comment_id === null ? 0 : 1;
+            })->values()->all();
+
             $newComments = 0;
-            foreach ($models->comments as $comment) {
+            foreach ($sortedComments as $comment) {
                 $created = Comment::firstOrCreate(
                     ['comment_id' => $comment->comment_id],
                     $comment->toArray()
