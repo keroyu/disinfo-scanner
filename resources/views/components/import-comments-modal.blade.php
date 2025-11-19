@@ -12,6 +12,16 @@
             </button>
         </div>
 
+        <!-- Important Notice -->
+        <div class="px-6 py-3 bg-red-50 border-b border-red-200">
+            <div class="text-sm text-red-700 space-y-1">
+                <p class="font-semibold"><i class="fas fa-exclamation-triangle mr-1"></i>重要提示：</p>
+                <p>1. 導入任何影片請優先使用 U-API！</p>
+                <p>2. 留言過多可能導入失敗。</p>
+                <p>3. 使用本功能需加入付費會員，並設定 YouTube API Key。</p>
+            </div>
+        </div>
+
         <!-- Modal Body -->
         <div class="px-6 py-4">
             <!-- Step 1: URL Input -->
@@ -206,14 +216,9 @@
                     </div>
 
                     <!-- New Channel Notice -->
-                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                        <div class="flex items-start">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-1 mr-3"></i>
-                            <div>
-                                <h3 class="font-semibold text-yellow-800 mb-1">新頻道</h3>
-                                <p class="text-sm text-yellow-700">此頻道尚未建檔，請至少選擇一個標籤。</p>
-                            </div>
-                        </div>
+                    <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded">
+                        <p class="text-sm text-amber-900 font-medium">⚠ 檢測到新頻道，請選擇標籤</p>
+                        <p class="text-sm text-amber-700 mt-1">請至少選擇一個標籤以便分類</p>
                     </div>
 
                     <!-- Tag Selection -->
@@ -223,15 +228,17 @@
                         </label>
                         <div class="flex flex-wrap gap-2">
                             <template x-for="tag in (previewData?.available_tags || [])" :key="tag.id">
-                                <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all"
-                                       :class="selectedTags.includes(tag.id) ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'">
+                                <label class="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 whitespace-nowrap">
                                     <input
                                         type="checkbox"
                                         :value="tag.id"
                                         x-model="selectedTags"
-                                        class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     >
-                                    <span class="text-sm font-medium" x-text="tag.name"></span>
+                                    <span class="ml-2 flex items-center gap-2">
+                                        <span class="inline-block w-3 h-3 rounded-full" :style="`background-color: ${tag.color}`"></span>
+                                        <span class="font-medium text-sm" x-text="tag.name"></span>
+                                    </span>
                                 </label>
                             </template>
                         </div>

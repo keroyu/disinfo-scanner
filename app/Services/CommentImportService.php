@@ -570,8 +570,9 @@ class CommentImportService
                 'published_at' => $videoMetadata['published_at'],
             ]);
 
-            // Stage 5: Import all comments
-            $allComments = $this->youtubeClient->getAllComments($videoId);
+            // Stage 5: Import comments (limit to 1000 for first import of new videos)
+            // This prevents timeout issues for videos with many comments
+            $allComments = $this->youtubeClient->getAllComments($videoId, 1000);
             $importedCount = $this->importComments($videoId, $allComments);
 
             // Stage 6: Calculate and update comment count

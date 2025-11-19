@@ -158,9 +158,13 @@ class YoutubeApiClient
     }
 
     /**
-     * Get all comments for a video (with pagination)
+     * Get all comments for a video (with pagination and optional limit)
+     *
+     * @param string $videoId YouTube video ID
+     * @param int|null $limit Maximum number of comments to fetch (null = no limit)
+     * @return array Array of comments
      */
-    public function getAllComments(string $videoId): array
+    public function getAllComments(string $videoId, ?int $limit = null): array
     {
         $allComments = [];
         $pageToken = null;
@@ -182,6 +186,11 @@ class YoutubeApiClient
                 $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
 
                 foreach ($response->getItems() as $commentThread) {
+                    // Check if we've reached the limit before processing more comments
+                    if ($limit && count($allComments) >= $limit) {
+                        break 2; // Break out of both foreach and do-while loops
+                    }
+
                     $topLevelComment = $commentThread->getSnippet()->getTopLevelComment();
                     $snippet = $topLevelComment->getSnippet();
 
@@ -199,6 +208,11 @@ class YoutubeApiClient
                     // Get inline replies (up to 5-20 per thread)
                     if ($commentThread->getSnippet()->getTotalReplyCount() > 0 && $commentThread->getReplies()) {
                         foreach ($commentThread->getReplies()->getComments() as $reply) {
+                            // Check limit for replies too
+                            if ($limit && count($allComments) >= $limit) {
+                                break 3; // Break out of all loops
+                            }
+
                             $replySnippet = $reply->getSnippet();
                             $allComments[] = [
                                 'comment_id' => $reply->getId(),
@@ -213,17 +227,33 @@ class YoutubeApiClient
 
                     // Recursively fetch additional replies if more than 20
                     if ($commentThread->getSnippet()->getTotalReplyCount() > 20) {
-                        $additionalReplies = $this->getCommentReplies($topLevelComment->getId());
-                        $allComments = array_merge($allComments, $additionalReplies);
+                        // Calculate remaining limit for replies
+                        $remainingLimit = $limit ? $limit - count($allComments) : null;
+                        if ($remainingLimit === null || $remainingLimit > 0) {
+                            $additionalReplies = $this->getCommentReplies($topLevelComment->getId(), $remainingLimit);
+                            $allComments = array_merge($allComments, $additionalReplies);
+                        }
                     }
+                }
+
+                // Check if we've reached the limit
+                if ($limit && count($allComments) >= $limit) {
+                    break;
                 }
 
                 $pageToken = $response->getNextPageToken();
             } while ($pageToken);
 
-            Log::info('Fetched all comments from YouTube API', [
+            // Trim to exact limit if we exceeded it
+            if ($limit && count($allComments) > $limit) {
+                $allComments = array_slice($allComments, 0, $limit);
+            }
+
+            Log::info('Fetched comments from YouTube API', [
                 'video_id' => $videoId,
                 'total_comments' => count($allComments),
+                'limit' => $limit,
+                'limited' => $limit && count($allComments) >= $limit,
             ]);
 
             return $allComments;
@@ -239,8 +269,12 @@ class YoutubeApiClient
 
     /**
      * Get replies for a specific comment
+     *
+     * @param string $parentId Parent comment ID
+     * @param int|null $limit Maximum number of replies to fetch (null = no limit)
+     * @return array Array of reply comments
      */
-    public function getCommentReplies(string $parentId): array
+    public function getCommentReplies(string $parentId, ?int $limit = null): array
     {
         try {
             $response = $this->youtube->comments->listComments('snippet', [
@@ -251,6 +285,11 @@ class YoutubeApiClient
 
             $replies = [];
             foreach ($response->getItems() as $reply) {
+                // Check if we've reached the limit
+                if ($limit && count($replies) >= $limit) {
+                    break;
+                }
+
                 $snippet = $reply->getSnippet();
                 $replies[] = [
                     'comment_id' => $reply->getId(),
