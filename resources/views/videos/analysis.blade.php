@@ -84,7 +84,9 @@
 
         <!-- Chart Canvas (hidden initially) -->
         <div id="chartContainer" class="hidden">
-            <canvas id="densityChart" height="100"></canvas>
+            <div style="height: 400px; position: relative;">
+                <canvas id="densityChart"></canvas>
+            </div>
             <p class="text-xs text-gray-500 mt-2 text-center">所有時間均為 Asia/Taipei 時區 (GMT+8)</p>
         </div>
 
