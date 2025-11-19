@@ -76,6 +76,14 @@ class Comment extends Model
     }
 
     /**
+     * Filter comments by video ID
+     */
+    public function scopeFilterByVideo(Builder $query, string $videoId): Builder
+    {
+        return $query->where('video_id', $videoId);
+    }
+
+    /**
      * Filter comments by date range (inclusive)
      */
     public function scopeFilterByDateRange(Builder $query, $fromDate, $toDate): Builder

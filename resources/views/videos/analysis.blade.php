@@ -6,44 +6,98 @@
 <div class="container mx-auto px-4 py-6">
     <!-- Page Header -->
     <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">留言密度分析</h1>
-        <p class="text-gray-600 mt-2">{{ $video->title }}</p>
+        <h1 class="text-3xl font-bold text-gray-900">Video Analysis</h1>
+        <div class="flex items-center gap-2 mt-2">
+            <p class="text-gray-600">{{ $video->title }}</p>
+            <a
+                href="https://www.youtube.com/watch?v={{ $video->video_id }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-red-600 hover:text-red-700 transition-colors"
+                title="在 YouTube 上觀看"
+            >
+                <i class="fab fa-youtube text-2xl"></i>
+            </a>
+        </div>
         <p class="text-sm text-gray-500 mt-1">頻道: {{ $video->channel->channel_name ?? '未知' }}</p>
         <p class="text-sm text-gray-500">發布時間: {{ $video->published_at->setTimezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)</p>
     </div>
 
-    <!-- Time Range Selector -->
+    <!-- Comments Pattern Section -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">選擇時間範圍</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Comments Pattern</h2>
 
-        <div class="space-y-3">
-            <!-- Preset Ranges -->
-            <div class="flex flex-wrap gap-3">
-                <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="24hours" checked class="mr-2 text-blue-600">
-                    <span>發布後 24 小時內 (每小時)</span>
-                </label>
-                <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="3days" class="mr-2 text-blue-600">
-                    <span>發布後 3 天 (每小時)</span>
-                </label>
-                <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="range" value="7days" class="mr-2 text-blue-600">
-                    <span>發布後 7 天 (每小時)</span>
-                </label>
-            </div>
+        <div id="commentsPatternLoading" class="flex items-center justify-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
 
-        <!-- Total Comments Display -->
-        <div class="mt-4 p-3 bg-blue-50 rounded">
-            <span class="text-sm font-medium text-gray-700">選定範圍內的總留言數: </span>
-            <span id="totalComments" class="text-lg font-bold text-blue-600">-</span>
+        <div id="commentsPatternContent" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <!-- Daytime -->
+                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-semibold text-gray-700">Daytime</h3>
+                        <span class="text-xs text-gray-500" id="daytimeHours">-</span>
+                    </div>
+                    <div class="text-2xl font-bold text-yellow-700" id="daytimeCount">-</div>
+                    <div class="text-sm text-gray-600 mt-1" id="daytimePercentage">-</div>
+                </div>
+
+                <!-- Night -->
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-semibold text-gray-700">Night</h3>
+                        <span class="text-xs text-gray-500" id="nightHours">-</span>
+                    </div>
+                    <div class="text-2xl font-bold text-blue-700" id="nightCount">-</div>
+                    <div class="text-sm text-gray-600 mt-1" id="nightPercentage">-</div>
+                </div>
+
+                <!-- Late Night -->
+                <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-semibold text-gray-700">Late Night</h3>
+                        <span class="text-xs text-gray-500" id="lateNightHours">-</span>
+                    </div>
+                    <div class="text-2xl font-bold text-indigo-700" id="lateNightCount">-</div>
+                    <div class="text-sm text-gray-600 mt-1" id="lateNightPercentage">-</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Chart Container -->
+    <!-- Chart Container with Time Range Selector -->
     <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">留言密度趨勢圖</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-6">留言密度趨勢圖</h2>
+
+        <!-- Time Range Selector -->
+        <div class="mb-6">
+            <h3 class="text-md font-semibold text-gray-700 mb-3">Select Time Period</h3>
+
+            <div class="space-y-3">
+                <!-- Preset Ranges -->
+                <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="range" value="24hours" checked class="mr-2 text-blue-600">
+                        <span>發布後 24 小時內 (每小時)</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="range" value="3days" class="mr-2 text-blue-600">
+                        <span>發布後 3 天 (每小時)</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="range" value="7days" class="mr-2 text-blue-600">
+                        <span>發布後 7 天 (每小時)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Total Comments Display -->
+            <div class="mt-4 p-3 bg-blue-50 rounded">
+                <span class="text-sm font-medium text-gray-700">選定範圍內的總留言數: </span>
+                <span id="totalComments" class="text-lg font-bold text-blue-600">-</span>
+            </div>
+        </div>
 
         <!-- Loading Skeleton -->
         <div id="loadingSkeleton" class="flex items-center justify-center h-96 bg-gray-100 rounded">
@@ -132,6 +186,9 @@ async function loadInitialData() {
         }
 
         cachedDensityData = await response.json();
+
+        // Populate comments pattern section
+        populateCommentsPattern(cachedDensityData.comments_pattern);
 
         // Check if no comments
         const totalHourly = cachedDensityData.hourly_data.data.reduce((sum, d) => sum + d.count, 0);
@@ -254,6 +311,39 @@ function renderChart(filteredData) {
 function updateTotalComments(filteredData) {
     const total = filteredData.reduce((sum, d) => sum + d.count, 0);
     document.getElementById('totalComments').textContent = total.toLocaleString();
+}
+
+// Populate comments pattern section
+function populateCommentsPattern(patternData) {
+    if (!patternData) return;
+
+    // Hide loading, show content
+    document.getElementById('commentsPatternLoading').classList.add('hidden');
+    document.getElementById('commentsPatternContent').classList.remove('hidden');
+
+    // Populate daytime data
+    document.getElementById('daytimeHours').textContent = patternData.daytime.hours;
+    document.getElementById('daytimeCount').textContent = patternData.daytime.count.toLocaleString();
+    document.getElementById('daytimePercentage').textContent = `${patternData.daytime.percentage}%`;
+
+    // Populate night data
+    document.getElementById('nightHours').textContent = patternData.night.hours;
+    document.getElementById('nightCount').textContent = patternData.night.count.toLocaleString();
+    document.getElementById('nightPercentage').textContent = `${patternData.night.percentage}%`;
+
+    // Populate late night data
+    document.getElementById('lateNightHours').textContent = patternData.late_night.hours;
+    document.getElementById('lateNightCount').textContent = patternData.late_night.count.toLocaleString();
+
+    const lateNightPercentageElement = document.getElementById('lateNightPercentage');
+    lateNightPercentageElement.textContent = `${patternData.late_night.percentage}%`;
+
+    // Apply red bold styling if Late Night percentage > 10%
+    if (patternData.late_night.percentage > 10) {
+        lateNightPercentageElement.classList.add('text-red-600', 'font-bold');
+    } else {
+        lateNightPercentageElement.classList.remove('text-red-600', 'font-bold');
+    }
 }
 
 // UI state management

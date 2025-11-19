@@ -35,6 +35,12 @@ class CommentController extends Controller
             $query->filterByChannel($channelKeyword);
         }
 
+        // Apply video filter
+        if ($request->filled('video_id')) {
+            $videoId = $request->input('video_id');
+            $query->filterByVideo($videoId);
+        }
+
         // Apply date range filter (default to last 30 days)
         $fromDate = $request->input('from_date', now()->subDays(30)->format('Y-m-d'));
         $toDate = $request->input('to_date', now()->format('Y-m-d'));

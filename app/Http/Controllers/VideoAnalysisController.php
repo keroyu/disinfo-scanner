@@ -49,11 +49,15 @@ class VideoAnalysisController extends Controller
                 $video->published_at
             );
 
+            // Get comments pattern data (day/night/late-night)
+            $commentsPattern = $this->commentDensityService->getCommentsPattern($videoId);
+
             // Add video context to response
             $response = [
                 'video_id' => $video->video_id,
                 'video_title' => $video->title,
                 'video_published_at' => $video->published_at->setTimezone('Asia/Taipei')->toIso8601String(),
+                'comments_pattern' => $commentsPattern,
                 'hourly_data' => $densityData['hourly_data'],
                 'daily_data' => $densityData['daily_data'],
                 'metadata' => $densityData['metadata']

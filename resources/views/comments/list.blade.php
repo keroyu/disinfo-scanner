@@ -237,9 +237,18 @@
                                             {{ Str::limit($commenterName, 10) }}
                                         </a>
                                         @if($isRepeat)
-                                            <span class="inline-block px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded font-medium">
+                                            <a
+                                                href="{{ route('comments.index', [
+                                                    'search' => $commenterName,
+                                                    'video_id' => $comment->video_id,
+                                                    'from_date' => $fromDate,
+                                                    'to_date' => $toDate
+                                                ]) }}"
+                                                class="inline-block px-1.5 py-0.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded font-medium transition-colors"
+                                                title="View all comments by {{ $commenterName }} in this video (past 2 years)"
+                                            >
                                                 重複
-                                            </span>
+                                            </a>
                                         @endif
                                     </div>
                                 </td>

@@ -197,4 +197,63 @@ class CommentDensityAnalysisService
             ];
         }, $denseBuckets);
     }
+
+    /**
+     * Get comments pattern data by time of day (Taipei timezone)
+     * Daytime: 06:00-17:59
+     * Night: 18:00-00:59
+     * Late Night: 01:00-05:59
+     */
+    public function getCommentsPattern(string $videoId): array
+    {
+        $results = DB::table('comments')
+            ->select(DB::raw("
+                CASE
+                    WHEN HOUR(CONVERT_TZ(published_at, '+00:00', '+08:00')) BETWEEN 6 AND 17 THEN 'daytime'
+                    WHEN HOUR(CONVERT_TZ(published_at, '+00:00', '+08:00')) BETWEEN 18 AND 23 THEN 'night'
+                    WHEN HOUR(CONVERT_TZ(published_at, '+00:00', '+08:00')) = 0 THEN 'night'
+                    ELSE 'late_night'
+                END as period,
+                COUNT(*) as count
+            "))
+            ->where('video_id', $videoId)
+            ->groupBy('period')
+            ->get()
+            ->keyBy('period');
+
+        // Initialize counts
+        $daytime = (int) ($results->get('daytime')->count ?? 0);
+        $night = (int) ($results->get('night')->count ?? 0);
+        $lateNight = (int) ($results->get('late_night')->count ?? 0);
+
+        $total = $daytime + $night + $lateNight;
+
+        // Calculate percentages (rounded to 1 decimal place)
+        $daytimePercentage = $total > 0 ? round(($daytime / $total) * 100, 1) : 0;
+        $nightPercentage = $total > 0 ? round(($night / $total) * 100, 1) : 0;
+        $lateNightPercentage = $total > 0 ? round(($lateNight / $total) * 100, 1) : 0;
+
+        // Format ratio as percentages (e.g., "30.0% : 45.0% : 25.0%")
+        $ratio = sprintf('%s%% : %s%% : %s%%', $daytimePercentage, $nightPercentage, $lateNightPercentage);
+
+        return [
+            'daytime' => [
+                'count' => $daytime,
+                'percentage' => $daytimePercentage,
+                'hours' => '06:00-17:59'
+            ],
+            'night' => [
+                'count' => $night,
+                'percentage' => $nightPercentage,
+                'hours' => '18:00-00:59'
+            ],
+            'late_night' => [
+                'count' => $lateNight,
+                'percentage' => $lateNightPercentage,
+                'hours' => '01:00-05:59'
+            ],
+            'ratio' => $ratio,
+            'total' => $total
+        ];
+    }
 }
