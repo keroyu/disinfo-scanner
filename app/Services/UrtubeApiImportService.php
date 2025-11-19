@@ -87,7 +87,12 @@ class UrtubeApiImportService
             $metadata['video_id'] = $videoId;
             $metadata['channel_id'] = $channelId;
 
-            // Step 3: Fetch comment data from urtubeapi (determines comment count)
+            // Step 3: Check if video already exists - reject if it does
+            if (Video::where('video_id', $videoId)->exists()) {
+                throw new \Exception('影片已建檔，請使用「更新留言」功能');
+            }
+
+            // Step 4: Fetch comment data from urtubeapi (determines comment count)
             $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
             $metadata['channel_name'] = $apiData['channelTitle'] ?? null;
 
@@ -106,7 +111,7 @@ class UrtubeApiImportService
                 throw new \Exception('此影片未在U-API建檔，無法匯入');
             }
 
-            // Step 4: Scrape video metadata (title, channel name, published date) from YouTube
+            // Step 5: Scrape video metadata (title, channel name, published date) from YouTube
             // This is optional and gracefully degrades if it fails
             // Works for both YouTube URLs and urtubeapi (since API provides videoId)
             $scrapedMetadata = $this->youTubeMetadataService->scrapeMetadata($videoId);
@@ -128,11 +133,11 @@ class UrtubeApiImportService
                 'url_type' => $urlType,
             ]);
 
-            // Step 5: Check if channel is new
+            // Step 6: Check if channel is new
             $isNewChannel = $this->channelTaggingService->isNewChannel($channelId);
             $metadata['requires_tags'] = $isNewChannel;
 
-            // Step 6: Create pending import for later confirmation
+            // Step 7: Create pending import for later confirmation
             $importId = $this->channelTaggingService->createPendingImport(
                 $videoId,
                 $channelId,
