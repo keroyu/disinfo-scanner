@@ -3,19 +3,9 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Page Header -->
-    <div class="mb-6 flex justify-between items-start">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Comments List</h1>
-            <p class="text-gray-600 mt-2">Browse and analyze all collected YouTube comments</p>
-        </div>
-        <div class="flex gap-3">
-            <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">
-                <i class="fab fa-youtube mr-2"></i>官方API導入
-            </button>
-            <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onclick="window.dispatchEvent(new CustomEvent('open-uapi-modal'))">
-                <i class="fas fa-upload mr-2"></i>U-API導入
-            </button>
-        </div>
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Comments List</h1>
+        <p class="text-gray-600 mt-2">Browse and analyze all collected YouTube comments</p>
     </div>
 
     <!-- Search and Filter Section -->
@@ -463,12 +453,6 @@ document.addEventListener('keydown', function(event) {
     }
 });
 </script>
-
-<!-- Include YouTube Official API Import Modal -->
-<x-import-comments-modal />
-
-<!-- Include U-API Import Modal -->
-@include('comments.uapi-import-modal')
 
 <style>
 /* Custom Pagination Styles for White Background */
