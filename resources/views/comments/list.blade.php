@@ -187,15 +187,37 @@
                                 <!-- Channel Name Cell -->
                                 <td class="px-4 py-3 w-[100px]">
                                     @if($comment->video && $comment->video->channel)
-                                        <a
-                                            href="https://www.youtube.com/channel/{{ $comment->video->channel->channel_id }}"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="text-blue-600 hover:text-blue-800 truncate block text-sm"
-                                            title="{{ $comment->video->channel->channel_name }}"
-                                        >
-                                            {{ Str::limit($comment->video->channel->channel_name, 15) }}
-                                        </a>
+                                        @php
+                                            $channel = $comment->video->channel;
+                                            $channelId = $channel->channel_id;
+
+                                            // Get channel tags and use first tag's color if available
+                                            $tags = $channel->tags();
+                                            $dotColor = 'bg-gray-400'; // Default color
+
+                                            if ($tags->isNotEmpty()) {
+                                                // Use first tag's color
+                                                $firstTag = $tags->first();
+                                                $dotColor = $firstTag->color ?? 'bg-gray-400';
+                                            } else {
+                                                // Generate consistent color based on channel ID if no tags
+                                                $colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-orange-500', 'bg-cyan-500'];
+                                                $colorIndex = hexdec(substr(md5($channelId), 0, 8)) % count($colors);
+                                                $dotColor = $colors[$colorIndex];
+                                            }
+                                        @endphp
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full {{ $dotColor }} flex-shrink-0"></span>
+                                            <a
+                                                href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="text-blue-600 hover:text-blue-800 truncate text-sm"
+                                                title="{{ $channel->channel_name }}"
+                                            >
+                                                {{ Str::limit($channel->channel_name, 13) }}
+                                            </a>
+                                        </div>
                                     @else
                                         <span class="text-sm text-gray-500">Unknown</span>
                                     @endif
