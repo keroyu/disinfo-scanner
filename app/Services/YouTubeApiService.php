@@ -116,12 +116,13 @@ class YouTubeApiService
                 'max_results' => $maxResults,
             ]);
 
-            // Fetch comments in pages, ordered by time (newest first)
+            // Fetch comments in pages, ordered by time (newest first from API)
+            // We'll collect all new comments then reverse to get oldest-first order
             do {
                 $params = [
                     'videoId' => $videoId,
                     'maxResults' => 100,
-                    'order' => 'time',
+                    'order' => 'time', // YouTube API returns newest first
                     'textFormat' => 'plainText',
                 ];
 
@@ -143,12 +144,10 @@ class YouTubeApiService
                     if ($isNew) {
                         $newComments[] = $topLevelData;
                         $allComments[] = $topLevelData;
-
-                        if (count($newComments) >= $maxResults) {
-                            break 2;
-                        }
                     } else {
                         $allComments[] = $topLevelData;
+                        // Stop fetching when we encounter an old comment (since API returns newest first)
+                        break 2;
                     }
 
                     // Process inline replies (up to 5-20 per thread)
@@ -159,10 +158,6 @@ class YouTubeApiService
 
                             if (!$cutoffTime || $replyTime->greaterThan($cutoffTime)) {
                                 $newComments[] = $replyData;
-
-                                if (count($newComments) >= $maxResults) {
-                                    break 3;
-                                }
                             }
 
                             $allComments[] = $replyData;
@@ -182,10 +177,6 @@ class YouTubeApiService
 
                             if (!$cutoffTime || $replyTime->greaterThan($cutoffTime)) {
                                 $newComments[] = $replyData;
-
-                                if (count($newComments) >= $maxResults) {
-                                    break 3;
-                                }
                             }
 
                             $allComments[] = $replyData;
@@ -195,14 +186,21 @@ class YouTubeApiService
 
                 $nextPageToken = $response->getNextPageToken();
 
-                // Stop if no more pages or we have enough new comments
-            } while ($nextPageToken && count($newComments) < $maxResults);
+                // Continue fetching until we run out of pages
+                // (we already break when encountering old comments)
+            } while ($nextPageToken);
+
+            // Reverse to get oldest-first order, then take only the oldest maxResults comments
+            // This ensures incremental updates import in chronological order
+            $newComments = array_reverse($newComments);
+            $newComments = array_slice($newComments, 0, $maxResults);
 
             Log::info('Comments fetched and filtered', [
                 'video_id' => $videoId,
                 'total_fetched' => count($allComments),
                 'new_comments' => count($newComments),
                 'cutoff_time' => $cutoffTime?->toDateTimeString(),
+                'order' => 'oldest-first (reversed)',
             ]);
 
             return $newComments;
