@@ -38,6 +38,10 @@ Route::prefix('video-update')->group(function () {
 // Video Comment Density Analysis endpoint (008-video-comment-density)
 Route::get('/videos/{videoId}/comment-density', [\App\Http\Controllers\VideoAnalysisController::class, 'getCommentDensityData']);
 
+// Comment Pattern Analysis endpoints (009-comments-pattern-summary)
+Route::get('/videos/{videoId}/pattern-statistics', [\App\Http\Controllers\CommentPatternController::class, 'getPatternStatistics']);
+Route::get('/videos/{videoId}/comments', [\App\Http\Controllers\CommentPatternController::class, 'getCommentsByPattern']);
+
 // Get single comment data with parent and siblings (for modal display)
 Route::get('/comments/{commentId}', function (string $commentId) {
     $comment = \App\Models\Comment::where('comment_id', $commentId)
