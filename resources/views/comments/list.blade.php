@@ -190,6 +190,8 @@
                                         @php
                                             $channel = $comment->video->channel;
                                             $channelId = $channel->channel_id;
+                                            $channelFromDate = now()->subYears(2)->format('Y-m-d');
+                                            $channelToDate = now()->format('Y-m-d');
 
                                             // Get channel tags and use first tag's color if available
                                             $tags = $channel->tags();
@@ -209,13 +211,24 @@
                                         <div class="flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full {{ $dotColor }} flex-shrink-0"></span>
                                             <a
+                                                href="{{ route('comments.index', [
+                                                    'channel_id' => $channel->channel_id,
+                                                    'from_date' => $channelFromDate,
+                                                    'to_date' => $channelToDate
+                                                ]) }}"
+                                                class="text-blue-600 hover:text-blue-800 truncate text-sm"
+                                                title="View all comments from {{ $channel->channel_name }} (past 2 years)"
+                                            >
+                                                {{ Str::limit($channel->channel_name, 13) }}
+                                            </a>
+                                            <a
                                                 href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="text-blue-600 hover:text-blue-800 truncate text-sm"
-                                                title="{{ $channel->channel_name }}"
+                                                class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                                title="View channel on YouTube"
                                             >
-                                                {{ Str::limit($channel->channel_name, 13) }}
+                                                <i class="fab fa-youtube"></i>
                                             </a>
                                         </div>
                                     @else
@@ -225,15 +238,33 @@
 
                                 <!-- Video Title Cell -->
                                 <td class="px-4 py-3 w-[200px]">
-                                    <a
-                                        href="https://www.youtube.com/watch?v={{ $comment->video_id }}&lc={{ $comment->comment_id }}"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-blue-600 hover:text-blue-800 truncate block text-sm"
-                                        title="{{ $comment->video->title ?? 'Unknown Video' }}"
-                                    >
-                                        {{ Str::limit($comment->video?->title ?? 'Unknown Video', 20) }}
-                                    </a>
+                                    @php
+                                        $videoTitle = $comment->video?->title ?? 'Unknown Video';
+                                        $fromDate = now()->subYears(2)->format('Y-m-d');
+                                        $toDate = now()->format('Y-m-d');
+                                    @endphp
+                                    <div class="flex items-center gap-1">
+                                        <a
+                                            href="{{ route('comments.index', [
+                                                'video_id' => $comment->video_id,
+                                                'from_date' => $fromDate,
+                                                'to_date' => $toDate
+                                            ]) }}"
+                                            class="text-blue-600 hover:text-blue-800 truncate text-sm"
+                                            title="View all comments for {{ $videoTitle }} (past 2 years)"
+                                        >
+                                            {{ Str::limit($videoTitle, 20) }}
+                                        </a>
+                                        <a
+                                            href="https://www.youtube.com/watch?v={{ $comment->video_id }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                            title="View video on YouTube"
+                                        >
+                                            <i class="fab fa-youtube"></i>
+                                        </a>
+                                    </div>
                                 </td>
 
                                 <!-- Commenter ID Cell -->

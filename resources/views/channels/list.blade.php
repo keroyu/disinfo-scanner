@@ -44,13 +44,32 @@
 
                                 <!-- Channel Name -->
                                 <td class="px-6 py-4">
-                                    <a href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="text-blue-600 hover:text-blue-800"
-                                       title="{{ $channel->channel_name }}">
-                                        {{ $channel->channel_name ?: '(未命名)' }}
-                                    </a>
+                                    @php
+                                        // Get channel tags and use first tag's color if available
+                                        $tags = $channel->tags();
+                                        $dotColor = 'bg-gray-400'; // Default color
+
+                                        if ($tags->isNotEmpty()) {
+                                            // Use first tag's color
+                                            $firstTag = $tags->first();
+                                            $dotColor = $firstTag->color ?? 'bg-gray-400';
+                                        } else {
+                                            // Generate consistent color based on channel ID if no tags
+                                            $colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-orange-500', 'bg-cyan-500'];
+                                            $colorIndex = hexdec(substr(md5($channel->channel_id), 0, 8)) % count($colors);
+                                            $dotColor = $colors[$colorIndex];
+                                        }
+                                    @endphp
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full {{ $dotColor }} flex-shrink-0"></span>
+                                        <a href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="text-blue-600 hover:text-blue-800"
+                                           title="{{ $channel->channel_name }}">
+                                            {{ $channel->channel_name ?: '(未命名)' }}
+                                        </a>
+                                    </div>
                                 </td>
 
                                 <!-- Latest Video Published Time -->
