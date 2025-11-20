@@ -153,6 +153,15 @@
                                             >
                                                 {{ Str::limit($channel->channel_name, 23) }}
                                             </a>
+                                            <a
+                                                href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                                title="View channel on YouTube"
+                                            >
+                                                <i class="fab fa-youtube"></i>
+                                            </a>
                                         </div>
                                     @else
                                         <span class="text-sm text-gray-500">Unknown Channel</span>
@@ -170,17 +179,28 @@
                                             ? mb_substr($fullTitle, 0, 15) . '...'
                                             : $fullTitle;
                                     @endphp
-                                    <a
-                                        href="{{ route('comments.index', array_filter([
-                                            'search' => $fullTitle,
-                                            'from_date' => $fromDate,
-                                            'to_date' => $toDate
-                                        ])) }}"
-                                        class="text-blue-600 hover:text-blue-800 block text-sm"
-                                        title="{{ $fullTitle }} ({{ $fromDate }} to {{ $toDate }})"
-                                    >
-                                        {{ $truncatedTitle }}
-                                    </a>
+                                    <div class="flex items-center gap-1">
+                                        <a
+                                            href="{{ route('comments.index', array_filter([
+                                                'search' => $fullTitle,
+                                                'from_date' => $fromDate,
+                                                'to_date' => $toDate
+                                            ])) }}"
+                                            class="text-blue-600 hover:text-blue-800 text-sm"
+                                            title="{{ $fullTitle }} ({{ $fromDate }} to {{ $toDate }})"
+                                        >
+                                            {{ $truncatedTitle }}
+                                        </a>
+                                        <a
+                                            href="https://www.youtube.com/watch?v={{ $video->video_id }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                            title="View video on YouTube"
+                                        >
+                                            <i class="fab fa-youtube"></i>
+                                        </a>
+                                    </div>
                                 </td>
 
                                 <!-- Actions Cell (Update and Analysis Buttons) -->

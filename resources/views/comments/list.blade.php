@@ -310,6 +310,15 @@
                                                 重複
                                             </a>
                                         @endif
+                                        <a
+                                            href="https://www.youtube.com/channel/{{ $comment->author_channel_id }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                            title="View commenter channel on YouTube"
+                                        >
+                                            <i class="fab fa-youtube"></i>
+                                        </a>
                                     </div>
                                 </td>
 
