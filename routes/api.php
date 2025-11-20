@@ -2,6 +2,11 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordChangeController;
+use App\Http\Controllers\Auth\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -11,6 +16,28 @@ use Illuminate\Support\Facades\Route;
 | Here is where you can register API routes for your application.
 |
 */
+
+// Authentication Routes (011-member-system)
+Route::prefix('auth')->group(function () {
+    // Public routes
+    Route::post('/register', [RegisterController::class, 'register']);
+    Route::get('/verify-email', [EmailVerificationController::class, 'verify'])->name('verification.verify');
+    Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend']);
+    Route::post('/login', [LoginController::class, 'login']);
+
+    // Password reset routes (T055: User Story 2)
+    Route::post('/password/reset/request', [PasswordResetController::class, 'sendResetLink']);
+    Route::post('/password/reset', [PasswordResetController::class, 'reset']);
+
+    // Authenticated routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [LoginController::class, 'logout']);
+        Route::get('/me', [LoginController::class, 'me']);
+
+        // Password change route (T055: User Story 2)
+        Route::post('/password/change', [PasswordChangeController::class, 'change']);
+    });
+});
 
 // U-API (urtubeapi Third-Party) Import endpoints - Grouped under /api/uapi/*
 Route::prefix('uapi')->group(function () {

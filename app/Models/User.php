@@ -21,6 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_email_verified',
+        'has_default_password',
+        'last_password_change_at',
+        'youtube_api_key',
     ];
 
     /**
@@ -31,6 +35,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'youtube_api_key',
     ];
 
     /**
@@ -43,6 +48,87 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_email_verified' => 'boolean',
+            'has_default_password' => 'boolean',
+            'last_password_change_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Relationships
+     */
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'role_user')
+            ->withPivot('assigned_at', 'assigned_by')
+            ->withTimestamps();
+    }
+
+    public function apiQuota()
+    {
+        return $this->hasOne(ApiQuota::class);
+    }
+
+    public function identityVerification()
+    {
+        return $this->hasOne(IdentityVerification::class);
+    }
+
+    /**
+     * Accessors & Mutators
+     */
+
+    /**
+     * Accessor for must_change_password (maps to has_default_password)
+     * T053: User Story 2 - Mandatory Password Change
+     */
+    public function getMustChangePasswordAttribute(): bool
+    {
+        return $this->has_default_password;
+    }
+
+    /**
+     * Mutator for must_change_password (maps to has_default_password)
+     * T053: User Story 2 - Mandatory Password Change
+     */
+    public function setMustChangePasswordAttribute(bool $value): void
+    {
+        $this->has_default_password = $value;
+    }
+
+    /**
+     * Helper methods
+     */
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    public function hasAnyRole(array $roleNames): bool
+    {
+        return $this->roles()->whereIn('name', $roleNames)->exists();
+    }
+
+    public function assignRole(string $roleName, ?int $assignedBy = null): void
+    {
+        $role = Role::where('name', $roleName)->firstOrFail();
+
+        if (!$this->hasRole($roleName)) {
+            $this->roles()->attach($role->id, [
+                'assigned_at' => now(),
+                'assigned_by' => $assignedBy,
+            ]);
+        }
+    }
+
+    public function removeRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+
+        if ($role) {
+            $this->roles()->detach($role->id);
+        }
     }
 }
