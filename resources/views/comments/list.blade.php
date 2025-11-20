@@ -616,7 +616,13 @@ document.addEventListener('keydown', function(event) {
 /* Custom Pagination Styles for White Background */
 .pagination-container nav {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Hide the default English summary text */
+.pagination-container nav p {
+    display: none !important;
 }
 
 .pagination-container nav span,
@@ -626,39 +632,43 @@ document.addEventListener('keydown', function(event) {
     justify-content: center;
     min-width: 2.5rem;
     height: 2.5rem;
-    padding: 0.5rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 500;
-    border-radius: 0.375rem;
-    transition: all 0.15s ease-in-out;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 /* Active page */
 .pagination-container nav span[aria-current="page"] {
-    background-color: #2563eb;
+    background-color: #3b82f6;
     color: white;
-    border: 1px solid #2563eb;
+    border: 1px solid #3b82f6;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 /* Regular page links */
 .pagination-container nav a {
     background-color: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
 }
 
 .pagination-container nav a:hover {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
-    color: #111827;
+    background-color: #f9fafb;
+    border-color: #d1d5db;
+    color: #1f2937;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 }
 
 /* Disabled state */
 .pagination-container nav span[aria-disabled="true"] {
     background-color: #f9fafb;
-    color: #9ca3af;
-    border: 1px solid #e5e7eb;
+    color: #d1d5db;
+    border: 1px solid #f3f4f6;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Previous/Next arrows */
