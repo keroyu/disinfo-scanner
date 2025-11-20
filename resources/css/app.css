@@ -14,3 +14,28 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* Reusable Badge Styles - Small compact badges for tags and labels */
+.badge {
+    @apply inline-block px-1.5 py-0.5 text-white text-xs rounded font-medium transition-colors;
+}
+
+.badge-orange {
+    @apply inline-block px-1.5 py-0.5 text-white text-xs rounded font-medium transition-colors bg-orange-500 hover:bg-orange-600;
+}
+
+.badge-green {
+    @apply inline-block px-1.5 py-0.5 text-white text-xs rounded font-medium transition-colors bg-green-500 hover:bg-green-600;
+}
+
+.badge-blue {
+    @apply inline-block px-1.5 py-0.5 text-white text-xs rounded font-medium transition-colors bg-blue-500 hover:bg-blue-600;
+}
+
+.badge-red {
+    @apply inline-block px-1.5 py-0.5 text-white text-xs rounded font-medium transition-colors bg-red-500 hover:bg-red-600;
+}
+
+.badge-rose {
+    @apply inline-block px-1.5 py-0.5 text-white text-xs rounded font-medium transition-colors bg-rose-600 hover:bg-rose-700;
+}

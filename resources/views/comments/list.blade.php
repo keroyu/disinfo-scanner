@@ -304,7 +304,7 @@
                                                     'from_date' => $fromDate,
                                                     'to_date' => $toDate
                                                 ]) }}"
-                                                class="inline-block px-1.5 py-0.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded font-medium transition-colors"
+                                                class="badge-orange"
                                                 title="View all comments by {{ $commenterName }} in this video (past 2 years)"
                                             >
                                                 重複

@@ -99,8 +99,18 @@
                                 <td class="px-6 py-4">
                                     <div class="flex justify-center flex-wrap gap-2">
                                         @forelse($channel->tags() as $tag)
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-white text-sm font-medium"
-                                                  style="background-color: {{ getTagColor($tag->color) }}">
+                                            @php
+                                                // Map tag color to badge class
+                                                $badgeClass = match($tag->color) {
+                                                    'green-500' => 'badge-green',
+                                                    'blue-500' => 'badge-blue',
+                                                    'red-500' => 'badge-red',
+                                                    'orange-500' => 'badge-orange',
+                                                    'rose-600' => 'badge-rose',
+                                                    default => 'badge-blue',
+                                                };
+                                            @endphp
+                                            <span class="{{ $badgeClass }}">
                                                 {{ $tag->name }}
                                             </span>
                                         @empty
