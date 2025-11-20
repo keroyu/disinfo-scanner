@@ -162,6 +162,15 @@ class CommentPatternUI {
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="font-semibold text-gray-900 text-sm">${this.escapeHtml(comment.author_name)}</span>
+                                <a
+                                    href="https://www.youtube.com/channel/${this.escapeHtml(comment.author_channel_id)}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                    title="View commenter channel on YouTube"
+                                >
+                                    <i class="fab fa-youtube"></i>
+                                </a>
                                 <span class="text-xs text-gray-500">${comment.published_at || 'N/A'}</span>
                             </div>
                             <p class="text-gray-700 text-sm whitespace-pre-wrap">${this.escapeHtml(comment.text)}</p>
