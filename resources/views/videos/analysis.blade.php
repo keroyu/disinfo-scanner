@@ -243,6 +243,12 @@ function initializeRangeSelector() {
             if (timeFilterState && timeFilterState.hasSelection()) {
                 timeFilterState.clearAll();
                 updateTimeFilterIndicator();
+
+                // Reload statistics without time filter
+                if (commentPatternUI) {
+                    commentPatternUI.loadStatistics(null);
+                }
+
                 // Reload comments
                 if (commentPatternUI) {
                     commentPatternUI.switchPattern(commentPatternUI.currentPattern);
@@ -421,6 +427,9 @@ function handleChartClick(event, activeElements) {
     // Update the filter indicator
     updateTimeFilterIndicator();
 
+    // Reload statistics with time filter
+    reloadStatisticsWithTimeFilter();
+
     // Reload comments with new filter
     commentPatternUI.currentOffset = 0;
     commentPatternUI.hasMore = true;
@@ -447,6 +456,14 @@ function updateTimeFilterIndicator() {
     } else {
         indicator.classList.add('hidden');
     }
+}
+
+// Reload statistics with time filter applied
+async function reloadStatisticsWithTimeFilter() {
+    if (!timeFilterState || !commentPatternUI) return;
+
+    const timePointsParam = timeFilterState.getTimePointsParam();
+    await commentPatternUI.loadStatistics(timePointsParam);
 }
 
 // Update total comments display
@@ -535,6 +552,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 timeFilterState.clearAll();
                 timeFilterState.updateChartHighlighting();
                 updateTimeFilterIndicator();
+
+                // Reload statistics without time filter (back to original)
+                if (commentPatternUI) {
+                    commentPatternUI.loadStatistics(null);
+                }
 
                 // Reload comments
                 if (commentPatternUI) {

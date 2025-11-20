@@ -15,45 +15,84 @@ class CommentPatternService
      * Get pattern statistics for a video
      *
      * @param string $videoId
+     * @param string|null $timePointsIso Comma-separated ISO timestamps in GMT+8 (optional)
      * @return array
      */
-    public function getPatternStatistics(string $videoId): array
+    public function getPatternStatistics(string $videoId, ?string $timePointsIso = null): array
     {
+        // If time filtering is active, don't use cache
+        if ($timePointsIso !== null && $timePointsIso !== '') {
+            return $this->calculateStatistics($videoId, $timePointsIso);
+        }
+
+        // Use cache for non-filtered statistics
         $cacheKey = "video:{$videoId}:pattern_statistics";
 
         return Cache::remember($cacheKey, 300, function () use ($videoId) {
-            $startTime = microtime(true);
-
-            // Get total unique commenters for this video
-            $totalUniqueCommenters = Comment::where('video_id', $videoId)
-                ->distinct('author_channel_id')
-                ->count('author_channel_id');
-
-            // Calculate each pattern
-            $allComments = $this->calculateAllCommentsPattern($videoId, $totalUniqueCommenters);
-            $topLikedComments = $this->calculateTopLikedPattern($videoId, $totalUniqueCommenters);
-            $repeatCommenters = $this->calculateRepeatCommenters($videoId, $totalUniqueCommenters);
-            $nightTimeCommenters = $this->calculateNightTimeCommenters($videoId, $totalUniqueCommenters);
-            $aggressiveCommenters = $this->placeholderPattern('aggressive');
-            $simplifiedChineseCommenters = $this->placeholderPattern('simplified_chinese');
-
-            $executionTime = round((microtime(true) - $startTime) * 1000, 2);
-
-            Log::info('Pattern statistics calculated', [
-                'video_id' => $videoId,
-                'execution_time_ms' => $executionTime,
-                'cache_hit' => false
-            ]);
-
-            return [
-                'all' => $allComments,
-                'top_liked' => $topLikedComments,
-                'repeat' => $repeatCommenters,
-                'night_time' => $nightTimeCommenters,
-                'aggressive' => $aggressiveCommenters,
-                'simplified_chinese' => $simplifiedChineseCommenters
-            ];
+            return $this->calculateStatistics($videoId, null);
         });
+    }
+
+    /**
+     * Calculate pattern statistics (with or without time filtering)
+     *
+     * @param string $videoId
+     * @param string|null $timePointsIso
+     * @return array
+     */
+    private function calculateStatistics(string $videoId, ?string $timePointsIso = null): array
+    {
+        $startTime = microtime(true);
+
+        // Build base query
+        $query = Comment::where('video_id', $videoId);
+
+        // Apply time range filter if provided
+        $timeRanges = [];
+        if ($timePointsIso !== null && $timePointsIso !== '') {
+            try {
+                $timeRanges = TimeRange::createMultiple($timePointsIso);
+                $query->byTimeRanges($timeRanges);
+            } catch (\InvalidArgumentException $e) {
+                Log::warning('Invalid time points in statistics', [
+                    'video_id' => $videoId,
+                    'time_points_iso' => $timePointsIso,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Get total unique commenters (filtered by time if applicable)
+        $totalUniqueCommenters = (clone $query)
+            ->distinct('author_channel_id')
+            ->count('author_channel_id');
+
+        // Calculate each pattern
+        $allComments = $this->calculateAllCommentsPattern($videoId, $totalUniqueCommenters);
+        $topLikedComments = $this->calculateTopLikedPattern($videoId, $totalUniqueCommenters);
+        $repeatCommenters = $this->calculateRepeatCommenters($videoId, $totalUniqueCommenters, $timeRanges);
+        $nightTimeCommenters = $this->calculateNightTimeCommenters($videoId, $totalUniqueCommenters, $timeRanges);
+        $aggressiveCommenters = $this->placeholderPattern('aggressive');
+        $simplifiedChineseCommenters = $this->placeholderPattern('simplified_chinese');
+
+        $executionTime = round((microtime(true) - $startTime) * 1000, 2);
+
+        Log::info('Pattern statistics calculated', [
+            'video_id' => $videoId,
+            'time_filtered' => !empty($timeRanges),
+            'time_points_count' => count($timeRanges),
+            'execution_time_ms' => $executionTime,
+            'cache_hit' => false
+        ]);
+
+        return [
+            'all' => $allComments,
+            'top_liked' => $topLikedComments,
+            'repeat' => $repeatCommenters,
+            'night_time' => $nightTimeCommenters,
+            'aggressive' => $aggressiveCommenters,
+            'simplified_chinese' => $simplifiedChineseCommenters
+        ];
     }
 
     /**
@@ -197,10 +236,21 @@ class CommentPatternService
 
     /**
      * Calculate repeat commenters (2+ comments on same video)
+     *
+     * @param string $videoId
+     * @param int $totalUniqueCommenters
+     * @param array $timeRanges Array of TimeRange objects (optional)
      */
-    private function calculateRepeatCommenters(string $videoId, int $totalUniqueCommenters): array
+    private function calculateRepeatCommenters(string $videoId, int $totalUniqueCommenters, array $timeRanges = []): array
     {
-        $repeatCommentersCount = Comment::where('video_id', $videoId)
+        $query = Comment::where('video_id', $videoId);
+
+        // Apply time filtering if provided
+        if (!empty($timeRanges)) {
+            $query->byTimeRanges($timeRanges);
+        }
+
+        $repeatCommentersCount = $query
             ->select('author_channel_id')
             ->groupBy('author_channel_id')
             ->havingRaw('COUNT(*) >= 2')
@@ -219,15 +269,27 @@ class CommentPatternService
 
     /**
      * Calculate night-time high-frequency commenters (>50% comments during 01:00-05:59 GMT+8)
+     *
+     * @param string $videoId
+     * @param int $totalUniqueCommenters
+     * @param array $timeRanges Array of TimeRange objects (optional)
      */
-    private function calculateNightTimeCommenters(string $videoId, int $totalUniqueCommenters): array
+    private function calculateNightTimeCommenters(string $videoId, int $totalUniqueCommenters, array $timeRanges = []): array
     {
         // Get commenters on this video who have >50% night-time comments across ALL channels
         $nightTimeAuthorIds = $this->getNightTimeAuthorIds();
 
-        // Count how many of these commenters are on this specific video
-        $nightTimeCommentersCount = Comment::where('video_id', $videoId)
-            ->whereIn('author_channel_id', $nightTimeAuthorIds)
+        // Build query for this video
+        $query = Comment::where('video_id', $videoId)
+            ->whereIn('author_channel_id', $nightTimeAuthorIds);
+
+        // Apply time filtering if provided
+        if (!empty($timeRanges)) {
+            $query->byTimeRanges($timeRanges);
+        }
+
+        // Count how many of these commenters are in the filtered time periods
+        $nightTimeCommentersCount = $query
             ->distinct('author_channel_id')
             ->count('author_channel_id');
 

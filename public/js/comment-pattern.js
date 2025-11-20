@@ -26,15 +26,26 @@ class CommentPatternUI {
 
     /**
      * Load pattern statistics from API
+     * @param {string|null} timePointsParam Optional comma-separated ISO timestamps for time filtering
      */
-    async loadStatistics() {
+    async loadStatistics(timePointsParam = null) {
         try {
-            const response = await fetch(`/api/videos/${this.videoId}/pattern-statistics`);
+            let url = `/api/videos/${this.videoId}/pattern-statistics`;
+
+            // Add time_points parameter if provided
+            if (timePointsParam) {
+                url += `?time_points=${encodeURIComponent(timePointsParam)}`;
+            }
+
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Failed to load statistics');
             }
             const data = await response.json();
             this.statistics = data.patterns;
+
+            // Re-render filter list with updated statistics
+            this.renderFilterList();
         } catch (error) {
             console.error('Error loading statistics:', error);
             this.showError('無法載入統計資料');

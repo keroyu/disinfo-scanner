@@ -22,9 +22,9 @@ class CommentPatternController extends Controller
     /**
      * Get pattern statistics for a video
      *
-     * GET /api/videos/{videoId}/pattern-statistics
+     * GET /api/videos/{videoId}/pattern-statistics?time_points=2025-11-20T08:00:00,2025-11-20T10:00:00
      */
-    public function getPatternStatistics(string $videoId): JsonResponse
+    public function getPatternStatistics(Request $request, string $videoId): JsonResponse
     {
         try {
             // Verify video exists
@@ -39,12 +39,54 @@ class CommentPatternController extends Controller
                 ], 404);
             }
 
-            $statistics = $this->commentPatternService->getPatternStatistics($videoId);
+            // Validate time_points parameter if provided
+            $validated = $request->validate([
+                'time_points' => 'nullable|string'
+            ]);
 
-            return response()->json([
+            $timePointsIso = $validated['time_points'] ?? null;
+
+            // Validate time_points if provided
+            if ($timePointsIso !== null) {
+                $timePoints = array_map('trim', explode(',', $timePointsIso));
+
+                // Enforce maximum 20 time points
+                if (count($timePoints) > 20) {
+                    return response()->json([
+                        'error' => [
+                            'type' => 'ValidationError',
+                            'message' => 'Maximum 20 time points can be selected',
+                            'details' => ['time_points_count' => count($timePoints), 'max_allowed' => 20]
+                        ]
+                    ], 422);
+                }
+
+                // Validate each timestamp format
+                foreach ($timePoints as $timestamp) {
+                    if (!empty($timestamp) && !TimeRange::isValidIsoTimestamp($timestamp)) {
+                        return response()->json([
+                            'error' => [
+                                'type' => 'ValidationError',
+                                'message' => 'Invalid ISO timestamp format',
+                                'details' => ['invalid_timestamp' => $timestamp]
+                            ]
+                        ], 422);
+                    }
+                }
+            }
+
+            $statistics = $this->commentPatternService->getPatternStatistics($videoId, $timePointsIso);
+
+            $response = [
                 'video_id' => $videoId,
                 'patterns' => $statistics
-            ]);
+            ];
+
+            if ($timePointsIso !== null) {
+                $response['time_points'] = $timePointsIso;
+            }
+
+            return response()->json($response);
 
         } catch (\Exception $e) {
             Log::error('Error getting pattern statistics', [
