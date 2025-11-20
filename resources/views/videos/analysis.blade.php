@@ -139,7 +139,18 @@
 
     <!-- Commenter Pattern Summary Section -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Commenter Pattern Summary</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">Commenter Pattern Summary</h2>
+            <button
+                id="exportCsvBtn"
+                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors flex items-center gap-2"
+                onclick="exportCommentsToCSV()"
+                title="匯出當前顯示的留言為 CSV 檔案"
+            >
+                <i class="fas fa-file-csv"></i>
+                <span>Export CSV</span>
+            </button>
+        </div>
 
         <!-- Time Filter Indicator -->
         <div id="timeFilterIndicator" class="mb-4 hidden">
@@ -433,6 +444,7 @@ function handleChartClick(event, activeElements) {
     // Reload comments with new filter
     commentPatternUI.currentOffset = 0;
     commentPatternUI.hasMore = true;
+    commentPatternUI.currentComments = []; // Clear stored comments
     const commentsContainer = document.getElementById('commentsList');
     if (commentsContainer) {
         commentsContainer.innerHTML = '';
@@ -538,6 +550,22 @@ function showEmptyState() {
     document.getElementById('emptyState').classList.remove('hidden');
 }
 
+// Export comments to CSV - opens field selection modal
+function exportCommentsToCSV() {
+    if (!commentPatternUI) {
+        alert('無法匯出留言：系統尚未初始化');
+        return;
+    }
+
+    if (!commentPatternUI.currentComments || commentPatternUI.currentComments.length === 0) {
+        alert('目前沒有留言可匯出');
+        return;
+    }
+
+    // Show the field selection modal
+    document.getElementById('csv-export-modal').classList.remove('hidden');
+}
+
 // Cancel button handler
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelButton').addEventListener('click', () => {
@@ -562,6 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (commentPatternUI) {
                     commentPatternUI.currentOffset = 0;
                     commentPatternUI.hasMore = true;
+                    commentPatternUI.currentComments = []; // Clear stored comments
                     const commentsContainer = document.getElementById('commentsList');
                     if (commentsContainer) {
                         commentsContainer.innerHTML = '';
@@ -571,6 +600,144 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // CSV Export Modal handlers
+    const csvModal = document.getElementById('csv-export-modal');
+    const csvSelectAllBtn = document.getElementById('csv-select-all');
+    const csvDeselectAllBtn = document.getElementById('csv-deselect-all');
+    const csvModalExportBtn = document.getElementById('csv-modal-export');
+    const csvModalCancelBtn = document.getElementById('csv-modal-cancel');
+    const csvFieldError = document.getElementById('csv-field-error');
+
+    // Select All
+    csvSelectAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.csv-field-checkbox').forEach(cb => {
+            cb.checked = true;
+        });
+        csvFieldError.classList.add('hidden');
+    });
+
+    // Deselect All
+    csvDeselectAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.csv-field-checkbox').forEach(cb => {
+            cb.checked = false;
+        });
+    });
+
+    // Export button
+    csvModalExportBtn.addEventListener('click', () => {
+        const selectedFields = Array.from(document.querySelectorAll('.csv-field-checkbox:checked'))
+            .map(cb => cb.value);
+
+        if (selectedFields.length === 0) {
+            csvFieldError.classList.remove('hidden');
+            return;
+        }
+
+        csvFieldError.classList.add('hidden');
+        csvModal.classList.add('hidden');
+
+        // Call export with selected fields
+        if (commentPatternUI) {
+            commentPatternUI.exportToCSV(selectedFields);
+        }
+    });
+
+    // Cancel button
+    csvModalCancelBtn.addEventListener('click', () => {
+        csvModal.classList.add('hidden');
+    });
+
+    // Close modal when clicking outside
+    csvModal.addEventListener('click', (e) => {
+        if (e.target === csvModal) {
+            csvModal.classList.add('hidden');
+        }
+    });
 });
 </script>
+<!-- CSV Export Field Selection Modal -->
+<div id="csv-export-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 animate-fade-in">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">選擇要匯出的欄位</h2>
+
+        <!-- Select All / Deselect All -->
+        <div class="mb-4 flex gap-3">
+            <button
+                id="csv-select-all"
+                class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+                全選
+            </button>
+            <button
+                id="csv-deselect-all"
+                class="text-sm text-gray-600 hover:text-gray-800 font-medium"
+            >
+                取消全選
+            </button>
+        </div>
+
+        <!-- Field Selection -->
+        <div id="csv-fields-container" class="mb-6 space-y-2 max-h-80 overflow-y-auto">
+            <label class="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 w-full">
+                <input type="checkbox" class="csv-field-checkbox" value="author_channel_id" checked>
+                <span class="ml-2 font-medium text-sm">作者頻道 ID (Author Channel ID)</span>
+            </label>
+
+            <label class="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 w-full">
+                <input type="checkbox" class="csv-field-checkbox" value="published_at" checked>
+                <span class="ml-2 font-medium text-sm">發布時間 (Published At)</span>
+            </label>
+
+            <label class="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 w-full">
+                <input type="checkbox" class="csv-field-checkbox" value="text" checked>
+                <span class="ml-2 font-medium text-sm">留言內容 (Comment Text)</span>
+            </label>
+
+            <label class="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 w-full">
+                <input type="checkbox" class="csv-field-checkbox" value="like_count" checked>
+                <span class="ml-2 font-medium text-sm">按讚數 (Like Count)</span>
+            </label>
+        </div>
+
+        <!-- Error Message -->
+        <div id="csv-field-error" class="hidden text-red-600 text-sm mb-4">
+            請至少選擇一個欄位
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+            <button
+                id="csv-modal-export"
+                class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <i class="fas fa-file-csv mr-2"></i>匯出 CSV
+            </button>
+            <button
+                id="csv-modal-cancel"
+                class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+            >
+                取消
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+}
+</style>
+
 @endsection

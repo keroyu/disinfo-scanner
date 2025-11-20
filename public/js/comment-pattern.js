@@ -12,6 +12,7 @@ class CommentPatternUI {
         this.observer = null;
         this.statistics = null;
         this.timeFilterState = null; // Will be set externally
+        this.currentComments = []; // Store currently displayed comments for export
     }
 
     /**
@@ -96,6 +97,7 @@ class CommentPatternUI {
         this.currentPattern = pattern;
         this.currentOffset = 0;
         this.hasMore = true;
+        this.currentComments = []; // Clear stored comments
 
         // Update visual highlighting
         document.querySelectorAll('.pattern-filter-item').forEach(btn => {
@@ -176,6 +178,9 @@ class CommentPatternUI {
     appendComments(comments) {
         const container = document.getElementById('commentsList');
         if (!container) return;
+
+        // Store comments for export
+        this.currentComments.push(...comments);
 
         // Calculate date range (past 2 years)
         const toDate = new Date();
@@ -262,7 +267,7 @@ class CommentPatternUI {
         if (!container) return;
 
         const messages = {
-            'aggressive': '此功能待人工審查實作',
+            'aggressive': '此功能待 AI 實作',
             'simplified_chinese': '此功能待語言偵測實作'
         };
 
@@ -335,6 +340,95 @@ class CommentPatternUI {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Export currently displayed comments to CSV
+     * @param {Array} selectedFields Array of field names to export
+     */
+    exportToCSV(selectedFields = null) {
+        if (!this.currentComments || this.currentComments.length === 0) {
+            alert('目前沒有留言可匯出');
+            return;
+        }
+
+        // Field mapping for headers and data extraction
+        const fieldMap = {
+            'author_channel_id': {
+                header: 'Author Channel ID',
+                extract: (comment) => this.escapeCsvField(comment.author_channel_id || '')
+            },
+            'published_at': {
+                header: 'Published At',
+                extract: (comment) => this.escapeCsvField(comment.published_at || '')
+            },
+            'text': {
+                header: 'Comment Text',
+                extract: (comment) => this.escapeCsvField(comment.text || '')
+            },
+            'like_count': {
+                header: 'Like Count',
+                extract: (comment) => comment.like_count || 0
+            }
+        };
+
+        // Use all fields if none selected
+        if (!selectedFields || selectedFields.length === 0) {
+            selectedFields = Object.keys(fieldMap);
+        }
+
+        // Build headers
+        const headers = selectedFields.map(field => fieldMap[field].header);
+
+        // Convert comments to CSV rows
+        const csvRows = [];
+
+        // Add header row
+        csvRows.push(headers.join(','));
+
+        // Add data rows
+        this.currentComments.forEach(comment => {
+            const row = selectedFields.map(field => fieldMap[field].extract(comment));
+            csvRows.push(row.join(','));
+        });
+
+        // Create CSV content
+        const csvContent = csvRows.join('\n');
+
+        // Create blob and download
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        // Generate filename with current pattern and timestamp
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `comments_${this.currentPattern}_${timestamp}.csv`;
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    /**
+     * Escape CSV field (handle commas, quotes, newlines)
+     */
+    escapeCsvField(field) {
+        if (field === null || field === undefined) {
+            return '';
+        }
+
+        // Convert to string
+        field = String(field);
+
+        // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+        if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+            field = '"' + field.replace(/"/g, '""') + '"';
+        }
+
+        return field;
     }
 }
 
