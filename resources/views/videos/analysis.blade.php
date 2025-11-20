@@ -66,44 +66,9 @@
         </div>
     </div>
 
-    <!-- Commenter Pattern Summary Section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Commenter Pattern Summary</h2>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Panel: Filter List -->
-            <div class="lg:col-span-1">
-                <div id="patternFilterList" class="space-y-2">
-                    <!-- Populated by JavaScript -->
-                </div>
-            </div>
-
-            <!-- Right Panel: Comments Display -->
-            <div class="lg:col-span-2">
-                <div class="border rounded-lg h-[600px] overflow-hidden flex flex-col">
-                    <!-- Comments Container -->
-                    <div id="commentsScrollContainer" class="flex-1 overflow-y-auto">
-                        <div id="commentsList">
-                            <!-- Populated by JavaScript -->
-                        </div>
-
-                        <!-- Scroll Sentinel for Infinite Scroll -->
-                        <div id="scrollSentinel" class="h-4"></div>
-
-                        <!-- Loading Indicator -->
-                        <div id="loadingIndicator" class="hidden p-4 text-center">
-                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p class="text-gray-600 mt-2">載入更多留言...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Chart Container with Time Range Selector -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-6">留言密度趨勢圖</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-6">Comments Density</h2>
 
         <!-- Time Range Selector -->
         <div class="mb-6">
@@ -168,6 +133,41 @@
             <div class="text-center text-gray-500">
                 <i class="fas fa-inbox text-6xl mb-4"></i>
                 <p class="text-lg">此時間範圍內沒有留言</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commenter Pattern Summary Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Commenter Pattern Summary</h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Panel: Filter List -->
+            <div class="lg:col-span-1">
+                <div id="patternFilterList" class="space-y-2">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Right Panel: Comments Display -->
+            <div class="lg:col-span-2">
+                <div class="border rounded-lg h-[600px] overflow-hidden flex flex-col">
+                    <!-- Comments Container -->
+                    <div id="commentsScrollContainer" class="flex-1 overflow-y-auto">
+                        <div id="commentsList">
+                            <!-- Populated by JavaScript -->
+                        </div>
+
+                        <!-- Scroll Sentinel for Infinite Scroll -->
+                        <div id="scrollSentinel" class="h-4"></div>
+
+                        <!-- Loading Indicator -->
+                        <div id="loadingIndicator" class="hidden p-4 text-center">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p class="text-gray-600 mt-2">載入更多留言...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
