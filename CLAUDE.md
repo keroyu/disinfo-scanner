@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-18
 - PHP 8.2 with Laravel Framework 12.0 + Chart.js (client-side visualization), Tailwind CSS (existing UI framework), Carbon (datetime handling) (008-video-comment-density)
 - PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Chart.js 4.4.0 (existing), Tailwind CSS (via CDN) (010-time-based-comment-filter)
 - MySQL/MariaDB with existing comments table (published_at in UTC) (010-time-based-comment-filter)
+- PHP 8.2 + Laravel Framework 12.38.1, Laravel Breeze (authentication scaffolding), Laravel Mail (email delivery) (011-member-system)
+- MySQL/MariaDB (existing database with users, password_reset_tokens, sessions tables already present) (011-member-system)
 
 - PHP 8.2 with Laravel Framework 12.38.1 (007-video-incremental-update)
 
@@ -28,9 +30,9 @@ tests/
 PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
 
 ## Recent Changes
+- 011-member-system: Added PHP 8.2 + Laravel Framework 12.38.1, Laravel Breeze (authentication scaffolding), Laravel Mail (email delivery)
 - 010-time-based-comment-filter: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Chart.js 4.4.0 (existing), Tailwind CSS (via CDN)
 - 008-video-comment-density: Added PHP 8.2 with Laravel Framework 12.0 + Chart.js (client-side visualization), Tailwind CSS (existing UI framework), Carbon (datetime handling)
-- 008-video-comment-density: Added PHP 8.2 + Chart.js (for client-side visualization), Tailwind CSS (existing UI framework)
 
 
 <!-- MANUAL ADDITIONS START -->

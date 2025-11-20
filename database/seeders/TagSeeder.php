@@ -43,6 +43,12 @@ class TagSeeder extends Seeder
                 'description' => 'Pro-China stance',
                 'color' => 'rose-600',
             ],
+            [
+                'code' => 'foreigner',
+                'name' => '外國人',
+                'description' => 'Foreign/International content or perspective',
+                'color' => 'purple-500',
+            ],
         ];
 
         foreach ($tags as $tag) {
