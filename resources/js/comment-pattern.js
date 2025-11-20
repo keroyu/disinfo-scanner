@@ -155,13 +155,37 @@ class CommentPatternUI {
         const container = document.getElementById('commentsList');
         if (!container) return;
 
+        // Calculate date range (past 2 years)
+        const toDate = new Date();
+        const fromDate = new Date();
+        fromDate.setFullYear(fromDate.getFullYear() - 2);
+
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const fromDateStr = formatDate(fromDate);
+        const toDateStr = formatDate(toDate);
+
         comments.forEach(comment => {
+            // Build URL for Comments List search
+            const searchUrl = `/comments?search=${encodeURIComponent(comment.author_channel_id)}&from_date=${fromDateStr}&to_date=${toDateStr}`;
+
             const commentHtml = `
                 <div class="comment-item p-4 border-b border-gray-200 hover:bg-gray-50">
                     <div class="flex items-start gap-3">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
-                                <span class="font-semibold text-gray-900 text-sm">${this.escapeHtml(comment.author_name)}</span>
+                                <a
+                                    href="${searchUrl}"
+                                    class="font-semibold text-blue-600 hover:text-blue-800 text-sm"
+                                    title="View all comments by ${this.escapeHtml(comment.author_channel_id)} (past 2 years)"
+                                >
+                                    ${this.escapeHtml(comment.author_name)}
+                                </a>
                                 <a
                                     href="https://www.youtube.com/channel/${this.escapeHtml(comment.author_channel_id)}"
                                     target="_blank"
