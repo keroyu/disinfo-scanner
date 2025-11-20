@@ -1,15 +1,14 @@
 <!--
 ## Sync Impact Report
-- Version: 1.0.0 (Initial ratification from template)
-- Principles: 5 core principles ratified
-  - I. Test-First Development (NEW)
-  - II. API-First Design (NEW)
-  - III. Observable Systems (NEW)
-  - IV. Contract Testing (NEW)
-  - V. Semantic Versioning (NEW)
-- Added sections: None (template structure retained)
-- Templates requiring updates: spec-template.md, plan-template.md, tasks-template.md
-- Status: ✅ Updated
+- Version: 1.0.0 → 1.1.0 (MINOR: New principle added)
+- Modified principles: None
+- Added principles: VI. Timezone Consistency (NEW)
+- Removed principles: None
+- Templates requiring updates:
+  - ✅ plan-template.md (Constitution Check section - already generic)
+  - ✅ spec-template.md (No updates needed - technology-agnostic)
+  - ✅ tasks-template.md (No updates needed - follows principles)
+- Follow-up TODOs: None (principle integrated)
 -->
 
 # DISINFO_SCANNER Constitution
@@ -75,6 +74,19 @@ All releases follow MAJOR.MINOR.PATCH versioning with clear breaking-change docu
 
 ---
 
+### VI. Timezone Consistency
+
+All datetime data MUST be handled with explicit timezone awareness to prevent data corruption and analysis errors.
+- Database MUST store all timestamps in UTC (Coordinated Universal Time)
+- Backend MUST convert UTC to appropriate display timezone (GMT+8 / Asia/Taipei) before sending to frontend
+- Frontend MUST display all times with explicit timezone indicators (e.g., "2025-11-20 14:30 (GMT+8)")
+- Time-based queries and filters MUST operate on properly converted timezone data
+- No timezone conversions MUST occur in the database layer (store UTC, convert in application)
+
+**Rationale**: YouTube data originates in UTC; inconsistent timezone handling creates invisible data corruption where the same timestamp means different wall-clock times in queries vs displays. For a disinformation detection system analyzing time-based patterns (e.g., coordinated night-time posting), timezone bugs can cause false positives/negatives and undermine trust in the analysis.
+
+---
+
 ## Development Quality Standards
 
 To support these principles, the following standards apply:
@@ -88,11 +100,13 @@ To support these principles, the following standards apply:
 - Comment data MUST be immutable once stored (no overwrites; use versioning for corrections)
 - All data modifications MUST be logged with timestamp, operator, and reason
 - Exports MUST include metadata (export date, record count, schema version)
+- All timestamps MUST be stored in UTC and converted to display timezone only at presentation layer
 
 ### Documentation Obligations
 - Every API endpoint MUST have usage examples (curl/Python/etc.)
 - Deployment procedures MUST include rollback instructions
 - Schema changes MUST include migration scripts
+- Timezone handling MUST be explicitly documented in API contracts and data models
 
 ---
 
@@ -120,4 +134,4 @@ For implementation details and workflow specifics, see `.specify/` directory str
 
 ---
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-15 | **Last Amended**: 2025-11-15
+**Version**: 1.1.0 | **Ratified**: 2025-11-15 | **Last Amended**: 2025-11-20
