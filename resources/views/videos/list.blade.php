@@ -124,21 +124,28 @@
 
                                             // Get channel tags and use first tag's color if available
                                             $tags = $channel->tags();
-                                            $dotColor = 'bg-gray-400'; // Default color
+
+                                            $colorMap = [
+                                                'green-500' => '#10b981',
+                                                'blue-500' => '#3b82f6',
+                                                'red-500' => '#ef4444',
+                                                'orange-500' => '#f97316',
+                                                'rose-600' => '#e11d48',
+                                            ];
+
+                                            $iconColor = '#9ca3af'; // Default gray
 
                                             if ($tags->isNotEmpty()) {
-                                                // Use first tag's color
                                                 $firstTag = $tags->first();
-                                                $dotColor = $firstTag->color ?? 'bg-gray-400';
+                                                $iconColor = $colorMap[$firstTag->color] ?? '#9ca3af';
                                             } else {
-                                                // Generate consistent color based on channel ID if no tags
-                                                $colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-orange-500', 'bg-cyan-500'];
+                                                $colors = ['#ef4444', '#3b82f6', '#10b981', '#eab308', '#a855f7', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#06b6d4'];
                                                 $colorIndex = hexdec(substr(md5($channelId), 0, 8)) % count($colors);
-                                                $dotColor = $colors[$colorIndex];
+                                                $iconColor = $colors[$colorIndex];
                                             }
                                         @endphp
                                         <div class="flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full {{ $dotColor }} flex-shrink-0"></span>
+                                            <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $iconColor }};"></span>
                                             <a
                                                 href="{{ route('comments.index', ['search_channel' => $channel->channel_name]) }}"
                                                 class="text-blue-600 hover:text-blue-800 truncate text-sm"
