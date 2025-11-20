@@ -69,12 +69,17 @@
                                     @endphp
                                     <div class="flex items-center gap-2">
                                         <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $iconColor }};"></span>
+                                        <a href="{{ route('videos.index', ['search' => $channel->channel_name]) }}"
+                                           class="text-blue-600 hover:text-blue-800 truncate"
+                                           title="View all videos from {{ $channel->channel_name }}">
+                                            {{ $channel->channel_name ?: '(未命名)' }}
+                                        </a>
                                         <a href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
                                            target="_blank"
                                            rel="noopener noreferrer"
-                                           class="text-blue-600 hover:text-blue-800"
-                                           title="{{ $channel->channel_name }}">
-                                            {{ $channel->channel_name ?: '(未命名)' }}
+                                           class="text-red-600 hover:text-red-700 flex-shrink-0"
+                                           title="View channel on YouTube">
+                                            <i class="fab fa-youtube"></i>
                                         </a>
                                     </div>
                                 </td>
