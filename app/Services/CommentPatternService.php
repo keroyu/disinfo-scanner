@@ -30,6 +30,7 @@ class CommentPatternService
 
             // Calculate each pattern
             $allComments = $this->calculateAllCommentsPattern($videoId, $totalUniqueCommenters);
+            $topLikedComments = $this->calculateTopLikedPattern($videoId, $totalUniqueCommenters);
             $repeatCommenters = $this->calculateRepeatCommenters($videoId, $totalUniqueCommenters);
             $nightTimeCommenters = $this->calculateNightTimeCommenters($videoId, $totalUniqueCommenters);
             $aggressiveCommenters = $this->placeholderPattern('aggressive');
@@ -45,6 +46,7 @@ class CommentPatternService
 
             return [
                 'all' => $allComments,
+                'top_liked' => $topLikedComments,
                 'repeat' => $repeatCommenters,
                 'night_time' => $nightTimeCommenters,
                 'aggressive' => $aggressiveCommenters,
@@ -66,24 +68,32 @@ class CommentPatternService
     {
         $startTime = microtime(true);
 
-        $query = Comment::where('video_id', $videoId)
-            ->orderBy('published_at', 'DESC');
+        $query = Comment::where('video_id', $videoId);
 
         // Apply pattern filter
         switch ($pattern) {
             case 'all':
-                // No additional filtering
+                // No additional filtering, sort by published_at
+                $query->orderBy('published_at', 'DESC');
+                break;
+
+            case 'top_liked':
+                // Sort by like_count descending, then by published_at
+                $query->orderBy('like_count', 'DESC')
+                      ->orderBy('published_at', 'DESC');
                 break;
 
             case 'repeat':
                 $repeatAuthorIds = $this->getRepeatAuthorIds($videoId);
-                $query->whereIn('author_channel_id', $repeatAuthorIds);
+                $query->whereIn('author_channel_id', $repeatAuthorIds)
+                      ->orderBy('published_at', 'DESC');
                 break;
 
             case 'night_time':
                 $nightTimeAuthorIds = $this->getNightTimeAuthorIds();
                 $query->whereIn('author_channel_id', $nightTimeAuthorIds)
-                      ->where('video_id', $videoId);
+                      ->where('video_id', $videoId)
+                      ->orderBy('published_at', 'DESC');
                 break;
 
             case 'aggressive':
@@ -97,6 +107,7 @@ class CommentPatternService
 
             default:
                 // Invalid pattern, return all
+                $query->orderBy('published_at', 'DESC');
                 break;
         }
 
@@ -142,6 +153,17 @@ class CommentPatternService
      * Calculate "all comments" pattern
      */
     private function calculateAllCommentsPattern(string $videoId, int $totalUniqueCommenters): array
+    {
+        return [
+            'count' => $totalUniqueCommenters,
+            'percentage' => 100
+        ];
+    }
+
+    /**
+     * Calculate "top liked" pattern (all comments, but sorted by like_count)
+     */
+    private function calculateTopLikedPattern(string $videoId, int $totalUniqueCommenters): array
     {
         return [
             'count' => $totalUniqueCommenters,

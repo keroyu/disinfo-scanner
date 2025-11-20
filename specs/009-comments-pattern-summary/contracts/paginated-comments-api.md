@@ -34,7 +34,8 @@ GET
 | limit | integer | No | `100` | Number of records to return | `100` |
 
 **Pattern Values**:
-- `all` - All comments (no filtering)
+- `all` - All comments sorted by published_at DESC (newest first)
+- `top_liked` - All comments sorted by like_count DESC (highest likes first)
 - `repeat` - Comments from repeat commenters only
 - `night_time` - Comments from night-time high-frequency commenters
 - `aggressive` - (Placeholder, returns empty list)
@@ -183,11 +184,14 @@ None (GET request)
 ## Business Rules
 
 1. **Sorting**:
-   - ALL comment lists sorted by `published_at DESC` (newest first)
-   - Secondary sort by `comment_id ASC` for deterministic ordering
+   - `all` pattern: Sorted by `published_at DESC` (newest first)
+   - `top_liked` pattern: Sorted by `like_count DESC` then `published_at DESC` (highest likes first)
+   - Other patterns: Sorted by `published_at DESC` (newest first)
+   - Secondary sort by `comment_id ASC` for deterministic ordering where applicable
 
 2. **Pattern Filtering**:
-   - `all`: No filtering, returns all comments for video
+   - `all`: No filtering, returns all comments for video (sorted by time)
+   - `top_liked`: No filtering, returns all comments for video (sorted by likes)
    - `repeat`: Filters to comments where author_channel_id has 2+ comments on this video
    - `night_time`: Filters to comments where author_channel_id has >50% night-time comments across ALL channels
    - `aggressive` / `simplified_chinese`: Returns empty array (placeholders)
@@ -302,7 +306,18 @@ Then all published_at values match format "YYYY/MM/DD HH:MM (GMT+8)"
 And timestamps are in descending order (newest first)
 ```
 
-### Test Case 8: Placeholder Patterns
+### Test Case 8: Top Liked Pattern Sorting
+```
+Given video "abc123" has 10 comments with like_count [5, 50, 100, 2, 75, 30, 90, 15, 60, 10]
+When GET /api/videos/abc123/comments?pattern=top_liked&offset=0&limit=100
+Then status is 200
+And response.data[0].like_count == 100  # Highest first
+And response.data[1].like_count == 90
+And response.data[2].like_count == 75
+And all comments are sorted by like_count DESC
+```
+
+### Test Case 9: Placeholder Patterns
 ```
 When GET /api/videos/abc123/comments?pattern=aggressive
 Then status is 200

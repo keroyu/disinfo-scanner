@@ -51,6 +51,7 @@ class CommentPatternTest extends TestCase
                 'video_id',
                 'patterns' => [
                     'all' => ['count', 'percentage'],
+                    'top_liked' => ['count', 'percentage'],
                     'repeat' => ['count', 'percentage'],
                     'night_time' => ['count', 'percentage'],
                     'aggressive' => ['count', 'percentage'],
@@ -244,6 +245,73 @@ class CommentPatternTest extends TestCase
         $response = $this->getJson("/api/videos/{$this->video->video_id}/comments?pattern=invalid_pattern&offset=0&limit=100");
 
         $response->assertStatus(422);
+    }
+
+    /** @test */
+    public function test_top_liked_pattern_sorts_by_like_count()
+    {
+        // Create author
+        $author = Author::create([
+            'author_channel_id' => 'test_author_likes',
+            'name' => 'Test Author'
+        ]);
+
+        // Create comments with different like counts
+        Comment::create([
+            'comment_id' => 'comment_low_likes',
+            'video_id' => $this->video->video_id,
+            'author_channel_id' => $author->author_channel_id,
+            'text' => 'Low likes comment',
+            'like_count' => 5,
+            'published_at' => Carbon::now()
+        ]);
+
+        Comment::create([
+            'comment_id' => 'comment_high_likes',
+            'video_id' => $this->video->video_id,
+            'author_channel_id' => $author->author_channel_id,
+            'text' => 'High likes comment',
+            'like_count' => 100,
+            'published_at' => Carbon::now()->subHours(1)
+        ]);
+
+        Comment::create([
+            'comment_id' => 'comment_medium_likes',
+            'video_id' => $this->video->video_id,
+            'author_channel_id' => $author->author_channel_id,
+            'text' => 'Medium likes comment',
+            'like_count' => 50,
+            'published_at' => Carbon::now()->subHours(2)
+        ]);
+
+        $response = $this->getJson("/api/videos/{$this->video->video_id}/comments?pattern=top_liked&offset=0&limit=100");
+
+        $response->assertStatus(200);
+
+        $data = $response->json();
+
+        // Verify comments are sorted by like_count DESC
+        $this->assertCount(3, $data['comments']);
+        $this->assertEquals(100, $data['comments'][0]['like_count']); // Highest first
+        $this->assertEquals(50, $data['comments'][1]['like_count']);  // Medium second
+        $this->assertEquals(5, $data['comments'][2]['like_count']);   // Lowest last
+    }
+
+    /** @test */
+    public function test_top_liked_pattern_statistics_same_as_all()
+    {
+        $this->createTestComments();
+
+        $response = $this->getJson("/api/videos/{$this->video->video_id}/pattern-statistics");
+
+        $response->assertStatus(200);
+
+        $data = $response->json();
+
+        // top_liked should have same count and percentage as 'all' (100%)
+        $this->assertEquals($data['patterns']['all']['count'], $data['patterns']['top_liked']['count']);
+        $this->assertEquals($data['patterns']['all']['percentage'], $data['patterns']['top_liked']['percentage']);
+        $this->assertEquals(100, $data['patterns']['top_liked']['percentage']);
     }
 
     /**

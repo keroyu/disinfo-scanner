@@ -80,6 +80,12 @@ None (GET request)
       "percentage": 100,
       "total_commenters": 892
     },
+    "top_liked": {
+      "type": "top_liked",
+      "count": 892,
+      "percentage": 100,
+      "total_commenters": 892
+    },
     "repeat": {
       "type": "repeat",
       "count": 67,
@@ -115,8 +121,8 @@ None (GET request)
 |-------|------|-------------|-------------|
 | video_id | string | YouTube video ID from request | Same as request parameter |
 | total_comments | integer | Total comment count on video (including replies) | >= 0 |
-| patterns | object | Map of pattern type to statistics | Contains 5 keys: all, repeat, night_time, aggressive, simplified_chinese |
-| patterns.{type}.type | string | Pattern identifier | One of: "all", "repeat", "night_time", "aggressive", "simplified_chinese" |
+| patterns | object | Map of pattern type to statistics | Contains 6 keys: all, top_liked, repeat, night_time, aggressive, simplified_chinese |
+| patterns.{type}.type | string | Pattern identifier | One of: "all", "top_liked", "repeat", "night_time", "aggressive", "simplified_chinese" |
 | patterns.{type}.count | integer | Number of unique commenters matching pattern | >= 0, <= total_commenters |
 | patterns.{type}.percentage | integer | Percentage of total unique commenters (rounded) | 0-100 (inclusive) |
 | patterns.{type}.total_commenters | integer | Total unique commenters on video | Same across all patterns, >= 0 |
@@ -156,31 +162,43 @@ None (GET request)
 
 ## Business Rules
 
-1. **Repeat Commenters**:
+1. **All Comments**:
+   - Shows all unique commenters on the video
+   - Count: Total unique author_channel_id values
+   - Percentage: Always 100%
+   - Sorted by published_at DESC
+
+2. **Top Liked Comments**:
+   - Shows all comments sorted by like count
+   - Count: Same as 'all' (all unique commenters)
+   - Percentage: Always 100%
+   - Sorted by like_count DESC, then published_at DESC
+
+3. **Repeat Commenters**:
    - Definition: Unique commenter IDs with 2 or more comments on the same video
    - Count: Number of unique author_channel_id values with COUNT(*) >= 2
    - Percentage: (count / total_commenters) * 100, rounded to nearest integer
 
-2. **Night-Time High-Frequency Commenters**:
+4. **Night-Time High-Frequency Commenters**:
    - Definition: Unique commenter IDs with >50% of ALL their comments (across all channels) posted during 01:00-05:59 GMT+8
    - Minimum comments: Must have at least 2 total comments to be eligible
    - Timezone: Database timestamps are UTC, must convert to GMT+8 before hour extraction
    - Calculation: Cross-channel query (expensive, uses caching)
 
-3. **Aggressive Commenters** (Placeholder):
+5. **Aggressive Commenters** (Placeholder):
    - Always returns count: 0, percentage: 0
    - Pending manual review classification implementation
 
-4. **Simplified Chinese Commenters** (Placeholder):
+6. **Simplified Chinese Commenters** (Placeholder):
    - Always returns count: 0, percentage: 0
    - Pending language detection implementation
 
-5. **Total Commenters**:
+7. **Total Commenters**:
    - Count of DISTINCT author_channel_id on the video
    - Same value appears in all pattern objects
    - Used as denominator for percentage calculations
 
-6. **Edge Cases**:
+8. **Edge Cases**:
    - Video with zero comments: All counts = 0, percentages = 0
    - Comments with null published_at: Excluded from night-time calculation, included in other patterns
    - Commenter with exactly 50% night-time: NOT included (requires >50%)
@@ -216,6 +234,8 @@ And 5 commenters have >50% night-time comments
 When GET /api/videos/abc123/pattern-statistics
 Then status is 200
 And response.patterns.all.count == 75
+And response.patterns.top_liked.count == 75
+And response.patterns.top_liked.percentage == 100
 And response.patterns.repeat.count == 10
 And response.patterns.repeat.percentage == 13  # (10/75)*100 = 13.33 → 13
 And response.patterns.night_time.count == 5
@@ -246,7 +266,7 @@ And response.error == "Video not found"
 ```
 Given any valid video ID
 When GET /api/videos/{id}/pattern-statistics
-Then response contains exactly 5 pattern types
+Then response contains exactly 6 pattern types
 And each pattern has fields: type, count, percentage, total_commenters
 And percentage values are integers (not floats)
 And calculated_at is valid ISO 8601 with timezone

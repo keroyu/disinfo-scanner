@@ -73,7 +73,7 @@ class CommentPattern
 ```
 
 **Validation Rules**:
-- `type`: Must be one of: 'all', 'repeat', 'night_time', 'aggressive', 'simplified_chinese'
+- `type`: Must be one of: 'all', 'top_liked', 'repeat', 'night_time', 'aggressive', 'simplified_chinese'
 - `count`: >= 0
 - `percentage`: 0.0 - 100.0 (inclusive)
 - `totalCommenters`: >= 0
@@ -119,8 +119,10 @@ class PatternStatistics
 
 **Invariants**:
 - Must contain pattern for 'all' (default view)
+- Must contain pattern for 'top_liked' (sorted by like count)
 - Total of all pattern counts <= total unique commenters
 - All patterns reference same totalCommenters value
+- 'all' and 'top_liked' patterns always have count = totalCommenters and percentage = 100
 
 ---
 
@@ -234,8 +236,9 @@ public function scopeByPattern($query, string $videoId, string $pattern, ?Collec
     $query->where('video_id', $videoId);
 
     return match($pattern) {
-        'all' => $query,  // No additional filtering
-        'repeat', 'night_time' => $query->whereIn('author_channel_id', $matchingAuthorIds ?? []),
+        'all' => $query->orderBy('published_at', 'DESC'),  // Sort by time
+        'top_liked' => $query->orderBy('like_count', 'DESC')->orderBy('published_at', 'DESC'),  // Sort by likes
+        'repeat', 'night_time' => $query->whereIn('author_channel_id', $matchingAuthorIds ?? [])->orderBy('published_at', 'DESC'),
         'aggressive', 'simplified_chinese' => $query->whereRaw('1 = 0'),  // Return empty (placeholders)
         default => $query->whereRaw('1 = 0'),  // Invalid pattern returns empty
     };
@@ -258,6 +261,12 @@ public function scopeByPattern($query, string $videoId, string $pattern, ?Collec
   "patterns": {
     "all": {
       "type": "all",
+      "count": 320,
+      "percentage": 100,
+      "total_commenters": 320
+    },
+    "top_liked": {
+      "type": "top_liked",
       "count": 320,
       "percentage": 100,
       "total_commenters": 320

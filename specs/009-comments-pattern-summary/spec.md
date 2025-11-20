@@ -36,6 +36,23 @@ An analyst viewing a video's analysis page wants to immediately see all comments
 
 ---
 
+### User Story 0.5 - View Top Liked Comments (Priority: P0)
+
+An analyst viewing a video's analysis page wants to quickly identify the most impactful comments by viewing them sorted by like count (highest to lowest), which helps identify viral comments or those with high community engagement.
+
+**Why this priority**: This provides immediate value by surfacing the most visible and potentially influential comments, helping analysts quickly identify which messages gained the most traction with the audience.
+
+**Independent Test**: Can be fully tested by navigating to any video analysis page and verifying the "讚數最高的留言" filter displays comments sorted from highest like count to lowest.
+
+**Acceptance Scenarios**:
+
+1. **Given** a video with comments data loaded, **When** the analyst views the Comments Pattern block, **Then** the system displays "讚數最高的留言" in the left side pattern list
+2. **Given** the "讚數最高的留言" filter is visible, **When** the analyst clicks on it, **Then** the right panel reloads showing comments sorted by like_count in descending order (highest first)
+3. **Given** the top liked filter is active, **When** the analyst scrolls to the bottom of the comment list, **Then** the system loads and displays the next batch of comments maintaining the like_count sort order (infinite scroll)
+4. **Given** comments are displayed with top liked sorting, **When** viewing the list, **Then** each successive comment has equal or lower like_count than the previous comment
+
+---
+
 ### User Story 1 - View Repeat Commenters Statistics (Priority: P1)
 
 An analyst viewing a video's analysis page wants to quickly identify videos with unusual commenting patterns, specifically accounts that post multiple times on the same video, which may indicate coordinated behavior or spam.
@@ -110,10 +127,11 @@ An analyst wants to see a placeholder for future simplified Chinese commenter de
 
 ### Functional Requirements
 
-- **FR-001**: System MUST display a Comments Pattern block on the Video Analysis page with "所有留言" at the top, followed by four pattern statistics: repeat commenters, night-time high-frequency commenters, aggressive commenters, and simplified Chinese commenters
+- **FR-001**: System MUST display a Comments Pattern block on the Video Analysis page with "所有留言" at the top, followed by "讚數最高的留言", then five pattern statistics: repeat commenters, night-time high-frequency commenters, aggressive commenters, and simplified Chinese commenters
 - **FR-001c**: System MUST visually highlight the currently selected filter in the left side pattern list using background color or border to indicate which view is displayed in the right panel
 - **FR-001a**: System MUST display all comments in the right panel by default when the Video Analysis page loads, sorted from newest to oldest, showing the first 100 comments; the right panel is always visible and cannot be closed
-- **FR-001b**: System MUST implement infinite scroll in the right panel that loads additional comments in batches of 100 when the analyst scrolls to the bottom of the current list, applicable to both "所有留言" and all pattern filters
+- **FR-001b**: System MUST implement infinite scroll in the right panel that loads additional comments in batches of 100 when the analyst scrolls to the bottom of the current list, applicable to both "所有留言", "讚數最高的留言", and all pattern filters
+- **FR-001d**: System MUST display "讚數最高的留言" filter that shows all comments sorted by like_count in descending order (highest to lowest)
 - **FR-002**: System MUST calculate and display the count of repeat commenters, defined as unique commenter IDs with 2 or more comments on the current video
 - **FR-003**: System MUST calculate and display the percentage of repeat commenters relative to total unique commenters on the current video, formatted as "(Y%)" where Y is rounded to the nearest whole number
 - **FR-004**: System MUST calculate and display the count of night-time high-frequency commenters, defined as unique commenter IDs where >50% of their total comments across all channels are posted between 01:00-05:59 GMT+8

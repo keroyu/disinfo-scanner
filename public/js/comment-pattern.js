@@ -49,6 +49,7 @@ class CommentPatternUI {
 
         const filters = [
             { key: 'all', label: '所有留言', count: this.statistics.all.count, percentage: this.statistics.all.percentage },
+            { key: 'top_liked', label: '讚數最高的留言', count: this.statistics.top_liked.count, percentage: this.statistics.top_liked.percentage },
             { key: 'repeat', label: '重複留言者有', count: this.statistics.repeat.count, percentage: this.statistics.repeat.percentage },
             { key: 'night_time', label: '夜間高頻留言者有', count: this.statistics.night_time.count, percentage: this.statistics.night_time.percentage },
             { key: 'aggressive', label: '高攻擊性留言者有', count: this.statistics.aggressive.count, percentage: this.statistics.aggressive.percentage },
@@ -67,7 +68,7 @@ class CommentPatternUI {
                 >
                     <div class="text-sm font-medium text-gray-700">
                         ${filter.label}
-                        ${filter.key !== 'all' ? `<span class="font-bold">${filter.count} 個 (${filter.percentage}%)</span>` : ''}
+                        ${(filter.key !== 'all' && filter.key !== 'top_liked') ? `<span class="font-bold">${filter.count} 個 (${filter.percentage}%)</span>` : ''}
                     </div>
                 </button>
             `;

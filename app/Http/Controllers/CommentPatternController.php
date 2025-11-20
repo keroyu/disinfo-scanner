@@ -84,7 +84,7 @@ class CommentPatternController extends Controller
 
             // Validate request parameters
             $validated = $request->validate([
-                'pattern' => ['required', Rule::in(['all', 'repeat', 'night_time', 'aggressive', 'simplified_chinese'])],
+                'pattern' => ['required', Rule::in(['all', 'top_liked', 'repeat', 'night_time', 'aggressive', 'simplified_chinese'])],
                 'offset' => 'integer|min:0',
                 'limit' => 'integer|min:1|max:100'
             ]);
