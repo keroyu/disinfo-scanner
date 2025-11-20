@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Comment;
+use App\ValueObjects\TimeRange;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -62,13 +63,35 @@ class CommentPatternService
      * @param string $pattern
      * @param int $offset
      * @param int $limit
+     * @param string|null $timePointsIso Comma-separated ISO timestamps in GMT+8 (optional)
      * @return array
      */
-    public function getCommentsByPattern(string $videoId, string $pattern, int $offset = 0, int $limit = 100): array
-    {
+    public function getCommentsByPattern(
+        string $videoId,
+        string $pattern,
+        int $offset = 0,
+        int $limit = 100,
+        ?string $timePointsIso = null
+    ): array {
         $startTime = microtime(true);
 
         $query = Comment::where('video_id', $videoId);
+
+        // Apply time range filter if provided
+        $timeRanges = [];
+        if ($timePointsIso !== null && $timePointsIso !== '') {
+            try {
+                $timeRanges = TimeRange::createMultiple($timePointsIso);
+                $query->byTimeRanges($timeRanges);
+            } catch (\InvalidArgumentException $e) {
+                Log::warning('Invalid time points provided', [
+                    'video_id' => $videoId,
+                    'time_points_iso' => $timePointsIso,
+                    'error' => $e->getMessage()
+                ]);
+                // Continue without time filtering if invalid
+            }
+        }
 
         // Apply pattern filter
         switch ($pattern) {
@@ -138,6 +161,7 @@ class CommentPatternService
             'pattern' => $pattern,
             'offset' => $offset,
             'limit' => $limit,
+            'time_points_count' => count($timeRanges),
             'returned_count' => $comments->count(),
             'execution_time_ms' => $executionTime
         ]);

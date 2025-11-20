@@ -11,6 +11,7 @@ class CommentPatternUI {
         this.hasMore = true;
         this.observer = null;
         this.statistics = null;
+        this.timeFilterState = null; // Will be set externally
     }
 
     /**
@@ -116,7 +117,16 @@ class CommentPatternUI {
         this.showLoadingIndicator();
 
         try {
-            const url = `/api/videos/${this.videoId}/comments?pattern=${pattern}&offset=${offset}&limit=100`;
+            let url = `/api/videos/${this.videoId}/comments?pattern=${pattern}&offset=${offset}&limit=100`;
+
+            // Add time_points parameter if time filtering is active
+            if (this.timeFilterState && this.timeFilterState.hasSelection()) {
+                const timePointsParam = this.timeFilterState.getTimePointsParam();
+                if (timePointsParam) {
+                    url += `&time_points=${encodeURIComponent(timePointsParam)}`;
+                }
+            }
+
             const response = await fetch(url);
 
             if (!response.ok) {

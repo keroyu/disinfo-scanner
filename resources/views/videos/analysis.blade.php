@@ -141,6 +141,27 @@
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Commenter Pattern Summary</h2>
 
+        <!-- Time Filter Indicator -->
+        <div id="timeFilterIndicator" class="mb-4 hidden">
+            <div class="p-3 bg-blue-50 border border-blue-300 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-blue-800 font-semibold">📍 時間篩選:</span>
+                        <span id="timeFilterCount" class="text-blue-700">-</span>
+                    </div>
+                    <button
+                        id="clearTimeFilterBtn"
+                        class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                        清除時間篩選
+                    </button>
+                </div>
+                <div id="timeFilterRanges" class="mt-2 text-sm text-blue-700">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left Panel: Filter List -->
             <div class="lg:col-span-1">
@@ -177,6 +198,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
+<!-- Time Filter Script -->
+<script src="{{ asset('js/time-filter.js') }}"></script>
+
 <!-- Comment Pattern UI Script -->
 <script src="{{ asset('js/comment-pattern.js') }}"></script>
 
@@ -187,6 +211,7 @@ let chartInstance = null;
 let loadingTimeout = null;
 const videoId = '{{ $video->video_id }}';
 let commentPatternUI = null;
+let timeFilterState = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -198,8 +223,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // Initialize Comment Pattern UI
 function initializeCommentPattern() {
     commentPatternUI = new CommentPatternUI(videoId);
+
+    // Initialize time filter state
+    timeFilterState = new TimeFilterState();
+    commentPatternUI.timeFilterState = timeFilterState;
+
     commentPatternUI.init();
     window.commentPatternUI = commentPatternUI;
+    window.timeFilterState = timeFilterState;
 }
 
 // Range selector logic
@@ -208,6 +239,15 @@ function initializeRangeSelector() {
 
     rangeInputs.forEach(input => {
         input.addEventListener('change', (e) => {
+            // Clear time filter when switching ranges
+            if (timeFilterState && timeFilterState.hasSelection()) {
+                timeFilterState.clearAll();
+                updateTimeFilterIndicator();
+                // Reload comments
+                if (commentPatternUI) {
+                    commentPatternUI.switchPattern(commentPatternUI.currentPattern);
+                }
+            }
             updateChartWithRange(e.target.value);
         });
     });
@@ -303,6 +343,7 @@ function renderChart(filteredData) {
                 intersect: false,
                 mode: 'index'
             },
+            onClick: handleChartClick,
             scales: {
                 x: {
                     type: 'time',
@@ -351,6 +392,60 @@ function renderChart(filteredData) {
         chartInstance.update();
     } else {
         chartInstance = new Chart(ctx, chartConfig);
+    }
+
+    // Initialize time filter state with chart instance
+    if (timeFilterState) {
+        timeFilterState.init(chartInstance);
+    }
+}
+
+// Handle chart click for time filtering
+function handleChartClick(event, activeElements) {
+    if (!activeElements || activeElements.length === 0) return;
+    if (!timeFilterState || !commentPatternUI) return;
+
+    const dataIndex = activeElements[0].index;
+    const dataset = chartInstance.data.datasets[0];
+    const dataPoint = dataset.data[dataIndex];
+
+    // Get the timestamp and format it for the time filter
+    const timestamp = timeFilterState.formatTimestampForComparison(dataPoint.x);
+
+    // Toggle the time point
+    timeFilterState.toggleTimePoint(timestamp);
+
+    // Update chart highlighting
+    timeFilterState.updateChartHighlighting();
+
+    // Update the filter indicator
+    updateTimeFilterIndicator();
+
+    // Reload comments with new filter
+    commentPatternUI.currentOffset = 0;
+    commentPatternUI.hasMore = true;
+    const commentsContainer = document.getElementById('commentsList');
+    if (commentsContainer) {
+        commentsContainer.innerHTML = '';
+    }
+    commentPatternUI.loadComments(commentPatternUI.currentPattern, 0);
+}
+
+// Update time filter indicator UI
+function updateTimeFilterIndicator() {
+    const indicator = document.getElementById('timeFilterIndicator');
+    const countEl = document.getElementById('timeFilterCount');
+    const rangesEl = document.getElementById('timeFilterRanges');
+
+    if (!timeFilterState || !indicator || !countEl || !rangesEl) return;
+
+    if (timeFilterState.hasSelection()) {
+        indicator.classList.remove('hidden');
+        const count = timeFilterState.getCount();
+        countEl.textContent = `已選擇 ${count} 個時間段`;
+        rangesEl.textContent = timeFilterState.getDisplayString();
+    } else {
+        indicator.classList.add('hidden');
     }
 }
 
@@ -431,6 +526,29 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelButton').addEventListener('click', () => {
         window.location.href = '{{ route("videos.index") }}';
     });
+
+    // Clear time filter button handler
+    const clearTimeFilterBtn = document.getElementById('clearTimeFilterBtn');
+    if (clearTimeFilterBtn) {
+        clearTimeFilterBtn.addEventListener('click', () => {
+            if (timeFilterState) {
+                timeFilterState.clearAll();
+                timeFilterState.updateChartHighlighting();
+                updateTimeFilterIndicator();
+
+                // Reload comments
+                if (commentPatternUI) {
+                    commentPatternUI.currentOffset = 0;
+                    commentPatternUI.hasMore = true;
+                    const commentsContainer = document.getElementById('commentsList');
+                    if (commentsContainer) {
+                        commentsContainer.innerHTML = '';
+                    }
+                    commentPatternUI.loadComments(commentPatternUI.currentPattern, 0);
+                }
+            }
+        });
+    }
 });
 </script>
 @endsection

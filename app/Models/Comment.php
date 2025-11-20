@@ -134,4 +134,28 @@ class Comment extends Model
     {
         return $query->orderBy('published_at', strtoupper($direction));
     }
+
+    /**
+     * Filter comments by multiple time ranges (OR logic)
+     * Used for time-based filtering from Comments Density chart
+     *
+     * @param Builder $query
+     * @param array $timeRanges Array of TimeRange value objects
+     * @return Builder
+     */
+    public function scopeByTimeRanges(Builder $query, array $timeRanges): Builder
+    {
+        if (empty($timeRanges)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($timeRanges) {
+            foreach ($timeRanges as $timeRange) {
+                $q->orWhereBetween('published_at', [
+                    $timeRange->getFromTimeUtc(),
+                    $timeRange->getToTimeUtc()
+                ]);
+            }
+        });
+    }
 }
