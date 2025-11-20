@@ -90,6 +90,146 @@ class YouTubeApiService
     }
 
     /**
+     * Fetch comments outside the current range (for incremental updates)
+     * Returns comments where: published_at > latestTime OR published_at < earliestTime
+     * This allows both updating new comments AND backfilling old comments
+     *
+     * @param string $videoId The YouTube video ID
+     * @param string|null $latestTime Latest comment time in DB (T1)
+     * @param string|null $earliestTime Earliest comment time in DB (T2)
+     * @param int $maxResults Maximum number of comments to return (default 1000)
+     * @return array Flattened array of comments outside the range (newest first from API)
+     */
+    public function fetchCommentsOutsideRange(
+        string $videoId,
+        ?string $latestTime = null,
+        ?string $earliestTime = null,
+        int $maxResults = 1000
+    ): array {
+        $this->validateVideoId($videoId);
+
+        try {
+            $allComments = [];
+            $filteredComments = [];
+            $nextPageToken = null;
+            $pageCount = 0;
+            $maxPages = 100; // Safety limit: max 100 pages (10,000 comments)
+
+            // Convert times to Carbon for comparison
+            $t1 = $latestTime ? \Carbon\Carbon::parse($latestTime) : null;
+            $t2 = $earliestTime ? \Carbon\Carbon::parse($earliestTime) : null;
+
+            Log::info('Fetching comments outside range', [
+                'video_id' => $videoId,
+                'latest_time' => $t1?->toDateTimeString(),
+                'earliest_time' => $t2?->toDateTimeString(),
+                'max_results' => $maxResults,
+            ]);
+
+            // Fetch comments in pages, ordered by time (newest first from API)
+            do {
+                $pageCount++;
+                $params = [
+                    'videoId' => $videoId,
+                    'maxResults' => 100,
+                    'order' => 'time', // YouTube API returns newest first
+                    'textFormat' => 'plainText',
+                ];
+
+                if ($nextPageToken) {
+                    $params['pageToken'] = $nextPageToken;
+                }
+
+                $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
+
+                // Process each comment thread (including recursive replies)
+                foreach ($response->getItems() as $thread) {
+                    $topLevel = $thread->getSnippet()->getTopLevelComment();
+                    $topLevelData = $this->parseCommentData($topLevel);
+                    $commentTime = \Carbon\Carbon::parse($topLevelData['published_at']);
+
+                    // Check if comment is outside current range: > T1 OR < T2
+                    $isOutsideRange = (!$t1 || $commentTime->greaterThan($t1)) ||
+                                     (!$t2 || $commentTime->lessThan($t2));
+
+                    if ($isOutsideRange) {
+                        $filteredComments[] = $topLevelData;
+                    }
+
+                    $allComments[] = $topLevelData;
+
+                    // Process inline replies (up to 20 per thread)
+                    if ($thread->getSnippet()->getTotalReplyCount() > 0 && $thread->getReplies()) {
+                        foreach ($thread->getReplies()->getComments() as $reply) {
+                            $replyData = $this->parseCommentData($reply, $topLevel->getId());
+                            $replyTime = \Carbon\Carbon::parse($replyData['published_at']);
+
+                            $isOutsideRange = (!$t1 || $replyTime->greaterThan($t1)) ||
+                                             (!$t2 || $replyTime->lessThan($t2));
+
+                            if ($isOutsideRange) {
+                                $filteredComments[] = $replyData;
+                            }
+
+                            $allComments[] = $replyData;
+                        }
+                    }
+
+                    // Recursively fetch additional replies if more than 20
+                    if ($thread->getSnippet()->getTotalReplyCount() > 20) {
+                        $additionalReplies = $this->fetchRepliesRecursive(
+                            $videoId,
+                            $topLevel->getId()
+                        );
+
+                        foreach ($additionalReplies as $replyData) {
+                            $replyTime = \Carbon\Carbon::parse($replyData['published_at']);
+
+                            $isOutsideRange = (!$t1 || $replyTime->greaterThan($t1)) ||
+                                             (!$t2 || $replyTime->lessThan($t2));
+
+                            if ($isOutsideRange) {
+                                $filteredComments[] = $replyData;
+                            }
+
+                            $allComments[] = $replyData;
+                        }
+                    }
+                }
+
+                $nextPageToken = $response->getNextPageToken();
+
+                // Continue fetching until we run out of pages or hit the page limit
+            } while ($nextPageToken && $pageCount < $maxPages);
+
+            // Take only the first maxResults comments (newest first from API)
+            $totalFiltered = count($filteredComments);
+            $filteredComments = array_slice($filteredComments, 0, $maxResults);
+
+            Log::info('Comments fetched and filtered (outside range)', [
+                'video_id' => $videoId,
+                'pages_fetched' => $pageCount,
+                'total_fetched' => count($allComments),
+                'filtered_count' => $totalFiltered,
+                'will_import' => count($filteredComments),
+                'latest_time' => $t1?->toDateTimeString(),
+                'earliest_time' => $t2?->toDateTimeString(),
+                'order' => 'newest-first (from API)',
+            ]);
+
+            return $filteredComments;
+        } catch (\Exception $e) {
+            Log::error('YouTube API error in fetchCommentsOutsideRange', [
+                'video_id' => $videoId,
+                'latest_time' => $latestTime,
+                'earliest_time' => $earliestTime,
+                'error' => $e->getMessage(),
+            ]);
+            throw new YouTubeApiException('Failed to fetch comments outside range: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Fetch comments published after a specific timestamp (for incremental updates)
      * NOTE: YouTube API doesn't support publishedAfter parameter, so we fetch and filter client-side
      *
@@ -238,7 +378,9 @@ class YouTubeApiService
                 $params = [
                     'videoId' => $videoId,
                     'maxResults' => 100,
-                    'order' => $isNewVideo ? 'time' : 'relevance', // For new videos, fetch oldest first
+                    // For new videos: order=time returns NEWEST FIRST (最新→最舊)
+                    // Strategy: Import latest 1000 comments first, use incremental update for older ones later
+                    'order' => $isNewVideo ? 'time' : 'relevance',
                     'textFormat' => 'plainText',
                 ];
 
@@ -297,10 +439,14 @@ class YouTubeApiService
             } while ($nextPageToken && (!$isNewVideo || count($allComments) < $maxCommentsLimit));
 
             if ($isNewVideo) {
-                Log::info('New video: limited comment fetch', [
+                Log::info('New video: comment import completed', [
                     'video_id' => $videoId,
                     'comments_fetched' => count($allComments),
                     'limit' => $maxCommentsLimit,
+                    'order' => 'NEWEST FIRST (最新→最舊)',
+                    'strategy' => 'Import latest comments first, older comments can be added via incremental update',
+                    'first_comment_date' => $allComments[0]['published_at'] ?? null,
+                    'last_comment_date' => $allComments[count($allComments) - 1]['published_at'] ?? null,
                 ]);
             }
 

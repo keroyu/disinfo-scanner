@@ -28,21 +28,28 @@ class VideoIncrementalUpdateService
         // 2. Get current comment count in database
         $currentCommentCount = Comment::where('video_id', $videoId)->count();
 
-        // 3. Get last comment timestamp for this video
-        $lastCommentTime = Comment::where('video_id', $videoId)
-            ->max('published_at');
+        // 3. Get latest and earliest comment timestamps (T1 and T2)
+        $latestCommentTime = Comment::where('video_id', $videoId)->max('published_at');
+        $earliestCommentTime = Comment::where('video_id', $videoId)->min('published_at');
 
-        // 4. Fetch new comments from YouTube API (client-side filtering)
+        // 4. Fetch comments outside current range from YouTube API
+        // Strategy: Fetch comments published_at > T1 OR published_at < T2
         Log::info('Fetching preview comments', [
             'video_id' => $videoId,
-            'last_comment_time' => $lastCommentTime,
+            'latest_comment_time' => $latestCommentTime,
+            'earliest_comment_time' => $earliestCommentTime,
         ]);
 
-        $newComments = $this->youtubeApi->fetchCommentsAfter($videoId, $lastCommentTime, 500);
+        $newComments = $this->youtubeApi->fetchCommentsOutsideRange(
+            $videoId,
+            $latestCommentTime,
+            $earliestCommentTime,
+            1000
+        );
 
         // 5. Calculate import details
         $newCommentCount = count($newComments);
-        $willImportCount = min($newCommentCount, 500);
+        $willImportCount = min($newCommentCount, 1000);
 
         // 6. Return preview (first 5 + count)
         // Convert preview comments' published_at to Asia/Taipei timezone
@@ -59,12 +66,13 @@ class VideoIncrementalUpdateService
             'video_id' => $videoId,
             'video_title' => $video->title,
             'current_comment_count' => $currentCommentCount,
-            'last_comment_time' => $lastCommentTime ? \Carbon\Carbon::parse($lastCommentTime)->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s') : null,
+            'latest_comment_time' => $latestCommentTime ? \Carbon\Carbon::parse($latestCommentTime)->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s') : null,
+            'earliest_comment_time' => $earliestCommentTime ? \Carbon\Carbon::parse($earliestCommentTime)->setTimezone('Asia/Taipei')->format('Y-m-d H:i:s') : null,
             'new_comment_count' => $newCommentCount,
             'will_import_count' => $willImportCount,
             'preview_comments' => $previewComments,
-            'has_more' => $newCommentCount > 500,
-            'import_limit' => 500,
+            'has_more' => $newCommentCount > 1000,
+            'import_limit' => 1000,
         ];
     }
 
@@ -79,21 +87,28 @@ class VideoIncrementalUpdateService
         // 1. Get video details
         $video = Video::where('video_id', $videoId)->firstOrFail();
 
-        // 2. Get last comment timestamp for this video
-        $lastCommentTime = Comment::where('video_id', $videoId)
-            ->max('published_at');
+        // 2. Get latest and earliest comment timestamps (T1 and T2)
+        $latestCommentTime = Comment::where('video_id', $videoId)->max('published_at');
+        $earliestCommentTime = Comment::where('video_id', $videoId)->min('published_at');
 
-        // 3. Fetch new comments from YouTube API (client-side filtering)
+        // 3. Fetch comments outside current range from YouTube API
+        // Strategy: Fetch comments published_at > T1 OR published_at < T2
         Log::info('Starting incremental import', [
             'video_id' => $videoId,
-            'last_comment_time' => $lastCommentTime,
+            'latest_comment_time' => $latestCommentTime,
+            'earliest_comment_time' => $earliestCommentTime,
         ]);
 
-        $newComments = $this->youtubeApi->fetchCommentsAfter($videoId, $lastCommentTime, 500);
+        $newComments = $this->youtubeApi->fetchCommentsOutsideRange(
+            $videoId,
+            $latestCommentTime,
+            $earliestCommentTime,
+            1000
+        );
         $totalAvailable = count($newComments);
 
-        // 4. Import comments with 500-limit (idempotent)
-        $importedCount = $this->importService->importIncrementalComments($videoId, $newComments, 500);
+        // 4. Import comments with 1000-limit (idempotent)
+        $importedCount = $this->importService->importIncrementalComments($videoId, $newComments, 1000);
 
         // 5. Update video.comment_count by counting actual comments in database
         $actualCommentCount = Comment::where('video_id', $videoId)->count();
@@ -111,11 +126,11 @@ class VideoIncrementalUpdateService
         ]);
 
         // 7. Calculate remaining and build response message
-        $remaining = max(0, $totalAvailable - 500);
-        $hasMore = $totalAvailable > 500;
+        $remaining = max(0, $totalAvailable - 1000);
+        $hasMore = $totalAvailable > 1000;
 
         $message = $hasMore
-            ? "成功導入 {$importedCount} 則留言。還有 {$remaining} 則新留言可用,請再次點擊更新按鈕繼續導入。"
+            ? "成功導入 {$importedCount} 則留言。還有約 {$remaining} 則留言可用,請再次點擊更新按鈕繼續導入。"
             : "成功導入 {$importedCount} 則留言";
 
         return [

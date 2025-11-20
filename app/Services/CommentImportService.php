@@ -444,13 +444,13 @@ class CommentImportService
      * Uses firstOrCreate to prevent duplicate inserts during concurrent updates
      *
      * @API: Y
-     * @PURPOSE: Incremental import with 500-comment limit
+     * @PURPOSE: Incremental import with 1000-comment limit
      * @param string $videoId YouTube video ID
      * @param array $comments Comments data from YouTube API
-     * @param int $limit Maximum comments to import (default 500)
+     * @param int $limit Maximum comments to import (default 1000)
      * @return int Number of new comments actually imported
      */
-    public function importIncrementalComments(string $videoId, array $comments, int $limit = 500): int
+    public function importIncrementalComments(string $videoId, array $comments, int $limit = 1000): int
     {
         $imported = 0;
         $skipped = 0;

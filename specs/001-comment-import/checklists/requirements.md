@@ -142,7 +142,7 @@
 
 - [x] Visual styling fully documented
   - Tailwind CSS required for all styling
-  - Color mappings: 泛綠→green-500, 泛白→blue-500, 泛紅→red-500, 反共→orange-500, 中國立場→rose-600
+  - Color mappings: 泛綠→green-500, 泛白→blue-500, 泛藍→blue-600, 反共→orange-500, 中國立場→rose-600
   - Layout dimensions: modal 40-60% width, input field ≥400px, fixed header table
   - Animations: modal fade-in 0.2-0.3s, smooth transitions
 

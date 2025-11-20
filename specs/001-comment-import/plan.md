@@ -350,10 +350,10 @@ The following items require research before Phase 1 design. Each will be documen
 ```
 tags (political stance labels)
 ├── tag_id (PK)
-├── code (unique: pan-green, pan-white, pan-red, anti-communist, china-stance)
-├── name (泛綠, 泛白, 泛紅, 反共, 中國立場)
+├── code (unique: pan-green, pan-white, pan-blue, anti-communist, china-stance)
+├── name (泛綠, 泛白, 泛藍, 反共, 中國立場)
 ├── description
-├── color (Tailwind class: green-500, blue-500, red-500, orange-500, rose-600)
+├── color (Tailwind class: green-500, blue-500, blue-600, orange-500, rose-600)
 └── timestamps
 
 channels (YouTube channel)

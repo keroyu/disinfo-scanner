@@ -308,7 +308,7 @@ Out of scope for MVP:
   - Attributes: channel_id (PK), channel_name, video_count, comment_count, first_import_at, last_import_at, created_at, updated_at
 
 - **Tag**: Political stance classification label
-  - Attributes: tag_id (PK), code (pan-green, pan-white, pan-red, anti-communist, china-stance), name (泛綠, etc.), description, color (hex/Tailwind class), created_at
+  - Attributes: tag_id (PK), code (pan-green, pan-white, pan-blue, anti-communist, china-stance), name (泛綠, etc.), description, color (hex/Tailwind class), created_at
 
 - **ChannelTag**: Junction table for many-to-many channel-tag relationships
   - Attributes: channel_id (FK), tag_id (FK), created_at

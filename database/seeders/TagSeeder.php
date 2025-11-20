@@ -26,10 +26,10 @@ class TagSeeder extends Seeder
                 'color' => 'blue-500',
             ],
             [
-                'code' => 'pan-red',
-                'name' => '泛紅',
-                'description' => 'Pro-unification or Beijing-aligned',
-                'color' => 'red-500',
+                'code' => 'pan-blue',
+                'name' => '泛藍',
+                'description' => 'Pan-Blue camp (Kuomintang, related parties)',
+                'color' => 'blue-600',
             ],
             [
                 'code' => 'anti-communist',
