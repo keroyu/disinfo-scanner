@@ -67,7 +67,6 @@ class CommentPatternService
         $startTime = microtime(true);
 
         $query = Comment::where('video_id', $videoId)
-            ->with(['author'])
             ->orderBy('published_at', 'DESC');
 
         // Apply pattern filter
@@ -112,7 +111,7 @@ class CommentPatternService
                 return [
                     'comment_id' => $comment->comment_id,
                     'author_channel_id' => $comment->author_channel_id,
-                    'author_name' => $comment->author->name ?? 'Unknown',
+                    'author_name' => $comment->author_channel_id, // Simply use author_channel_id
                     'text' => $comment->text,
                     'like_count' => $comment->like_count,
                     'published_at' => $comment->published_at
