@@ -9,9 +9,34 @@
             <p class="text-gray-600 mt-2">Browse all YouTube videos with comment activity</p>
         </div>
         <div class="flex gap-3">
-            <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">
-                <i class="fab fa-youtube mr-2"></i>官方API導入
-            </button>
+            {{-- Official API Import Button - Requires Paid Member + API Key --}}
+            @guest
+                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        onclick="showPermissionModal('login', '官方API導入')">
+                    <i class="fab fa-youtube mr-2"></i>官方API導入
+                </button>
+            @else
+                @if(auth()->user()->roles->contains('name', 'paid_member') || auth()->user()->roles->contains('name', 'admin'))
+                    @if(auth()->user()->youtube_api_key)
+                        <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">
+                            <i class="fab fa-youtube mr-2"></i>官方API導入
+                        </button>
+                    @else
+                        <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                onclick="showPermissionModal('api_key', '官方API導入')">
+                            <i class="fab fa-youtube mr-2"></i>官方API導入
+                        </button>
+                    @endif
+                @else
+                    <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            onclick="showPermissionModal('upgrade', '官方API導入')">
+                        <i class="fab fa-youtube mr-2"></i>官方API導入
+                    </button>
+                @endif
+            @endguest
+
+            {{-- U-API Import Button - Available to all authenticated users --}}
             <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onclick="window.dispatchEvent(new CustomEvent('open-uapi-modal'))">
                 <i class="fas fa-upload mr-2"></i>U-API導入
             </button>
@@ -402,5 +427,27 @@
 <!-- Include Import Modals -->
 @include('components.import-comments-modal')
 @include('comments.uapi-import-modal')
+
+<!-- Include Permission Modals for different scenarios -->
+@guest
+    @include('components.permission-modal', ['type' => 'login', 'feature' => ''])
+@else
+    @if(auth()->user()->roles->contains('name', 'regular_member'))
+        @include('components.permission-modal', ['type' => 'upgrade', 'feature' => ''])
+    @endif
+    @if(!auth()->user()->youtube_api_key)
+        @include('components.permission-modal', ['type' => 'api_key', 'feature' => ''])
+    @endif
+@endguest
+
+<script>
+// Function to show permission modal based on type
+function showPermissionModal(type, feature) {
+    // Dispatch Alpine.js event to show the permission modal
+    window.dispatchEvent(new CustomEvent('permission-modal', {
+        detail: { type: type, feature: feature }
+    }));
+}
+</script>
 
 @endsection

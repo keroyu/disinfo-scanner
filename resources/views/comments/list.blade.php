@@ -10,24 +10,58 @@
 
     <!-- Search and Filter Section -->
     <form method="GET" action="{{ route('comments.index') }}" class="bg-white rounded-lg shadow-md p-6 mb-6 space-y-4">
+        @php
+            $canSearch = auth()->check() && (
+                auth()->user()->roles->contains('name', 'paid_member') ||
+                auth()->user()->roles->contains('name', 'verified_member') ||
+                auth()->user()->roles->contains('name', 'website_editor') ||
+                auth()->user()->roles->contains('name', 'admin')
+            );
+        @endphp
+
+        @if(!$canSearch)
+            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-blue-900">搜尋功能需要付費會員</h3>
+                        <p class="text-sm text-blue-700 mt-1">升級為付費會員即可使用留言搜尋與篩選功能。</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Search Fields Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Search Comments -->
             <div>
-                <label for="search" class="block text-sm font-medium text-gray-700">Search Comments</label>
+                <label for="search" class="block text-sm font-medium text-gray-700">
+                    Search Comments
+                    @if(!$canSearch)
+                        <span class="ml-2 text-xs text-gray-500">(需付費會員)</span>
+                    @endif
+                </label>
                 <input
                     type="text"
                     id="search"
                     name="search"
                     value="{{ request('search', '') }}"
                     placeholder="Search by video title, commenter, or content..."
-                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 {{ !$canSearch ? 'bg-gray-100 cursor-not-allowed' : '' }}"
+                    {{ !$canSearch ? 'disabled' : '' }}
                 >
             </div>
 
             <!-- Search Channel -->
             <div>
-                <label for="search_channel" class="block text-sm font-medium text-gray-700">Search Channel</label>
+                <label for="search_channel" class="block text-sm font-medium text-gray-700">
+                    Search Channel
+                    @if(!$canSearch)
+                        <span class="ml-2 text-xs text-gray-500">(需付費會員)</span>
+                    @endif
+                </label>
                 <div class="mt-1 flex gap-2">
                     <input
                         type="text"
@@ -35,13 +69,15 @@
                         name="search_channel"
                         value="{{ request('search_channel', '') }}"
                         placeholder="Search by channel name..."
-                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 {{ !$canSearch ? 'bg-gray-100 cursor-not-allowed' : '' }}"
+                        {{ !$canSearch ? 'disabled' : '' }}
                     >
                     <select
                         id="channel_id"
                         name="channel_id"
                         onchange="selectChannel(this)"
-                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 {{ !$canSearch ? 'bg-gray-100 cursor-not-allowed' : '' }}"
+                        {{ !$canSearch ? 'disabled' : '' }}
                     >
                         <option value="">-- Select Channel --</option>
                         @foreach($channels as $channel)
@@ -105,12 +141,22 @@
 
         <!-- Action Buttons -->
         <div class="flex gap-3">
-            <button
-                type="submit"
-                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-                Apply Filters
-            </button>
+            @if($canSearch)
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Apply Filters
+                </button>
+            @else
+                <button
+                    type="button"
+                    onclick="showUpgradeForSearchModal()"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Apply Filters
+                </button>
+            @endif
             <a
                 href="{{ route('comments.index') }}"
                 class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
@@ -217,17 +263,23 @@
                                         @endphp
                                         <div class="flex items-center gap-1.5">
                                             <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $iconColor }};"></span>
-                                            <a
-                                                href="{{ route('comments.index', [
-                                                    'channel_id' => $channel->channel_id,
-                                                    'from_date' => $channelFromDate,
-                                                    'to_date' => $channelToDate
-                                                ]) }}"
-                                                class="text-blue-600 hover:text-blue-800 truncate text-sm"
-                                                title="View all comments from {{ $channel->channel_name }} (past 2 years)"
-                                            >
-                                                {{ Str::limit($channel->channel_name, 13) }}
-                                            </a>
+                                            @if($canSearch)
+                                                <a
+                                                    href="{{ route('comments.index', [
+                                                        'channel_id' => $channel->channel_id,
+                                                        'from_date' => $channelFromDate,
+                                                        'to_date' => $channelToDate
+                                                    ]) }}"
+                                                    class="text-blue-600 hover:text-blue-800 truncate text-sm"
+                                                    title="View all comments from {{ $channel->channel_name }} (past 2 years)"
+                                                >
+                                                    {{ Str::limit($channel->channel_name, 13) }}
+                                                </a>
+                                            @else
+                                                <span class="text-gray-700 truncate text-sm" title="{{ $channel->channel_name }}">
+                                                    {{ Str::limit($channel->channel_name, 13) }}
+                                                </span>
+                                            @endif
                                             <a
                                                 href="https://www.youtube.com/channel/{{ $channel->channel_id }}"
                                                 target="_blank"
@@ -251,17 +303,23 @@
                                         $toDate = now()->format('Y-m-d');
                                     @endphp
                                     <div class="flex items-center gap-1">
-                                        <a
-                                            href="{{ route('comments.index', [
-                                                'video_id' => $comment->video_id,
-                                                'from_date' => $fromDate,
-                                                'to_date' => $toDate
-                                            ]) }}"
-                                            class="text-blue-600 hover:text-blue-800 truncate text-sm"
-                                            title="View all comments for {{ $videoTitle }} (past 2 years)"
-                                        >
-                                            {{ Str::limit($videoTitle, 20) }}
-                                        </a>
+                                        @if($canSearch)
+                                            <a
+                                                href="{{ route('comments.index', [
+                                                    'video_id' => $comment->video_id,
+                                                    'from_date' => $fromDate,
+                                                    'to_date' => $toDate
+                                                ]) }}"
+                                                class="text-blue-600 hover:text-blue-800 truncate text-sm"
+                                                title="View all comments for {{ $videoTitle }} (past 2 years)"
+                                            >
+                                                {{ Str::limit($videoTitle, 20) }}
+                                            </a>
+                                        @else
+                                            <span class="text-gray-700 truncate text-sm" title="{{ $videoTitle }}">
+                                                {{ Str::limit($videoTitle, 20) }}
+                                            </span>
+                                        @endif
                                         <a
                                             href="https://www.youtube.com/watch?v={{ $comment->video_id }}"
                                             target="_blank"
@@ -285,30 +343,41 @@
                                         $isRepeat = $commentCount >= 3;
                                     @endphp
                                     <div class="flex items-center gap-1">
-                                        <a
-                                            href="{{ route('comments.index', [
-                                                'search' => $commenterName,
-                                                'from_date' => $fromDate,
-                                                'to_date' => $toDate
-                                            ]) }}"
-                                            class="text-blue-600 hover:text-blue-800 text-sm"
-                                            title="View all comments by {{ $commenterName }} (past 2 years)"
-                                        >
-                                            {{ Str::limit($commenterName, 10) }}
-                                        </a>
-                                        @if($isRepeat)
+                                        @if($canSearch)
                                             <a
                                                 href="{{ route('comments.index', [
                                                     'search' => $commenterName,
-                                                    'video_id' => $comment->video_id,
                                                     'from_date' => $fromDate,
                                                     'to_date' => $toDate
                                                 ]) }}"
-                                                class="badge-orange"
-                                                title="View all comments by {{ $commenterName }} in this video (past 2 years)"
+                                                class="text-blue-600 hover:text-blue-800 text-sm"
+                                                title="View all comments by {{ $commenterName }} (past 2 years)"
                                             >
-                                                重複
+                                                {{ Str::limit($commenterName, 10) }}
                                             </a>
+                                            @if($isRepeat)
+                                                <a
+                                                    href="{{ route('comments.index', [
+                                                        'search' => $commenterName,
+                                                        'video_id' => $comment->video_id,
+                                                        'from_date' => $fromDate,
+                                                        'to_date' => $toDate
+                                                    ]) }}"
+                                                    class="badge-orange"
+                                                    title="View all comments by {{ $commenterName }} in this video (past 2 years)"
+                                                >
+                                                    重複
+                                                </a>
+                                            @endif
+                                        @else
+                                            <span class="text-gray-700 text-sm" title="{{ $commenterName }}">
+                                                {{ Str::limit($commenterName, 10) }}
+                                            </span>
+                                            @if($isRepeat)
+                                                <span class="px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-600" title="This user has 3+ comments on this video">
+                                                    重複
+                                                </span>
+                                            @endif
                                         @endif
                                         <a
                                             href="https://www.youtube.com/channel/{{ $comment->author_channel_id }}"
@@ -678,5 +747,15 @@ document.addEventListener('keydown', function(event) {
     height: 1.25rem;
 }
 </style>
+
+{{-- Permission Modal for Regular Members trying to use search --}}
+@if(auth()->check() && auth()->user()->roles->contains('name', 'regular_member'))
+    @include('components.permission-modal', ['type' => 'upgrade', 'feature' => '搜尋與篩選功能'])
+    <script>
+    function showUpgradeForSearchModal() {
+        window.dispatchEvent(new CustomEvent('permission-modal'));
+    }
+    </script>
+@endif
 
 @endsection

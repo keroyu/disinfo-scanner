@@ -84,7 +84,7 @@ class User extends Authenticatable
      */
     public function getMustChangePasswordAttribute(): bool
     {
-        return $this->has_default_password;
+        return (bool) $this->has_default_password;
     }
 
     /**

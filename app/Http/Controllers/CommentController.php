@@ -23,20 +23,31 @@ class CommentController extends Controller
     {
         $query = Comment::with(['video.channel', 'author']);
 
+        // T132: Check if user has permission to use search filters
+        // Only Paid Members, Website Editors, and Admins can use search functionality
+        $canSearch = auth()->check() && (
+            auth()->user()->roles->contains('name', 'paid_member') ||
+            auth()->user()->roles->contains('name', 'website_editor') ||
+            auth()->user()->roles->contains('name', 'admin')
+        );
+
         // Apply keyword search filter (video title, commenter, content)
-        if ($request->filled('search')) {
+        // Only apply if user has search permission
+        if ($canSearch && $request->filled('search')) {
             $keyword = $request->input('search');
             $query->filterByKeyword($keyword);
         }
 
         // Apply channel search filter
-        if ($request->filled('search_channel')) {
+        // Only apply if user has search permission
+        if ($canSearch && $request->filled('search_channel')) {
             $channelKeyword = $request->input('search_channel');
             $query->filterByChannel($channelKeyword);
         }
 
         // Apply video filter
-        if ($request->filled('video_id')) {
+        // Only apply if user has search permission
+        if ($canSearch && $request->filled('video_id')) {
             $videoId = $request->input('video_id');
             $query->filterByVideo($videoId);
         }

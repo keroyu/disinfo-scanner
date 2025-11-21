@@ -21,9 +21,9 @@ class LoginController extends Controller
      * Handle user login.
      *
      * @param Request $request
-     * @return JsonResponse
+     * @return JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    public function login(Request $request): JsonResponse
+    public function login(Request $request)
     {
         // Validate request
         $validator = Validator::make($request->all(), [
@@ -37,6 +37,13 @@ class LoginController extends Controller
         ]);
 
         if ($validator->fails()) {
+            // For web requests, redirect back with errors
+            if (!$request->expectsJson()) {
+                return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput($request->except('password'));
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => '登入資訊不完整',
@@ -52,7 +59,14 @@ class LoginController extends Controller
         $result = $this->authService->login($email, $password, $remember);
 
         if (!$result['success']) {
-            // Determine appropriate status code
+            // For web requests, redirect back with error message
+            if (!$request->expectsJson()) {
+                return redirect()->back()
+                    ->withErrors(['email' => $result['message']])
+                    ->withInput($request->except('password'));
+            }
+
+            // Determine appropriate status code for API
             if (str_contains($result['message'], '驗證')) {
                 $statusCode = 403; // Email not verified
             } else {
@@ -68,6 +82,20 @@ class LoginController extends Controller
         // Successful login
         $user = $result['user'];
 
+        // For web requests, check if user needs to change password
+        if (!$request->expectsJson()) {
+            // Check if user has default password and needs to change it
+            if ($user->has_default_password) {
+                return redirect()->route('password.mandatory')
+                    ->with('status', '首次登入需要更改預設密碼');
+            }
+
+            // Redirect to home page after successful login
+            return redirect()->route('import.index')
+                ->with('status', '登入成功！歡迎回來');
+        }
+
+        // For API requests, return JSON
         return response()->json([
             'success' => true,
             'message' => '登入成功',
