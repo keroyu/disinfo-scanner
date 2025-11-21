@@ -224,6 +224,13 @@ const videoId = '{{ $video->video_id }}';
 let commentPatternUI = null;
 let timeFilterState = null;
 
+// User permissions for search functionality
+const canSearch = @json(auth()->check() && (
+    auth()->user()->roles->contains('name', 'paid_member') ||
+    auth()->user()->roles->contains('name', 'website_editor') ||
+    auth()->user()->roles->contains('name', 'administrator')
+));
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     initializeRangeSelector();

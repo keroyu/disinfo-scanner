@@ -201,18 +201,28 @@ class CommentPatternUI {
             // Build URL for Comments List search
             const searchUrl = `/comments?search=${encodeURIComponent(comment.author_channel_id)}&from_date=${fromDateStr}&to_date=${toDateStr}`;
 
+            // Check if user has search permission (canSearch is defined in the view)
+            const hasSearchPermission = typeof canSearch !== 'undefined' && canSearch;
+
+            // Render commenter name as link or plain text based on permissions
+            const commenterNameHtml = hasSearchPermission
+                ? `<a
+                    href="${searchUrl}"
+                    class="font-semibold text-blue-600 hover:text-blue-800 text-sm"
+                    title="View all comments by ${this.escapeHtml(comment.author_channel_id)} (past 2 years)"
+                >
+                    ${this.escapeHtml(comment.author_name)}
+                </a>`
+                : `<span class="font-semibold text-gray-700 text-sm">
+                    ${this.escapeHtml(comment.author_name)}
+                </span>`;
+
             const commentHtml = `
                 <div class="comment-item p-4 border-b border-gray-200 hover:bg-gray-50">
                     <div class="flex items-start gap-3">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
-                                <a
-                                    href="${searchUrl}"
-                                    class="font-semibold text-blue-600 hover:text-blue-800 text-sm"
-                                    title="View all comments by ${this.escapeHtml(comment.author_channel_id)} (past 2 years)"
-                                >
-                                    ${this.escapeHtml(comment.author_name)}
-                                </a>
+                                ${commenterNameHtml}
                                 <a
                                     href="https://www.youtube.com/channel/${this.escapeHtml(comment.author_channel_id)}"
                                     target="_blank"
