@@ -224,15 +224,17 @@ Document existing entities and relationships:
 **Endpoint**: `GET /videos`
 
 **Query Parameters**:
-- `search` (optional, string): Case-insensitive search in video title and channel name
-- `sort` (optional, enum: `published_at|comment_count|last_comment_time`): Sort column, default: `published_at`
+- `search` (optional, string): Case-insensitive search in video title only
+- `search_channel` (optional, string): Case-insensitive search in channel name
+- `channel_id` (optional, string): Exact channel ID for filtering by specific channel
+- `sort` (optional, enum: `published_at|actual_comment_count|last_comment_time`): Sort column, default: `published_at`
 - `direction` (optional, enum: `asc|desc`): Sort direction, default: `desc`
 - `page` (optional, integer): Page number, default: 1
 
 **Response**: HTML page (Blade view) with:
 - Paginated table of videos (500 per page)
-- Each row contains: Channel Name (link), Video Title (link), Comment Count, Last Comment Time (link)
-- Search form with keyword input
+- Two separate search fields: "Search Videos" (video title) and "Search Channel" (with text input and dropdown)
+- Each row contains: Channel Name (link to filtered Videos List), Video Title (link to Comments List), Comment Count, Last Comment Time (link to Comments List)
 - Sort indicators on column headers
 
 **Error States**:
@@ -243,9 +245,13 @@ Document existing entities and relationships:
 
 User-facing documentation:
 1. Access Videos List from navigation menu
-2. How to search for videos
-3. How to sort by clicking column headers
-4. How clicking on channel/title/time navigates to Comments List
+2. How to use two separate search fields (video title and channel)
+3. How to use channel dropdown selector
+4. How to sort by clicking column headers
+5. Navigation behaviors:
+   - Channel Name click → Filters Videos List by channel
+   - Video Title click → Opens Comments List with video filter
+   - Last Comment Time click → Opens Comments List with 90-day date range
 
 ---
 

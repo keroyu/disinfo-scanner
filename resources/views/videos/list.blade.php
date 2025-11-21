@@ -116,10 +116,10 @@
                             <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                                 Video Title
                             </th>
-                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 w-[180px]">
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 w-[100px]">
                                 Actions
                             </th>
-                            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 w-[120px]">
+                            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700 w-[180px]">
                                 <button
                                     type="button"
                                     onclick="handleSort('actual_comment_count')"
@@ -182,7 +182,7 @@
                                         <div class="flex items-center gap-1.5">
                                             <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $iconColor }};"></span>
                                             <a
-                                                href="{{ route('comments.index', ['search_channel' => $channel->channel_name]) }}"
+                                                href="{{ route('videos.index', ['search_channel' => $channel->channel_name]) }}"
                                                 class="text-blue-600 hover:text-blue-800 truncate text-sm"
                                                 title="{{ $channel->channel_name }}"
                                             >
@@ -238,9 +238,21 @@
                                     </div>
                                 </td>
 
-                                <!-- Actions Cell (Update and Analysis Buttons) -->
+                                <!-- Actions Cell (Analysis Button only) -->
                                 <td class="px-4 py-3 text-center">
-                                    <div class="flex gap-2 justify-center">
+                                    <a
+                                        href="{{ $video->analysisUrl() }}"
+                                        class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors inline-block"
+                                        title="查看留言密度分析"
+                                    >
+                                        分析
+                                    </a>
+                                </td>
+
+                                <!-- Comment Count Cell with Update Button -->
+                                <td class="px-4 py-3 text-right text-sm text-gray-700">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <span>{{ $video->actual_comment_count ?? 0 }}</span>
                                         <button
                                             type="button"
                                             onclick="openUpdateModal('{{ $video->video_id }}', '{{ addslashes($fullTitle) }}')"
@@ -249,19 +261,7 @@
                                         >
                                             更新
                                         </button>
-                                        <a
-                                            href="{{ $video->analysisUrl() }}"
-                                            class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors inline-block"
-                                            title="查看留言密度分析"
-                                        >
-                                            分析
-                                        </a>
                                     </div>
-                                </td>
-
-                                <!-- Comment Count Cell -->
-                                <td class="px-4 py-3 text-right text-sm text-gray-700">
-                                    {{ $video->actual_comment_count ?? 0 }}
                                 </td>
 
                                 <!-- Last Comment Time Cell -->

@@ -56,25 +56,33 @@ When you first load the page:
 
 ## Searching for Videos
 
+### Two Separate Search Fields
+
+The search panel provides two independent search fields:
+
+#### 1. Search Videos Field
+- **Purpose**: Search by video title only
+- **Location**: Left side of search panel
+- **Example**: Enter "climate change" to find videos with those words in the title
+
+#### 2. Search Channel Field
+- **Purpose**: Filter videos by channel
+- **Location**: Right side of search panel
+- **Two ways to use**:
+  - **Text Input**: Type channel name (e.g., "CNN")
+  - **Dropdown Selector**: Select from list of all channels
+  - **Auto-sync**: Selecting from dropdown auto-fills the text input
+
 ### How to Search
 
-1. Locate the **Search** field at the top of the page
-2. Enter keywords (e.g., "climate change", "news")
-3. Click **"Apply Filters"**
-
-### What Gets Searched
-
-Your keyword will match:
-- **Video titles** (case-insensitive)
-- **Channel names** (case-insensitive)
-
-**Example**: Searching for "CNN" will find:
-- Videos published by CNN channel
-- Videos with "CNN" in the title (from any channel)
+1. **By Video Title**: Enter keywords in the "Search Videos" field
+2. **By Channel**: Either type in "Search Channel" field OR select from the dropdown
+3. **Combine Both**: Search for specific video titles within a specific channel
+4. Click **"Apply Filters"** to see results
 
 ### Clearing Search Filters
 
-Click the **"Clear Filters"** button to reset and view all videos again.
+Click the **"Clear Filters"** button to reset all filters and view all videos again.
 
 ---
 
@@ -106,13 +114,14 @@ Each video row provides **3 clickable links** to view related comments:
 
 ### 1. Click on **Channel Name**
 
-**What it does**: Opens the Comments List filtered to show all comments from that channel
+**What it does**: Stays on Videos List and filters to show only videos from that channel
 
-**Use case**: "Show me all comments from CNN videos"
+**Use case**: "Show me all videos from this channel"
 
 **Example**:
 - You click on "CNN" in the Channel Name column
-- You're taken to Comments List with channel filter pre-filled: `?search_channel=CNN`
+- The Videos List reloads with channel filter pre-filled: `?search_channel=CNN`
+- You see only videos published by CNN
 
 ---
 
@@ -195,9 +204,11 @@ When you navigate to a different page:
 
 **Steps**:
 1. Go to Videos List
-2. Type channel name in **Search** field (e.g., "BBC")
-3. Click **"Apply Filters"**
-4. Click on any **Channel Name** link to view comments for that channel
+2. **Option A**: Type channel name in **"Search Channel"** field (e.g., "BBC")
+3. **Option B**: Select channel from the dropdown
+4. Click **"Apply Filters"**
+5. View all videos from that channel
+6. **Alternative**: Click on any **Channel Name** link in the table to instantly filter to that channel
 
 ---
 

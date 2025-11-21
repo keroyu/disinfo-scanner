@@ -24,14 +24,16 @@
 
 ### URL Pattern
 ```
-GET /videos?search={keyword}&sort={column}&direction={asc|desc}&page={number}
+GET /videos?search={video_title}&search_channel={channel_name}&channel_id={id}&sort={column}&direction={asc|desc}&page={number}
 ```
 
 ### Query Parameters
 
 | Parameter | Type | Required | Default | Valid Values | Description |
 |-----------|------|----------|---------|--------------|-------------|
-| `search` | string | No | - | Any string (max 255 chars) | Case-insensitive keyword search in video title and channel name |
+| `search` | string | No | - | Any string (max 255 chars) | Case-insensitive search in video title only |
+| `search_channel` | string | No | - | Any string (max 255 chars) | Case-insensitive search in channel name |
+| `channel_id` | string | No | - | Valid channel ID | Exact channel ID for filtering by specific channel |
 | `sort` | string | No | `published_at` | `published_at`, `actual_comment_count`, `last_comment_time` | Column to sort by |
 | `direction` | string | No | `desc` | `asc`, `desc` | Sort direction (ascending or descending) |
 | `page` | integer | No | `1` | Positive integer | Page number for pagination |
@@ -43,9 +45,19 @@ GET /videos?search={keyword}&sort={column}&direction={asc|desc}&page={number}
 GET /videos
 ```
 
-**Search by keyword**:
+**Search by video title**:
 ```http
 GET /videos?search=climate
+```
+
+**Search by channel name**:
+```http
+GET /videos?search_channel=CNN
+```
+
+**Filter by exact channel ID**:
+```http
+GET /videos?channel_id=UC_x5XG1OV2P6uZZ5FSM9Ttw
 ```
 
 **Sort by comment count (highest first)**:
@@ -55,7 +67,7 @@ GET /videos?sort=actual_comment_count&direction=desc
 
 **Combined filters with pagination**:
 ```http
-GET /videos?search=news&sort=last_comment_time&direction=desc&page=2
+GET /videos?search=climate&search_channel=BBC&sort=last_comment_time&direction=desc&page=2
 ```
 
 ---
@@ -74,7 +86,11 @@ GET /videos?search=news&sort=last_comment_time&direction=desc&page=2
 - Import button (if applicable, following Comments List pattern)
 
 #### Search & Filter Section
-- Search input field (keyword)
+- Two separate search fields:
+  - "Search Videos" input field (video title search)
+  - "Search Channel" field with:
+    - Text input for channel name
+    - Dropdown selector showing all channels
 - "Apply Filters" button
 - "Clear Filters" button (redirects to `/videos` without parameters)
 
@@ -130,17 +146,19 @@ Flash message: "Invalid sort parameter"
 
 ### Channel Name Click
 
-**Action**: Redirect to Comments List filtered by channel
+**Action**: Stay on Videos List and filter by channel
 
 **URL Pattern**:
 ```
-/comments?search_channel={channel_name}
+/videos?search_channel={channel_name}
 ```
 
 **Example**:
 ```
-https://example.com/comments?search_channel=CNN
+https://example.com/videos?search_channel=CNN
 ```
+
+**Result**: Videos List reloads showing only videos from that channel
 
 ### Video Title Click
 
@@ -224,6 +242,8 @@ Each video item in the response contains:
 ```php
 $request->validate([
     'search' => 'nullable|string|max:255',
+    'search_channel' => 'nullable|string|max:255',
+    'channel_id' => 'nullable|string|max:255',
     'sort' => 'nullable|in:published_at,actual_comment_count,last_comment_time',
     'direction' => 'nullable|in:asc,desc',
     'page' => 'nullable|integer|min:1',
@@ -320,7 +340,7 @@ Content-Type: text/html; charset=utf-8
 
 [HTML content with videos sorted by published_at DESC, page 1]
 
-# Request 2: Search for "climate"
+# Request 2: Search for "climate" in video titles
 GET /videos?search=climate HTTP/1.1
 Host: example.com
 
@@ -328,10 +348,20 @@ Host: example.com
 HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
 
-[HTML content with filtered videos containing "climate" in title or channel name]
+[HTML content with filtered videos containing "climate" in title]
 
-# Request 3: Click on "Comment Count" header to sort
-GET /videos?search=climate&sort=actual_comment_count&direction=desc HTTP/1.1
+# Request 3: Click on channel name "BBC" to filter by channel
+GET /videos?search_channel=BBC HTTP/1.1
+Host: example.com
+
+# Response 3
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+
+[HTML content showing only videos from BBC channel]
+
+# Request 4: Sort BBC videos by comment count
+GET /videos?search_channel=BBC&sort=actual_comment_count&direction=desc HTTP/1.1
 Host: example.com
 
 # Response 3

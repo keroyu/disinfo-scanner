@@ -45,15 +45,15 @@ As a content analyst, I need to see a comprehensive list of all videos that have
 
 ### User Story 2 - Navigate from Video to Related Comments (Priority: P1)
 
-As a content analyst, I need to click on video information (channel name, video title, or last comment time) to view related comments in the Comments List, so I can quickly drill down from video-level to comment-level analysis.
+As a content analyst, I need to click on video information (channel name, video title, or last comment time) to navigate to filtered views, so I can quickly drill down from video-level to comment-level analysis or filter videos by channel.
 
-**Why this priority**: This navigation is essential for the user workflow - it connects the Videos List to the existing Comments List, enabling seamless analysis transitions.
+**Why this priority**: This navigation is essential for the user workflow - it connects the Videos List to itself (for channel filtering) and to the Comments List, enabling seamless analysis transitions.
 
-**Independent Test**: Can be tested by clicking each clickable element (channel name, video title, last comment time) and verifying the correct Comments List search results are displayed with appropriate filters applied.
+**Independent Test**: Can be tested by clicking each clickable element (channel name, video title, last comment time) and verifying the correct filtered results are displayed with appropriate filters applied.
 
 **Acceptance Scenarios**:
 
-1. **Given** I am viewing the Videos List, **When** I click on a channel name, **Then** I am redirected to the Comments List page with the channel name pre-filled in the search filter
+1. **Given** I am viewing the Videos List, **When** I click on a channel name, **Then** I am redirected to the Videos List page with the channel name pre-filled in the channel search filter, showing only videos from that channel
 2. **Given** I am viewing the Videos List, **When** I click on a video title, **Then** I am redirected to the Comments List page with:
    - The video title pre-filled in the keyword search filter
    - Date range set from the video's publication date to today
@@ -118,20 +118,21 @@ As a user, I need to access the Videos List page from the main navigation, posit
 - **FR-002**: System MUST display the following columns for each video: Channel Name, Video Title, Comment Count, Last Comment Time
 - **FR-003**: Comment Count MUST accurately reflect the total number of comments associated with each video
 - **FR-004**: Last Comment Time MUST display the timestamp of the most recent comment for that video in format "YYYY-MM-DD HH:MM"
-- **FR-005**: Channel Name MUST be clickable and redirect to Comments List with the channel name as search filter
+- **FR-005**: Channel Name MUST be clickable and redirect to Videos List with the channel name as search_channel filter, displaying only videos from that channel
 - **FR-006**: Video Title MUST be clickable and redirect to Comments List with the video title as keyword search filter AND date range set from the video's publication date to today
 - **FR-007**: Last Comment Time MUST be clickable and redirect to Comments List with video title as keyword search AND date range set from 90 days before the clicked date to the clicked date, filtering only comments for that specific video
-- **FR-008**: System MUST provide a search interface matching the Comments List styling with keyword search field
-- **FR-009**: Search functionality MUST filter videos by channel name and video title using case-insensitive matching
-- **FR-010**: System MUST provide "Apply Filters" and "Clear Filters" buttons matching Comments List functionality
-- **FR-011**: System MUST display a navigation link to "Videos List" positioned to the right of "Channels List" link
-- **FR-012**: System MUST paginate results at 500 videos per page, matching Comments List pagination behavior
-- **FR-013**: System MUST display an empty state message when no videos match the current filters
-- **FR-014**: System MUST handle missing channel information by displaying "Unknown Channel"
-- **FR-015**: Page styling MUST match the Comments List design (same card styles, table layout, colors, spacing)
-- **FR-016**: System MUST sort videos by video publication date (published_at) in descending order (newest first) by default when the page loads without search filters
-- **FR-017**: System MUST allow users to sort videos by clicking on column headers (Comment Count, Last Comment Time) with toggle between ascending and descending order
-- **FR-018**: System MUST display visual indicators (e.g., up/down arrows) on sortable column headers to show current sort column and direction
+- **FR-008**: System MUST provide a search interface with two separate search fields: "Search Videos" for video title search and "Search Channel" for channel filtering
+- **FR-009**: System MUST provide a channel dropdown selector that lists all channels and auto-populates the channel search text field when selected
+- **FR-010**: Search functionality MUST filter videos by video title (search parameter) and channel name (search_channel parameter) using case-insensitive matching
+- **FR-011**: System MUST provide "Apply Filters" and "Clear Filters" buttons matching Comments List functionality
+- **FR-012**: System MUST display a navigation link to "Videos List" positioned to the right of "Channels List" link
+- **FR-013**: System MUST paginate results at 500 videos per page, matching Comments List pagination behavior
+- **FR-014**: System MUST display an empty state message when no videos match the current filters
+- **FR-015**: System MUST handle missing channel information by displaying "Unknown Channel"
+- **FR-016**: Page styling MUST match the Comments List design (same card styles, table layout, colors, spacing)
+- **FR-017**: System MUST sort videos by video publication date (published_at) in descending order (newest first) by default when the page loads without search filters
+- **FR-018**: System MUST allow users to sort videos by clicking on column headers (Comment Count, Last Comment Time) with toggle between ascending and descending order
+- **FR-019**: System MUST display visual indicators (e.g., up/down arrows) on sortable column headers to show current sort column and direction
 
 ### Key Entities *(include if feature involves data)*
 
