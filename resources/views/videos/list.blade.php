@@ -16,7 +16,7 @@
                     <i class="fab fa-youtube mr-2"></i>官方API導入
                 </button>
             @else
-                @if(auth()->user()->roles->contains('name', 'paid_member') || auth()->user()->roles->contains('name', 'admin'))
+                @if(auth()->user()->roles->contains('name', 'paid_member') || auth()->user()->roles->contains('name', 'administrator'))
                     @if(auth()->user()->youtube_api_key)
                         <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                                 onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">

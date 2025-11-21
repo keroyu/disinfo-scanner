@@ -13,9 +13,8 @@
         @php
             $canSearch = auth()->check() && (
                 auth()->user()->roles->contains('name', 'paid_member') ||
-                auth()->user()->roles->contains('name', 'verified_member') ||
                 auth()->user()->roles->contains('name', 'website_editor') ||
-                auth()->user()->roles->contains('name', 'admin')
+                auth()->user()->roles->contains('name', 'administrator')
             );
         @endphp
 

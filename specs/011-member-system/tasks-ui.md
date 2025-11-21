@@ -108,14 +108,14 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### Modal Components
 
-- [ ] T129 [P] [US4] Create permission-denied modal component in resources/views/components/permission-modal.blade.php
+- [X] T129 [P] [US4] Create permission-denied modal component in resources/views/components/permission-modal.blade.php
 - [ ] T130 [P] [US4] Create upgrade button component in resources/views/components/upgrade-button.blade.php
 
 ### Modal Integration
 
-- [ ] T131 [US4] Integrate permission modal with Alpine.js for interactivity
-- [ ] T132 [US4] Add modal triggers to restricted buttons/links (Comments List, Official API Import, etc.)
-- [ ] T133 [US4] Add Traditional Chinese modal messages ("請登入會員", "需升級為付費會員")
+- [X] T131 [US4] Integrate permission modal with Alpine.js for interactivity
+- [X] T132 [US4] Add modal triggers to restricted buttons/links (Comments List, Official API Import, etc.)
+- [X] T133 [US4] Add Traditional Chinese modal messages ("請登入會員", "需升級為付費會員")
 
 ### RBAC UI Elements
 
@@ -125,9 +125,9 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### Feature Tests for US4
 
-- [ ] T137 [P] [US4] Create role-based access feature test in tests/Feature/RoleBasedAccessTest.php
-- [ ] T138 [US4] Test visitor sees "請登入會員" modal when accessing restricted features
-- [ ] T139 [US4] Test Regular Member sees "需升級為付費會員" modal for paid features
+- [X] T137 [P] [US4] Create role-based access feature test in tests/Feature/RoleBasedAccessTest.php
+- [X] T138 [US4] Test visitor sees "請登入會員" modal when accessing restricted features
+- [X] T139 [US4] Test Regular Member sees "需升級為付費會員" modal for paid features
 - [ ] T140 [US4] Test quota counter displays correctly for Paid Members
 
 **Checkpoint**: US4 RBAC UI complete - permission modals work correctly

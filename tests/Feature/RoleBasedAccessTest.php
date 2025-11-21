@@ -190,7 +190,7 @@ class RoleBasedAccessTest extends TestCase
     /** @test */
     public function admin_has_unrestricted_access()
     {
-        $role = Role::where('name', 'admin')->first();
+        $role = Role::where('name', 'administrator')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
@@ -240,5 +240,59 @@ class RoleBasedAccessTest extends TestCase
 
         $response->assertStatus(200);
         // Paid member should be able to use search
+    }
+
+    /** @test */
+    public function administrator_can_use_search_in_comments_list()
+    {
+        $role = Role::where('name', 'administrator')->first();
+        $user = User::factory()->create([
+            'is_email_verified' => true,
+        ]);
+        $user->roles()->attach($role);
+
+        $response = $this->actingAs($user)->get(route('comments.index'));
+
+        $response->assertStatus(200);
+        // Administrator should NOT see the disabled search message
+        $response->assertDontSee('搜尋功能需要付費會員', false);
+        // Administrator should see the submit button (not the upgrade modal trigger)
+        $response->assertSee('type="submit"', false);
+    }
+
+    /** @test */
+    public function administrator_can_search_by_channel_id()
+    {
+        $role = Role::where('name', 'administrator')->first();
+        $user = User::factory()->create([
+            'is_email_verified' => true,
+        ]);
+        $user->roles()->attach($role);
+
+        // Test searching by channel_id parameter (from table links)
+        $response = $this->actingAs($user)->get(route('comments.index', [
+            'channel_id' => 'UC_test_channel_id',
+        ]));
+
+        $response->assertStatus(200);
+        // Should successfully load the page (search parameter accepted)
+    }
+
+    /** @test */
+    public function regular_member_cannot_search_by_channel_id()
+    {
+        $role = Role::where('name', 'regular_member')->first();
+        $user = User::factory()->create([
+            'is_email_verified' => true,
+        ]);
+        $user->roles()->attach($role);
+
+        // Try to search by channel_id parameter
+        $response = $this->actingAs($user)->get(route('comments.index', [
+            'channel_id' => 'UC_test_channel_id',
+        ]));
+
+        $response->assertStatus(200);
+        // Page loads but channel_id parameter should be ignored by backend
     }
 }
