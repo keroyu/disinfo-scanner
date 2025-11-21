@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\UApi;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\UrtubeApiImportService;
 
-class UrtubeApiImportController extends Controller
+class ImportController extends Controller
 {
     protected $importService;
 

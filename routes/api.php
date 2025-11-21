@@ -41,11 +41,11 @@ Route::prefix('auth')->group(function () {
 
 // U-API (urtubeapi Third-Party) Import endpoints - Grouped under /api/uapi/*
 Route::prefix('uapi')->group(function () {
-    Route::post('/import', [\App\Http\Controllers\UrtubeApiImportController::class, 'store']);
-    Route::post('/confirm', [\App\Http\Controllers\UrtubeApiConfirmationController::class, 'confirm']);
-    Route::post('/cancel', [\App\Http\Controllers\UrtubeApiConfirmationController::class, 'cancel']);
-    Route::get('/tags', [\App\Http\Controllers\UrtubeApiTagSelectionController::class, 'index']);
-    Route::post('/tags/select', [\App\Http\Controllers\UrtubeApiTagSelectionController::class, 'store']);
+    Route::post('/import', [\App\Http\Controllers\Api\UApi\ImportController::class, 'store']);
+    Route::post('/confirm', [\App\Http\Controllers\Api\UApi\ConfirmationController::class, 'confirm']);
+    Route::post('/cancel', [\App\Http\Controllers\Api\UApi\ConfirmationController::class, 'cancel']);
+    Route::get('/tags', [\App\Http\Controllers\Api\UApi\TagSelectionController::class, 'index']);
+    Route::post('/tags/select', [\App\Http\Controllers\Api\UApi\TagSelectionController::class, 'store']);
 });
 
 // Official YouTube API comment import endpoints (005-api-import-comments)

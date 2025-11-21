@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\UApi;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\UrtubeApiImportService;
 use App\Services\ChannelTaggingService;
 use App\Models\Tag;
 
-class UrtubeApiTagSelectionController extends Controller
+class TagSelectionController extends Controller
 {
     protected $importService;
     protected $channelTaggingService;

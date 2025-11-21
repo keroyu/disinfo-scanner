@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\UApi;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\UrtubeApiImportService;
 use Illuminate\Support\Facades\Log;
 
-class UrtubeApiConfirmationController extends Controller
+class ConfirmationController extends Controller
 {
     protected $importService;
 
