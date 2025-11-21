@@ -10,7 +10,7 @@
     </div>
 
     @if (session('success'))
-        <div class="mb-6 rounded-md bg-green-50 p-4">
+        <div class="mb-6 rounded-md bg-green-50 p-4" role="status">
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -101,10 +101,14 @@
                         目前密碼 <span class="text-red-500">*</span>
                     </label>
                     <input type="password" name="current_password" id="current_password" required
+                           aria-label="目前密碼"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('current_password') ? 'true' : 'false' }}"
+                           @error('current_password') aria-describedby="current-password-error" @enderror
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('current_password') border-red-500 @enderror"
                            placeholder="請輸入目前密碼">
                     @error('current_password')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="current-password-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -113,6 +117,10 @@
                         新密碼 <span class="text-red-500">*</span>
                     </label>
                     <input type="password" name="password" id="new_password" required
+                           aria-label="新密碼"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
+                           aria-describedby="password-requirements @error('password') password-error @enderror"
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="至少8個字元，包含大小寫字母、數字和特殊符號">
 
@@ -124,7 +132,7 @@
                                 <span id="strength-text">輸入密碼以檢查強度</span>
                             </span>
                         </div>
-                        <div class="text-xs text-gray-600 space-y-0.5">
+                        <div id="password-requirements" class="text-xs text-gray-600 space-y-0.5">
                             <p id="req-length" class="flex items-center">
                                 <span class="inline-block w-4 text-gray-400">○</span> 至少8個字元
                             </p>
@@ -144,7 +152,7 @@
                     </div>
 
                     @error('password')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="password-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -153,6 +161,8 @@
                         確認新密碼 <span class="text-red-500">*</span>
                     </label>
                     <input type="password" name="password_confirmation" id="password_confirmation" required
+                           aria-label="確認新密碼"
+                           aria-required="true"
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                            placeholder="請再次輸入新密碼">
                     <p id="confirmation-feedback" class="mt-1 text-sm hidden"></p>
@@ -160,6 +170,7 @@
 
                 <div class="pt-4">
                     <button type="submit" id="password-submit-button"
+                            aria-label="提交密碼更新表單"
                             class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                         更新密碼
                     </button>
@@ -242,23 +253,28 @@
                     </label>
                     <input type="text" name="youtube_api_key" id="youtube_api_key"
                            value="{{ old('youtube_api_key', auth()->user()->youtube_api_key ? '••••••••••••••••' : '') }}"
+                           aria-label="YouTube API 金鑰"
+                           aria-invalid="{{ $errors->has('youtube_api_key') ? 'true' : 'false' }}"
+                           aria-describedby="youtube-api-key-help @error('youtube_api_key') youtube-api-key-error @enderror"
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('youtube_api_key') border-red-500 @enderror"
                            placeholder="AIza...">
-                    <p class="mt-1 text-xs text-gray-500">
+                    <p id="youtube-api-key-help" class="mt-1 text-xs text-gray-500">
                         留空以保留現有金鑰。若要更新，請輸入新的 API 金鑰。
                     </p>
                     @error('youtube_api_key')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="youtube-api-key-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div class="pt-4">
                     <button type="submit"
+                            aria-label="提交 API 金鑰儲存表單"
                             class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         儲存 API 金鑰
                     </button>
                     @if(auth()->user()->youtube_api_key)
                         <button type="button" onclick="if(confirm('確定要移除 API 金鑰嗎？移除後將無法使用影片更新功能。')) { document.getElementById('remove-api-key-form').submit(); }"
+                                aria-label="移除 API 金鑰"
                                 class="ml-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             移除金鑰
                         </button>

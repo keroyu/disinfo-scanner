@@ -109,7 +109,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 ### Modal Components
 
 - [X] T129 [P] [US4] Create permission-denied modal component in resources/views/components/permission-modal.blade.php
-- [ ] T130 [P] [US4] Create upgrade button component in resources/views/components/upgrade-button.blade.php
+- [X] T130 [P] [US4] Create upgrade button component in resources/views/components/upgrade-button.blade.php
 
 ### Modal Integration
 
@@ -119,7 +119,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### RBAC UI Elements
 
-- [ ] T134 [P] [US4] Add "Upgrade to Paid Member" button in top right for Regular Members
+- [X] T134 [P] [US4] Add "Upgrade to Paid Member" button in top right for Regular Members
 - [ ] T135 [P] [US4] Add quota counter display for Paid Members (X/10 this month)
 - [ ] T136 [P] [US4] Add conditional rendering based on user role in existing pages
 
@@ -142,15 +142,15 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### Layout Integration
 
-- [ ] T141 Add login/logout links to main navigation
-- [ ] T142 Add user dropdown menu showing current role
-- [ ] T143 Add conditional navigation based on user role (show/hide menu items)
-- [ ] T144 Add settings link to user dropdown
+- [X] T141 Add login/logout links to main navigation
+- [X] T142 Add user dropdown menu showing current role
+- [X] T143 Add conditional navigation based on user role (show/hide menu items)
+- [X] T144 Add settings link to user dropdown
 
 ### Session Management UI
 
-- [ ] T145 Add "Remember Me" checkbox to login form
-- [ ] T146 Add logout confirmation (optional)
+- [X] T145 Add "Remember Me" checkbox to login form
+- [X] T146 Add logout confirmation (optional)
 - [ ] T147 Add session expiration warning (optional)
 
 ### Responsive Design
@@ -170,10 +170,10 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### Accessibility
 
-- [ ] T152 [P] Add ARIA labels to all form inputs
-- [ ] T153 [P] Add ARIA roles to modals and alerts
-- [ ] T154 [P] Ensure keyboard navigation works for all forms
-- [ ] T155 [P] Ensure screen reader compatibility
+- [X] T152 [P] Add ARIA labels to all form inputs
+- [X] T153 [P] Add ARIA roles to modals and alerts
+- [X] T154 [P] Ensure keyboard navigation works for all forms
+- [X] T155 [P] Ensure screen reader compatibility
 
 ### UX Improvements
 
@@ -184,8 +184,8 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### Error Handling UI
 
-- [ ] T160 [P] Add user-friendly error pages (404, 403, 500)
-- [ ] T161 [P] Add inline validation error display
+- [X] T160 [P] Add user-friendly error pages (404, 403, 500)
+- [X] T161 [P] Add inline validation error display
 - [ ] T162 Add rate limiting exceeded message display
 - [ ] T163 Add network error handling for API calls
 

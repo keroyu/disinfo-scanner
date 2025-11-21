@@ -12,6 +12,7 @@
      x-cloak
      @permission-modal.window="if ($event.detail.type === modalType) { open = true }"
      @keydown.escape.window="open = false"
+     x-trap.noscroll="open"
      class="fixed z-50 inset-0 overflow-y-auto"
      style="display: none;">
 
@@ -42,15 +43,17 @@
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
              class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
-             role="dialog"
+             role="alertdialog"
              aria-modal="true"
-             aria-labelledby="modal-headline">
+             aria-labelledby="modal-headline"
+             aria-describedby="modal-description"
+             @click.away="open = false">
 
             @if($type === 'login')
                 {{-- Login Required Modal --}}
                 <div>
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-                        <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100" aria-hidden="true">
+                        <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                     </div>
@@ -58,7 +61,7 @@
                         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
                             請登入會員
                         </h3>
-                        <div class="mt-2">
+                        <div class="mt-2" id="modal-description">
                             <p class="text-sm text-gray-500">
                                 @if($feature)
                                     您需要登入會員才能使用「{{ $feature }}」功能。
@@ -86,8 +89,8 @@
             @elseif($type === 'upgrade')
                 {{-- Upgrade to Paid Member Modal --}}
                 <div>
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100" aria-hidden="true">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
                     </div>
@@ -95,7 +98,7 @@
                         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
                             需升級為付費會員
                         </h3>
-                        <div class="mt-2">
+                        <div class="mt-2" id="modal-description">
                             <p class="text-sm text-gray-500">
                                 @if($feature)
                                     「{{ $feature }}」功能僅供付費會員使用。
@@ -146,8 +149,8 @@
             @elseif($type === 'api_key')
                 {{-- API Key Required Modal --}}
                 <div>
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100">
-                        <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100" aria-hidden="true">
+                        <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                         </svg>
                     </div>
@@ -155,7 +158,7 @@
                         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
                             需設定 YouTube API 金鑰
                         </h3>
-                        <div class="mt-2">
+                        <div class="mt-2" id="modal-description">
                             <p class="text-sm text-gray-500">
                                 您需要先設定 YouTube API 金鑰才能使用影片更新功能。
                             </p>
@@ -180,8 +183,8 @@
             @elseif($type === 'admin')
                 {{-- Admin Permission Required Modal --}}
                 <div>
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100" aria-hidden="true">
+                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
                     </div>
@@ -189,7 +192,7 @@
                         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
                             需要管理員權限
                         </h3>
-                        <div class="mt-2">
+                        <div class="mt-2" id="modal-description">
                             <p class="text-sm text-gray-500">
                                 此功能僅限管理員使用，您沒有足夠的權限執行此操作。
                             </p>

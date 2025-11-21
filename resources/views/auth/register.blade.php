@@ -51,10 +51,14 @@
                     </label>
                     <input id="name" name="name" type="text" required autofocus
                            value="{{ old('name') }}"
+                           aria-label="姓名"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}"
+                           @error('name') aria-describedby="name-error" @enderror
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('name') border-red-500 @enderror"
                            placeholder="請輸入您的姓名">
                     @error('name')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="name-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -64,10 +68,14 @@
                     </label>
                     <input id="email" name="email" type="email" autocomplete="email" required
                            value="{{ old('email') }}"
+                           aria-label="電子郵件"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
+                           @error('email') aria-describedby="email-error" @enderror
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('email') border-red-500 @enderror"
                            placeholder="example@email.com">
                     @error('email')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="email-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -76,13 +84,17 @@
                         密碼 <span class="text-red-500">*</span>
                     </label>
                     <input id="password" name="password" type="password" autocomplete="new-password" required
+                           aria-label="密碼"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
+                           aria-describedby="password-requirements @error('password') password-error @enderror"
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="至少8個字元，包含大小寫字母、數字和特殊符號">
-                    <p class="mt-1 text-xs text-gray-500">
+                    <p id="password-requirements" class="mt-1 text-xs text-gray-500">
                         密碼需包含：至少8個字元、1個大寫字母、1個小寫字母、1個數字、1個特殊符號
                     </p>
                     @error('password')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="password-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -91,6 +103,8 @@
                         確認密碼 <span class="text-red-500">*</span>
                     </label>
                     <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required
+                           aria-label="確認密碼"
+                           aria-required="true"
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                            placeholder="請再次輸入密碼">
                 </div>
@@ -98,6 +112,8 @@
 
             <div class="flex items-center">
                 <input id="terms" name="terms" type="checkbox" required
+                       aria-label="我同意服務條款和隱私政策"
+                       aria-required="true"
                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <label for="terms" class="ml-2 block text-sm text-gray-900">
                     我同意
@@ -109,8 +125,9 @@
 
             <div>
                 <button type="submit"
+                        aria-label="提交註冊表單"
                         class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3" aria-hidden="true">
                         <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                         </svg>

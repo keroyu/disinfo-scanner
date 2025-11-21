@@ -21,7 +21,7 @@
             @csrf
 
             @if (session('status'))
-                <div class="rounded-md bg-green-50 p-4">
+                <div class="rounded-md bg-green-50 p-4" role="status">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -38,7 +38,7 @@
             @endif
 
             @if ($errors->any())
-                <div class="rounded-md bg-red-50 p-4">
+                <div class="rounded-md bg-red-50 p-4" role="alert">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -68,10 +68,14 @@
                     </label>
                     <input id="email" name="email" type="email" autocomplete="email" required autofocus
                            value="{{ old('email') }}"
+                           aria-label="電子郵件"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
+                           @error('email') aria-describedby="email-error" @enderror
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('email') border-red-500 @enderror"
                            placeholder="example@email.com">
                     @error('email')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="email-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -80,10 +84,14 @@
                         密碼
                     </label>
                     <input id="password" name="password" type="password" autocomplete="current-password" required
+                           aria-label="密碼"
+                           aria-required="true"
+                           aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
+                           @error('password') aria-describedby="password-error" @enderror
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="請輸入密碼">
                     @error('password')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p id="password-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
@@ -91,6 +99,7 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
                     <input id="remember" name="remember" type="checkbox"
+                           aria-label="記住我"
                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                            {{ old('remember') ? 'checked' : '' }}>
                     <label for="remember" class="ml-2 block text-sm text-gray-900">
@@ -107,8 +116,9 @@
 
             <div>
                 <button type="submit"
+                        aria-label="提交登入表單"
                         class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3" aria-hidden="true">
                         <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                         </svg>
