@@ -86,16 +86,23 @@ class LoginController extends Controller
     /**
      * Handle user logout.
      *
-     * @return JsonResponse
+     * @param Request $request
+     * @return JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    public function logout(): JsonResponse
+    public function logout(Request $request)
     {
         $this->authService->logout();
 
-        return response()->json([
-            'success' => true,
-            'message' => '登出成功',
-        ], 200);
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => '登出成功',
+            ], 200);
+        }
+
+        // For web requests, redirect to home page
+        return redirect()->route('import.index')->with('status', '已成功登出');
     }
 
     /**

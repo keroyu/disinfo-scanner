@@ -95,7 +95,6 @@
         <div class="px-6 py-4">
             <form action="{{ route('settings.password') }}" method="POST" class="space-y-4">
                 @csrf
-                @method('PUT')
 
                 <div>
                     <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">
@@ -156,7 +155,6 @@
         <div class="px-6 py-4">
             <form action="{{ route('settings.api-key') }}" method="POST" class="space-y-4">
                 @csrf
-                @method('PUT')
 
                 <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div class="flex">
@@ -222,7 +220,6 @@
             @if(auth()->user()->youtube_api_key)
             <form id="remove-api-key-form" action="{{ route('settings.api-key.remove') }}" method="POST" class="hidden">
                 @csrf
-                @method('DELETE')
             </form>
             @endif
         </div>
