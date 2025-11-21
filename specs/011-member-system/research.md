@@ -270,3 +270,351 @@ These items are out of scope for MVP but noted for future consideration:
 ---
 
 **Status**: All NEEDS CLARIFICATION items resolved. Ready for Phase 1 (Design & Contracts).
+
+---
+
+# ADDENDUM: CSV Export Permission Control Research
+
+**Date**: 2025-11-21
+**Context**: Incremental update - Adding permission control, rate limiting, and row limits to existing Video Analysis CSV export feature
+**Related Spec Section**: Session 2025-11-21 clarifications (Export CSV permissions)
+
+## Overview
+
+This addendum documents technical decisions for implementing role-based permission control on the existing client-side CSV export feature in the Video Analysis page. Key additions: authentication gates, rate limiting (5 exports/hour rolling window), and row limits (1,000/3,000/unlimited based on role).
+
+---
+
+## Decision 10: Rate Limiting Strategy for CSV Exports
+
+### Research Question
+How to implement 60-minute rolling window rate limiting in Laravel with per-user tracking for CSV export feature?
+
+### Options Evaluated
+
+**Option A: Laravel's Built-in RateLimiter (Cache-backed)**
+- **Pros**: Native Laravel support, simple API (`RateLimiter::attempt()`), automatic cleanup
+- **Cons**: Not designed for exact rolling windows (uses fixed time buckets), cache clearing loses rate limit state, lacks audit trail
+- **Performance**: <10ms per check (Redis/Memcached)
+- **Accuracy**: Good for fixed windows, poor for rolling windows (resets at bucket boundaries)
+
+**Option B: Database-backed Custom Rate Limiter**
+- **Pros**: Precise rolling window (query last 60 minutes), permanent audit trail, survives cache clearing, supports compliance logging
+- **Cons**: Slower than cache (~30-50ms per check), requires manual cleanup of old logs
+- **Performance**: 30-50ms per check with indexed queries
+- **Accuracy**: Exact to the second for rolling windows
+
+**Option C: Hybrid (Cache + Database)**
+- **Pros**: Fast checks (cache), fallback to DB for accuracy, audit trail preserved
+- **Cons**: Complex synchronization, cache invalidation challenges, increased implementation complexity
+- **Performance**: 10-50ms depending on cache hit/miss
+- **Accuracy**: High (DB source of truth)
+
+### Decision: **Option B - Database-backed Custom Rate Limiter**
+
+**Rationale**:
+1. **Accuracy**: Spec requires rolling window (e.g., first export at 10:15 → can export again at 11:15). Laravel's built-in RateLimiter uses fixed time buckets which would allow "gaming" by exporting at 10:59 and 11:00 (2 exports in 1 minute across different buckets).
+
+2. **Audit Trail**: Constitution Principle III (Observable Systems) requires logging all operations with trace IDs. Database solution provides permanent audit trail for security analysis.
+
+3. **Performance Acceptable**: 30-50ms for rate limit check is well within 2-second target for total CSV export response time (including DB query, CSV generation, network transfer).
+
+4. **Simplicity**: Avoids cache synchronization complexity while meeting all requirements.
+
+**Implementation Approach**:
+- Create `csv_export_logs` table with `(user_id, exported_at)` composite index
+- On each export attempt: `SELECT COUNT(*) FROM csv_export_logs WHERE user_id = ? AND exported_at >= NOW() - INTERVAL 60 MINUTE AND status = 'success'`
+- If count >= 5: reject with 429 status
+- If allowed: insert new log entry after successful export
+- Cleanup: Daily cron job to delete logs older than 7 days (audit retention, not needed for rate limiting)
+
+**Rolling Window Calculation**: Fixed window from first export (matches spec clarification). Track first export timestamp, window resets exactly 60 minutes later for all 5 slots.
+
+```php
+class RateLimitService
+{
+    public function checkLimit(User $user): void
+    {
+        $windowStart = now()->subMinutes(60);
+
+        $exports = CsvExportLog::where('user_id', $user->id)
+            ->where('exported_at', '>=', $windowStart)
+            ->where('status', 'success')
+            ->orderBy('exported_at', 'asc')
+            ->get();
+
+        if ($exports->count() >= 5) {
+            $firstExport = $exports->first()->exported_at;
+            $resetAt = $firstExport->copy()->addMinutes(60);
+            $resetInMinutes = now()->diffInMinutes($resetAt, false);
+
+            throw new CsvExportRateLimitException(
+                currentUsage: 5,
+                limit: 5,
+                resetAt: $resetAt,
+                resetInMinutes: max(0, $resetInMinutes)
+            );
+        }
+    }
+}
+```
+
+---
+
+## Decision 11: CSV Generation Performance
+
+### Research Question
+How to efficiently generate CSV files with row limits (up to 3,000 rows) while maintaining <2 second response time and <200MB memory usage?
+
+### Options Evaluated
+
+**Option A: Laravel Response::streamDownload() with Generator**
+- **Memory**: O(1) - constant memory (~10MB regardless of row count)
+- **Performance**: Streams data as generated, good for large datasets
+- **Code Complexity**: Medium (requires generator pattern)
+- **Laravel Support**: Native `Response::streamDownload()`
+
+**Option B: Collection->toCsv() with In-Memory Buffer**
+- **Memory**: O(n) - scales with row count (~50-100MB for 3,000 rows)
+- **Performance**: Faster for small datasets (<1000 rows)
+- **Code Complexity**: Low (simple fluent API)
+- **Laravel Support**: Requires League\Csv package
+
+**Option C: Temporary File with fputcsv()**
+- **Memory**: O(1) - constant (file buffering)
+- **Performance**: Fast writes, disk I/O overhead
+- **Code Complexity**: Medium (file management, cleanup)
+- **Laravel Support**: Native PHP functions
+
+### Decision: **Option A - Laravel Response::streamDownload() with Generator**
+
+**Rationale**:
+1. **Memory Efficiency**: O(1) memory usage ensures well under 200MB limit even for unlimited administrator exports
+
+2. **Scalability**: If row limits increase in future (e.g., Paid Members upgraded to 10,000 rows), streaming handles it without code changes
+
+3. **Laravel Integration**: `Response::streamDownload()` is native Laravel, no external dependencies
+
+4. **Performance**: For 3,000 rows, streaming adds ~100-200ms overhead vs in-memory, but total response time still <2 seconds:
+   - DB query: 200-500ms (indexed query on comments table)
+   - CSV generation (streaming): 300-500ms
+   - Network transfer: 200-500ms (client-dependent)
+   - **Total**: 700ms - 1,500ms (within 2s target)
+
+**Implementation Approach**:
+```php
+public function export(Request $request, string $videoId)
+{
+    // ... permission checks, rate limiting ...
+
+    $comments = $this->getComments($videoId, $request->pattern, $request->time_points);
+
+    return Response::streamDownload(function () use ($comments, $request) {
+        $handle = fopen('php://output', 'w');
+
+        // Write CSV header
+        fputcsv($handle, $this->getHeaderRow($request->fields));
+
+        // Stream rows using generator
+        foreach ($this->generateCsvRows($comments, $request->fields) as $row) {
+            fputcsv($handle, $row);
+        }
+
+        fclose($handle);
+    }, "video_{$videoId}_comments_" . now()->format('Ymd_His') . ".csv", [
+        'Content-Type' => 'text/csv; charset=UTF-8',
+    ]);
+}
+
+private function generateCsvRows($comments, $fields): \Generator
+{
+    foreach ($comments->cursor() as $comment) { // cursor() for memory efficiency
+        yield $this->formatRow($comment, $fields);
+    }
+}
+```
+
+---
+
+## Decision 12: Permission Check Architecture
+
+### Research Question
+Where should role-based permission checks be implemented - middleware, controller, or service layer?
+
+### Decision: **Hybrid (Middleware for Auth + Controller for Authorization)**
+
+**Rationale**:
+1. **Separation of Concerns**:
+   - **Middleware**: Authentication (`auth:sanctum`) - ensures user logged in
+   - **Controller**: Authorization (role checks) and rate limiting logic
+   - **Service**: Business logic (CSV generation, row limit enforcement)
+
+2. **Consistency**: Existing codebase uses `auth:sanctum` middleware for API routes with permission checks in controllers
+
+3. **Testability**:
+   - Middleware testable via HTTP tests
+   - Controller authorization testable via Feature tests
+   - Service business logic testable via Unit tests
+
+4. **Granularity**: Controller can access request parameters (fields, pattern, time_points) for context-aware authorization
+
+**Implementation Approach**:
+```php
+// routes/api.php
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/videos/{videoId}/comments/export-csv', [CsvExportController::class, 'export']);
+});
+
+// App\Http\Controllers\Api\CsvExportController
+public function export(CsvExportRequest $request, string $videoId)
+{
+    // 1. Authentication already enforced by middleware
+
+    // 2. Authorization: Require authenticated user
+    if (!$request->user()) {
+        return response()->json([
+            'error' => [
+                'type' => 'Unauthorized',
+                'message' => '請登入會員',
+                'details' => ['timestamp' => now('Asia/Taipei')->toIso8601String()]
+            ]
+        ], 401);
+    }
+
+    // 3. Rate limiting check (administrators bypass)
+    if (!$request->user()->hasRole('administrator')) {
+        $this->rateLimitService->checkLimit($request->user());
+    }
+
+    // 4. Row limit check (administrators bypass)
+    $comments = $this->getComments($videoId, $request->pattern, $request->time_points);
+    $rowLimit = $this->getRowLimitForRole($request->user());
+
+    if ($rowLimit && $comments->count() > $rowLimit) {
+        throw new CsvExportRowLimitException($comments->count(), $rowLimit, $request->user()->roles->first()->name);
+    }
+
+    // 5. Generate CSV (service layer)
+    return $this->csvExportService->generate($comments, $request->fields);
+}
+```
+
+---
+
+## Decision 13: Error Response Format
+
+### Research Question
+What JSON structure for rate limit and row limit errors to ensure observability and actionable feedback?
+
+### Decision: **Extend Existing Pattern with Limit-Specific Fields**
+
+**Existing Pattern** (from `VideoAnalysisController`):
+```json
+{
+  "error": {
+    "type": "NotFound|DatabaseQueryException|InternalServerError",
+    "message": "Human-readable message",
+    "details": {
+      "trace_id": "uuid",
+      "timestamp": "ISO8601 with GMT+8",
+      ...additional context
+    }
+  }
+}
+```
+
+**New Format for CSV Export Errors**:
+
+```json
+// Rate Limit Exceeded (429)
+{
+  "error": {
+    "type": "RateLimitExceeded",
+    "message": "已達到匯出次數限制 (5/5)，請稍後再試",
+    "details": {
+      "current_usage": 5,
+      "limit": 5,
+      "reset_in_minutes": 42,
+      "reset_at": "2025-11-21T15:15:00+08:00",
+      "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+      "timestamp": "2025-11-21T14:33:00+08:00"
+    }
+  }
+}
+
+// Row Limit Exceeded (413)
+{
+  "error": {
+    "type": "RowLimitExceeded",
+    "message": "資料包含 2,500 筆，您的權限限制為 1,000 筆。請套用篩選條件或聯繫管理員。",
+    "details": {
+      "row_count": 2500,
+      "row_limit": 1000,
+      "role": "Regular Member",
+      "trace_id": "550e8400-e29b-41d4-a716-446655440001",
+      "timestamp": "2025-11-21T14:33:00+08:00",
+      "suggestions": [
+        "套用時間篩選以減少資料量",
+        "升級為付費會員以提高限制至 3,000 筆",
+        "聯繫管理員申請無限制匯出"
+      ]
+    }
+  }
+}
+```
+
+**Rationale**:
+1. **Consistency**: Matches existing `VideoAnalysisController` error format
+2. **Actionable**: `reset_in_minutes`/`reset_at` for rate limits, `suggestions` array for row limits
+3. **Observability**: `trace_id` enables log correlation per Constitution Principle III
+4. **Frontend Integration**: JavaScript can parse `error.type` to display appropriate modal
+
+---
+
+## Technology Stack (No New Dependencies)
+
+| Component | Technology | Notes |
+|-----------|-----------|-------|
+| Rate Limiting | Custom DB implementation | Using existing MySQL |
+| CSV Generation | Laravel `Response::streamDownload()` | Built-in |
+| Authentication | Laravel Sanctum / Session | Existing |
+| Logging | Laravel Log facade | Existing |
+| Testing | PHPUnit | Existing |
+
+### Performance Budget (2-second target)
+
+| Operation | Budget | Implementation |
+|-----------|--------|----------------|
+| Rate limit check | 50ms | Indexed DB query (`idx_user_exported_at`) |
+| Permission & role check | 10ms | In-memory (eager-loaded roles) |
+| Comment query | 500ms | Indexed query on `comments` table |
+| Row count check | 10ms | `COUNT()` on filtered query |
+| CSV generation | 500ms | Streaming generator (3,000 rows) |
+| Network transfer | 200-500ms | Client-dependent |
+| **Total** | **1,270-1,570ms** | **✅ Within 2s** |
+
+---
+
+## Security Considerations
+
+1. **Rate Limit Bypass Prevention**: Rate limit is per-user (user_id), not per IP. Multiple accounts require email verification (existing defense).
+
+2. **Row Limit Bypass Prevention**: Row count check performed server-side after query execution, before CSV generation. Frontend parameters not trusted.
+
+3. **Data Exposure**: `auth:sanctum` middleware enforces authentication. Unauthenticated requests receive 401 before any data queries.
+
+4. **Audit Trail**: Every export attempt logged to `csv_export_logs` with trace_id. Failed attempts (rate limited, row limited) logged for security analysis.
+
+---
+
+## References
+
+- Laravel HTTP Responses (Streaming): https://laravel.com/docs/12.x/responses#streamed-downloads
+- Laravel Rate Limiting: https://laravel.com/docs/12.x/rate-limiting
+- PHP Generators: https://www.php.net/manual/en/language.generators.overview.php
+- Constitution Principle III (Observable Systems): `.specify/memory/constitution.md`
+- Constitution Principle VI (Timezone Consistency): `.specify/memory/constitution.md`
+
+---
+
+**Status**: All CSV export technical decisions documented. Ready for Phase 1 (Data Model & API Contract generation).

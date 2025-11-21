@@ -1,25 +1,31 @@
-# Implementation Plan: Member Registration System
+# Implementation Plan: Export CSV Permission Control
 
-**Branch**: `011-member-system` | **Date**: 2025-11-20 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/011-member-system/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `011-member-system` | **Date**: 2025-11-21 | **Spec**: [spec.md](./spec.md)
+**Type**: **INCREMENTAL UPDATE** to existing member system
+**Input**: Permission update specification from `/specs/011-member-system/spec.md` (Session 2025-11-21 clarifications)
 
 ## Summary
 
-Implement a comprehensive member registration system with email verification, role-based access control (5 user types: Visitor, Regular Member, Paid Member, Website Editor, Administrator), password management with strength validation, and permission-based UI modals. The system includes pre-configured admin account, quota management for Paid Members, and identity verification support for unlimited API access.
+Add role-based permission control to the existing "Export CSV" feature on the Video Analysis page. Currently, the Export CSV button is visible to all users (including visitors). This update will:
+
+1. **Hide Export CSV button from visitors** - display modal "請登入會員" when clicked
+2. **Implement rate limiting** - 5 exports per hour (rolling window) for Regular Members, Paid Members, and Website Editors
+3. **Implement row limits** - Regular Members: 1,000 rows max, Paid Members & Website Editors: 3,000 rows max, Administrators: unlimited
+4. **Allow unlimited access for Administrators** - no rate limiting, no row limits
+
+**Technical Approach**: Add server-side API endpoint for CSV export with permission checks, rate limiting middleware, and quota tracking database table. Frontend JavaScript will call the API instead of generating CSV client-side.
 
 ## Technical Context
 
-**Language/Version**: PHP 8.2
-**Primary Dependencies**: Laravel Framework 12.38.1, Laravel Breeze (authentication scaffolding), Laravel Mail (email delivery)
-**Storage**: MySQL/MariaDB (existing database with users, password_reset_tokens, sessions tables already present)
-**Testing**: PHPUnit (Laravel's default testing framework)
-**Target Platform**: Web server (Linux/macOS with PHP 8.2+ and MySQL)
-**Project Type**: Web application (Laravel MVC with Blade templates)
-**Performance Goals**: 95% of verification emails delivered within 2 minutes, password validation response <100ms, role-based access checks <50ms per request
-**Constraints**: Email verification links expire after 24 hours, password reset tokens expire after 24 hours, rate limiting (3 requests/hour for verification/reset emails), all timestamps stored in UTC with GMT+8 display conversion
-**Scale/Scope**: ~10-20 new UI views/components (registration, login, email verification, password change, settings, admin panel placeholder), 7 database tables (users, roles, permissions, verification_tokens, password_reset_tokens, api_quotas, identity_verifications), 56 functional requirements
+**Language/Version**: PHP 8.2 with Laravel Framework 12.38.1
+**Primary Dependencies**: Laravel Framework (existing), Symfony RateLimiter (Laravel built-in)
+**Storage**: MySQL/MariaDB (existing database) - add `csv_export_logs` table for rate limiting tracking
+**Testing**: PHPUnit (existing test suite) - add Feature tests for permission gates and rate limiting
+**Target Platform**: Web application (Linux server)
+**Project Type**: Web (Laravel backend + Blade frontend with JavaScript)
+**Performance Goals**: CSV export API response < 2 seconds for 3,000 rows, rate limit check < 50ms
+**Constraints**: Rolling window rate limit (60 minutes from first export), row limits enforced before CSV generation
+**Scale/Scope**: Existing video analysis feature (~150 lines of controller code, 750 lines of Blade view with JavaScript)
 
 ## Constitution Check
 
@@ -27,370 +33,330 @@ Implement a comprehensive member registration system with email verification, ro
 
 ### I. Test-First Development ✅
 - **Status**: PASS
-- **Plan**: Will write PHPUnit tests before implementation for all authentication flows, email verification, password validation, role-based access control, and API quota enforcement
-- **Test Structure**: Feature tests for user flows, unit tests for validation logic, contract tests for email service boundary
+- **Evidence**: All new functionality (permission gates, rate limiting, row limits) will have Feature tests written before implementation following Red-Green-Refactor cycle
+- **Test Plan**: Feature tests for CSV export API endpoint covering all 5 roles, rate limit enforcement, row limit enforcement, edge cases
 
 ### II. API-First Design ✅
 - **Status**: PASS
-- **Plan**: Authentication and user management will be exposed through Laravel routes/controllers with JSON API responses. All endpoints will return structured JSON with actionable error messages. Web UI will consume same APIs.
-- **Contracts**: Registration endpoint, login endpoint, verification endpoint, password reset endpoint, user management endpoints (admin), settings endpoints
+- **Evidence**: New CSV export functionality will be exposed as REST API endpoint `/api/videos/{videoId}/comments/export-csv` with clear contract before implementation
+- **API Contract**: POST endpoint accepting `fields[]`, `pattern`, `time_points[]` parameters; returns CSV file download or JSON error response with rate limit/row limit details
 
 ### III. Observable Systems ✅
 - **Status**: PASS
-- **Plan**: FR-023 requires logging of all security-related events (registration, login, password changes, permission modifications). Will use Laravel's structured logging to JSON format with trace IDs for audit trails.
-- **Logging Points**: User registration, email verification, login attempts, password changes, password resets, permission level changes, API quota usage
+- **Evidence**: CSV export operations will log to structured logs with trace ID, user ID, video ID, row count, rate limit status
+- **Logging Plan**: Log every export attempt (success/failure), rate limit violations, row limit violations with actionable context
 
 ### IV. Contract Testing ✅
 - **Status**: PASS
-- **Plan**: Email verification tokens, password reset tokens, and role permission contracts will have dedicated contract tests. Tests will validate token structure, expiration behavior, and permission boundaries without touching implementation details.
-- **Contracts to Test**: Email verification token format/expiration, password reset token format/expiration, role permission mappings, API quota structures
+- **Evidence**: API contract test will verify CSV export endpoint response format (success: file download, error: JSON with type/message/details)
+- **Contract Coverage**: Request validation (fields, pattern, time_points), response structure (CSV headers, error JSON schema), permission boundaries
 
 ### V. Semantic Versioning ✅
 - **Status**: PASS
-- **Plan**: This is a new feature (no existing member system), starting at version 1.0.0. Future changes to authentication API, role permissions, or database schema will follow MAJOR.MINOR.PATCH versioning.
-- **Initial Version**: 1.0.0
+- **Evidence**: This is a MINOR version feature (backward-compatible permission control added to existing feature). No breaking changes to video analysis API.
+- **Version Impact**: MINOR bump (new permission-controlled API endpoint, existing analysis endpoints unchanged)
 
 ### VI. Timezone Consistency ✅
 - **Status**: PASS
-- **Plan**: All timestamps (account creation, email verification, password changes, login times, token expiration) will be stored in UTC in MySQL database. Laravel backend will convert to GMT+8 (Asia/Taipei) before rendering in Blade templates. All datetime displays will show explicit timezone indicator "(GMT+8)".
-- **Implementation**: Laravel's built-in Carbon library for timezone handling, database columns use `timestamp` type storing UTC, Blade templates apply `->timezone('Asia/Taipei')` for display
+- **Evidence**: CSV export will include timestamps in GMT+8 (Asia/Taipei) per existing convention. Rate limit tracking uses UTC internally, converted to GMT+8 for error messages.
+- **Timezone Handling**:
+  - Database: Store `csv_export_logs.exported_at` in UTC
+  - Application: Convert to GMT+8 for "Limit resets in X minutes" error messages
+  - CSV Export: Include published_at timestamps in GMT+8 format (consistent with existing comment display)
+
+**Constitution Compliance**: ALL GATES PASS ✅
 
 ## Project Structure
 
-### Documentation (this feature)
+### Documentation (this feature - incremental update)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/011-member-system/
+├── spec.md              # Updated with Session 2025-11-21 clarifications
+├── plan.md              # This file (INCREMENTAL UPDATE plan)
+├── research.md          # Phase 0 output (rate limiting strategies, CSV generation patterns)
+├── data-model.md        # Phase 1 output (csv_export_logs table schema)
+├── quickstart.md        # Phase 1 output (developer guide for CSV export API)
+├── contracts/           # Phase 1 output (API contract for CSV export endpoint)
+│   └── csv-export-api.yaml
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan, created by /speckit.tasks)
 ```
 
-### Source Code (repository root)
-
-**Structure Decision**: Laravel MVC web application structure. This is an existing Laravel 12 project, so the member system will integrate into the established Laravel directory structure.
-
-#### New Files to Create:
+### Source Code (repository root - existing Laravel structure)
 
 ```text
 app/
-├── Models/
-│   ├── User.php                          # MODIFY: Add role, verification, API quota fields
-│   ├── Role.php                          # NEW: Role model (Visitor, Regular, Paid, Editor, Admin)
-│   ├── Permission.php                    # NEW: Permission model for fine-grained access control
-│   ├── EmailVerificationToken.php       # NEW: Email verification token model
-│   ├── ApiQuota.php                      # NEW: API import quota tracking for Paid Members
-│   └── IdentityVerification.php         # NEW: Identity verification status for Paid Members
-│
 ├── Http/
 │   ├── Controllers/
-│   │   ├── Auth/
-│   │   │   ├── RegisterController.php           # NEW: User registration
-│   │   │   ├── LoginController.php              # NEW: User login
-│   │   │   ├── EmailVerificationController.php  # NEW: Email verification handling
-│   │   │   ├── PasswordResetController.php      # NEW: Password reset flow
-│   │   │   └── PasswordChangeController.php     # NEW: Mandatory password change
-│   │   ├── UserSettingsController.php           # NEW: User settings (password change, API key)
-│   │   └── Admin/
-│   │       └── UserManagementController.php     # NEW: Admin user/permission management
-│   │
+│   │   ├── VideoAnalysisController.php          # [EXISTING] Add showAnalysisPage permission check
+│   │   └── Api/
+│   │       └── CsvExportController.php           # [NEW] Handle CSV export with permissions
 │   ├── Middleware/
-│   │   ├── CheckUserRole.php                    # NEW: Role-based access middleware
-│   │   ├── CheckEmailVerified.php               # NEW: Email verification check
-│   │   ├── CheckDefaultPassword.php             # NEW: Force password change middleware
-│   │   └── CheckApiQuota.php                    # NEW: API quota enforcement middleware
-│   │
+│   │   └── CheckCsvExportRateLimit.php          # [NEW] Rate limiting middleware
 │   └── Requests/
-│       ├── RegisterRequest.php                  # NEW: Registration validation
-│       ├── PasswordChangeRequest.php            # NEW: Password change validation
-│       └── UserSettingsRequest.php              # NEW: Settings update validation
-│
+│       └── CsvExportRequest.php                  # [NEW] Validate CSV export parameters
+├── Models/
+│   ├── User.php                                  # [EXISTING] Add hasPermission helper methods
+│   ├── Role.php                                  # [EXISTING] No changes needed
+│   └── CsvExportLog.php                          # [NEW] Track export attempts for rate limiting
 ├── Services/
-│   ├── AuthenticationService.php                # NEW: Authentication business logic
-│   ├── EmailVerificationService.php             # NEW: Email verification logic
-│   ├── PasswordService.php                      # NEW: Password validation/hashing
-│   ├── RolePermissionService.php                # NEW: Role/permission checking
-│   └── ApiQuotaService.php                      # NEW: API quota management
-│
-├── Mail/
-│   ├── VerificationEmail.php                    # NEW: Email verification mailable
-│   └── PasswordResetEmail.php                   # NEW: Password reset mailable
-│
-└── Policies/
-    └── UserPolicy.php                            # NEW: Authorization policies for user actions
+│   ├── CsvExportService.php                      # [NEW] CSV generation logic with row limits
+│   └── RateLimitService.php                      # [NEW] Rolling window rate limit checks
+└── Exceptions/
+    ├── CsvExportRateLimitException.php           # [NEW] Rate limit exceeded exception
+    └── CsvExportRowLimitException.php            # [NEW] Row limit exceeded exception
 
 database/
-├── migrations/
-│   ├── 2025_11_20_000001_update_users_table_for_member_system.php      # NEW: Modify users table
-│   ├── 2025_11_20_000002_create_roles_table.php                        # NEW: Roles table
-│   ├── 2025_11_20_000003_create_permissions_table.php                  # NEW: Permissions table
-│   ├── 2025_11_20_000004_create_role_user_table.php                    # NEW: Role-user pivot
-│   ├── 2025_11_20_000005_create_email_verification_tokens_table.php    # NEW: Verification tokens
-│   ├── 2025_11_20_000006_create_api_quotas_table.php                   # NEW: API quotas
-│   ├── 2025_11_20_000007_create_identity_verifications_table.php       # NEW: Identity verifications
-│   └── 2025_11_20_000008_seed_default_admin_account.php                # NEW: Pre-configured admin
-│
-├── seeders/
-│   ├── RoleSeeder.php                           # NEW: Seed default roles
-│   ├── PermissionSeeder.php                     # NEW: Seed default permissions
-│   └── AdminUserSeeder.php                      # NEW: Seed admin account
-│
-└── factories/
-    ├── UserFactory.php                          # MODIFY: Add role/verification support
-    └── EmailVerificationTokenFactory.php        # NEW: Token factory for testing
+└── migrations/
+    └── 2025_11_21_create_csv_export_logs_table.php  # [NEW] Rate limit tracking
 
 resources/
-├── views/
-│   ├── auth/
-│   │   ├── register.blade.php                   # NEW: Registration form
-│   │   ├── login.blade.php                      # NEW: Login form
-│   │   ├── verify-email.blade.php               # NEW: Email verification page
-│   │   ├── password-reset-request.blade.php     # NEW: Password reset request
-│   │   ├── password-reset.blade.php             # NEW: Password reset form
-│   │   └── mandatory-password-change.blade.php  # NEW: Forced password change
-│   │
-│   ├── settings/
-│   │   └── index.blade.php                      # NEW: User settings page
-│   │
-│   ├── admin/
-│   │   ├── users/
-│   │   │   ├── index.blade.php                  # NEW: User list (admin)
-│   │   │   └── edit.blade.php                   # NEW: Edit user permissions
-│   │   └── dashboard.blade.php                  # NEW: Admin dashboard placeholder
-│   │
-│   ├── components/
-│   │   ├── permission-modal.blade.php           # NEW: Permission-denied modal component
-│   │   └── upgrade-button.blade.php             # NEW: Upgrade to Paid Member button
-│   │
-│   └── emails/
-│       ├── verify-email.blade.php               # NEW: Verification email template
-│       └── reset-password.blade.php             # NEW: Password reset email template
-│
-└── lang/
-    └── zh_TW/
-        ├── auth.php                             # MODIFY: Add Traditional Chinese auth messages
-        └── validation.php                       # MODIFY: Add password strength messages
+└── views/
+    └── videos/
+        └── analysis.blade.php                    # [MODIFY] Update Export CSV button to call API
+
+public/
+└── js/
+    └── comment-pattern.js                        # [MODIFY] Update exportToCSV() to call API endpoint
 
 routes/
-├── web.php                                      # MODIFY: Add auth/user routes
-└── api.php                                      # MODIFY: Add auth API routes (optional)
+├── web.php                                       # [MODIFY] Add permission middleware to analysis page route
+└── api.php                                       # [MODIFY] Add CSV export API route
 
 tests/
 ├── Feature/
-│   ├── Auth/
-│   │   ├── RegistrationTest.php                 # NEW: Registration flow tests
-│   │   ├── EmailVerificationTest.php            # NEW: Email verification tests
-│   │   ├── LoginTest.php                        # NEW: Login flow tests
-│   │   ├── PasswordResetTest.php                # NEW: Password reset tests
-│   │   └── MandatoryPasswordChangeTest.php      # NEW: Forced password change tests
-│   │
-│   ├── UserSettingsTest.php                     # NEW: Settings page tests
-│   ├── RoleBasedAccessTest.php                  # NEW: Permission modal tests
-│   └── Admin/
-│       └── UserManagementTest.php               # NEW: Admin user management tests
-│
-├── Unit/
-│   ├── PasswordValidationTest.php               # NEW: Password strength tests
-│   ├── RolePermissionTest.php                   # NEW: Role/permission logic tests
-│   ├── EmailVerificationTokenTest.php           # NEW: Token expiration tests
-│   └── ApiQuotaTest.php                         # NEW: API quota logic tests
-│
+│   ├── CsvExportPermissionTest.php               # [NEW] Test role-based permissions
+│   ├── CsvExportRateLimitTest.php                # [NEW] Test rate limiting (rolling window)
+│   └── CsvExportRowLimitTest.php                 # [NEW] Test row limits per role
 └── Contract/
-    ├── EmailServiceContractTest.php             # NEW: Email service boundary tests
-    └── RolePermissionContractTest.php           # NEW: Permission contract tests
-
-config/
-└── mail.php                                     # MODIFY: Email service configuration
+    └── CsvExportApiContractTest.php              # [NEW] Validate API contract compliance
 ```
+
+**Structure Decision**: This is an **incremental update** to the existing Laravel web application structure. The member system (011-member-system) is already implemented and tested. This update adds permission control to an existing feature (Video Analysis Export CSV) by:
+
+1. **Backend**: New API controller (`Api/CsvExportController`), new service layer (`CsvExportService`, `RateLimitService`), new database table (`csv_export_logs`), new middleware (`CheckCsvExportRateLimit`)
+2. **Frontend**: Minimal JavaScript modification to call API endpoint instead of client-side CSV generation
+3. **Database**: Single new table for rate limit tracking with rolling window support
+
+This follows the existing Laravel MVC + Service layer pattern already established in the codebase (e.g., `CommentDensityAnalysisService`, `VideoIncrementalUpdateService`).
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> **No constitutional violations detected.** This section is empty as all Constitution Check gates pass.
 
-No constitutional violations. All principles pass.
+## Phase 0: Research & Decisions
 
----
+### Research Questions
 
-## Implementation Summary
+1. **Rate Limiting Strategy**: How to implement rolling window rate limiting in Laravel?
+   - Research Laravel's built-in RateLimiter
+   - Evaluate database-backed vs cache-backed rate limiting for accuracy
+   - Decision criteria: Must support 60-minute rolling window, per-user tracking
 
-### Files Overview
+2. **CSV Generation Performance**: How to efficiently generate CSV with row limits?
+   - Research Laravel Response::streamDownload() vs Collection->toCsv()
+   - Evaluate memory usage for 3,000 row exports
+   - Decision criteria: <200MB memory usage, <2 second response time
 
-**Total Files**: 73 files (3 modified, 70 new)
+3. **Permission Gate Pattern**: Best practice for role-based CSV export permissions in Laravel?
+   - Research Laravel Gates vs Policies for feature-level permissions
+   - Evaluate middleware vs controller-level permission checks
+   - Decision criteria: Consistent with existing member system RBAC pattern
 
-**Modified Files** (3):
-1. `app/Models/User.php` - Add role, verification, API quota fields
-2. `database/factories/UserFactory.php` - Add role/verification support
-3. `config/mail.php` - Email service configuration
+### Technical Decisions to Document in research.md
 
-**New Files by Category**:
+- Rate limiting implementation approach (database `csv_export_logs` table vs Redis cache)
+- CSV generation method (streaming vs in-memory) for performance
+- Permission check location (middleware vs service layer)
+- Error response format for rate limit/row limit violations (JSON structure)
+- Rolling window calculation method (first export timestamp tracking)
 
-**Models** (5 new):
-- `app/Models/Role.php`
-- `app/Models/Permission.php`
-- `app/Models/EmailVerificationToken.php`
-- `app/Models/ApiQuota.php`
-- `app/Models/IdentityVerification.php`
+**Output**: `research.md` with documented decisions and rationale
 
-**Controllers** (7 new):
-- `app/Http/Controllers/Auth/RegisterController.php`
-- `app/Http/Controllers/Auth/LoginController.php`
-- `app/Http/Controllers/Auth/EmailVerificationController.php`
-- `app/Http/Controllers/Auth/PasswordResetController.php`
-- `app/Http/Controllers/Auth/PasswordChangeController.php`
-- `app/Http/Controllers/UserSettingsController.php`
-- `app/Http/Controllers/Admin/UserManagementController.php`
+## Phase 1: API Contract & Data Model
 
-**Middleware** (4 new):
-- `app/Http/Middleware/CheckUserRole.php`
-- `app/Http/Middleware/CheckEmailVerified.php`
-- `app/Http/Middleware/CheckDefaultPassword.php`
-- `app/Http/Middleware/CheckApiQuota.php`
+### Data Model: `csv_export_logs` Table
 
-**Services** (5 new):
-- `app/Services/AuthenticationService.php`
-- `app/Services/EmailVerificationService.php`
-- `app/Services/PasswordService.php`
-- `app/Services/RolePermissionService.php`
-- `app/Services/ApiQuotaService.php`
+**Purpose**: Track CSV export attempts per user for rolling window rate limiting
 
-**Form Requests** (3 new):
-- `app/Http/Requests/RegisterRequest.php`
-- `app/Http/Requests/PasswordChangeRequest.php`
-- `app/Http/Requests/UserSettingsRequest.php`
+**Schema**:
+```sql
+CREATE TABLE csv_export_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    video_id VARCHAR(255) NOT NULL,
+    exported_at DATETIME NOT NULL COMMENT 'UTC timestamp',
+    row_count INT UNSIGNED NOT NULL,
+    pattern VARCHAR(50) NULL COMMENT 'daytime/night/late_night/all',
+    time_points_filter TEXT NULL COMMENT 'JSON array of time points',
+    status ENUM('success', 'rate_limited', 'row_limited', 'error') NOT NULL,
+    trace_id CHAR(36) NOT NULL COMMENT 'UUID for log tracing',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_exported_at (user_id, exported_at),
+    INDEX idx_trace_id (trace_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
 
-**Mail/Policies** (3 new):
-- `app/Mail/VerificationEmail.php`
-- `app/Mail/PasswordResetEmail.php`
-- `app/Policies/UserPolicy.php`
+**Relationships**:
+- `csv_export_logs.user_id` → `users.id` (many-to-one)
 
-**Database Migrations** (9 new):
-- `2025_11_20_000001_update_users_table_for_member_system.php`
-- `2025_11_20_000002_create_roles_table.php`
-- `2025_11_20_000003_create_permissions_table.php`
-- `2025_11_20_000004_create_role_user_table.php`
-- `2025_11_20_000005_create_permission_role_table.php` (corrected from wrong name in earlier doc)
-- `2025_11_20_000006_create_email_verification_tokens_table.php`
-- `2025_11_20_000007_create_api_quotas_table.php`
-- `2025_11_20_000008_create_identity_verifications_table.php`
-- `2025_11_20_000009_seed_default_admin_account.php`
+**State Transitions**:
+- New export attempt → Check last 60 minutes of logs → Count successes → Allow/deny
+- Successful export → Insert log with `status='success'`
+- Rate limited → Insert log with `status='rate_limited'` for audit trail
+- Row limited → Insert log with `status='row_limited'` for audit trail
 
-**Seeders** (3 new):
-- `database/seeders/RoleSeeder.php`
-- `database/seeders/PermissionSeeder.php`
-- `database/seeders/AdminUserSeeder.php`
+**Validation Rules**:
+- `user_id` must exist in users table
+- `exported_at` must be UTC datetime
+- `row_count` must be >= 0
+- `status` must be one of enum values
+- `trace_id` must be valid UUID format
 
-**Factories** (1 new):
-- `database/factories/EmailVerificationTokenFactory.php`
+### API Contract: CSV Export Endpoint
 
-**Views** (16 new):
-- 6 auth views (register, login, verify-email, password-reset-request, password-reset, mandatory-password-change)
-- 1 settings view
-- 3 admin views (user list, edit user, dashboard placeholder)
-- 2 components (permission-modal, upgrade-button)
-- 2 email templates (verify-email, reset-password)
-- 2 language files (modify auth.php and validation.php for Traditional Chinese)
+**Endpoint**: `POST /api/videos/{videoId}/comments/export-csv`
 
-**Tests** (13 new):
-- 5 Feature tests (Auth: Registration, EmailVerification, Login, PasswordReset, MandatoryPasswordChange)
-- 3 Feature tests (UserSettings, RoleBasedAccess, Admin/UserManagement)
-- 4 Unit tests (PasswordValidation, RolePermission, EmailVerificationToken, ApiQuota)
-- 2 Contract tests (EmailServiceContract, RolePermissionContract)
+**Authentication**: Required (Laravel Sanctum or session-based auth)
 
-**Routes** (2 modified):
-- `routes/web.php` - Add auth/user routes
-- `routes/api.php` - Add auth API routes
+**Authorization**:
+- Visitors: 403 Forbidden with modal message
+- Regular Members+: Check rate limit (5/hour rolling window)
+- Check row limit based on role
+- Administrators: No limits
 
----
+**Request Parameters**:
+```json
+{
+  "fields": ["author_channel_id", "published_at", "text", "like_count"],
+  "pattern": "daytime|night|late_night|all",
+  "time_points": ["2025-11-21T10:00:00", "2025-11-21T11:00:00"] // optional
+}
+```
 
-## Phase 0 Deliverables ✅
+**Success Response** (200 OK):
+```
+Content-Type: text/csv
+Content-Disposition: attachment; filename="video_{videoId}_comments_{timestamp}.csv"
 
-- [x] `research.md` - Technology decisions and rationale
-  - Email service: Laravel Mail with SMTP
-  - Password hashing: bcrypt (Laravel default)
-  - RBAC: Custom implementation (no Spatie package)
-  - Token storage: Separate verification/reset tables
-  - API quota: Dedicated table with monthly reset
-  - Timezone: UTC storage, GMT+8 display
-  - Modal UI: Blade + Alpine.js
-  - Rate limiting: Laravel RateLimiter
+[CSV data with selected fields]
+```
 
----
+**Error Responses**:
 
-## Phase 1 Deliverables ✅
+```json
+// 401 Unauthorized - Not logged in
+{
+  "error": {
+    "type": "Unauthorized",
+    "message": "請登入會員",
+    "details": {
+      "timestamp": "2025-11-21T14:30:00+08:00"
+    }
+  }
+}
 
-- [x] `data-model.md` - Complete database schema with 9 tables
-  - Modified: `users` table (added 4 columns)
-  - New: `roles`, `permissions`, `role_user`, `permission_role`, `email_verification_tokens`, `api_quotas`, `identity_verifications`
-  - Includes ER diagram, validation rules, state transitions, indexes
+// 429 Too Many Requests - Rate limit exceeded
+{
+  "error": {
+    "type": "RateLimitExceeded",
+    "message": "已達到匯出次數限制 (5/5)，請稍後再試",
+    "details": {
+      "current_usage": 5,
+      "limit": 5,
+      "reset_in_minutes": 42,
+      "reset_at": "2025-11-21T15:15:00+08:00",
+      "trace_id": "uuid-here"
+    }
+  }
+}
 
-- [x] `contracts/authentication-api.md` - Authentication API contracts
-  - 8 endpoints: Register, Verify Email, Resend Verification, Login, Change Password, Reset Request, Reset Confirm, Logout
-  - JSON request/response formats
-  - Rate limiting specs
-  - Security considerations
+// 413 Payload Too Large - Row limit exceeded
+{
+  "error": {
+    "type": "RowLimitExceeded",
+    "message": "資料包含 2,500 筆，您的權限限制為 1,000 筆。請套用篩選條件或聯繫管理員。",
+    "details": {
+      "row_count": 2500,
+      "row_limit": 1000,
+      "role": "Regular Member",
+      "trace_id": "uuid-here",
+      "suggestions": [
+        "套用時間篩選以減少資料量",
+        "升級為付費會員以提高限制至 3,000 筆",
+        "聯繫管理員申請無限制匯出"
+      ]
+    }
+  }
+}
 
-- [x] `contracts/user-management-api.md` - User management API contracts
-  - 9 endpoints: List Users, Get User Details, Update Role, Get/Update Settings, Check Quota, Submit/Review Identity Verification, Check Permissions
-  - Admin-only vs authenticated user endpoints
-  - Authorization rules
+// 404 Not Found - Video not found
+{
+  "error": {
+    "type": "NotFound",
+    "message": "找不到指定的影片",
+    "details": {
+      "video_id": "xyz",
+      "trace_id": "uuid-here"
+    }
+  }
+}
 
-- [x] `quickstart.md` - Developer setup guide
-  - Prerequisites and environment setup
-  - Migration and seeding steps
-  - Testing instructions
-  - API usage examples
-  - Troubleshooting guide
-  - Production deployment checklist
+// 422 Unprocessable Entity - Validation error
+{
+  "error": {
+    "type": "ValidationError",
+    "message": "請求參數驗證失敗",
+    "details": {
+      "fields": ["至少需要選擇一個欄位"],
+      "pattern": ["pattern 必須是 daytime、night、late_night 或 all 之一"]
+    }
+  }
+}
+```
 
-- [x] Agent context updated
-  - Updated `CLAUDE.md` with PHP 8.2, Laravel 12.38.1, MySQL/MariaDB
+**Output**: `contracts/csv-export-api.yaml` (OpenAPI 3.0 spec)
 
----
+## Phase 1: Implementation Guide (quickstart.md)
+
+**Purpose**: Developer guide for implementing and testing CSV export permission control
+
+**Sections**:
+1. **Prerequisites**: Existing member system, video analysis feature, authentication
+2. **Database Setup**: Run migration for `csv_export_logs` table
+3. **Service Layer**: Implement `CsvExportService` (CSV generation with row limits) and `RateLimitService` (rolling window checks)
+4. **Middleware**: Implement `CheckCsvExportRateLimit` for route protection
+5. **Controller**: Implement `Api/CsvExportController@export` with permission gates
+6. **Frontend Integration**: Update `comment-pattern.js` to call API endpoint
+7. **Testing**: Run Feature tests for permissions, rate limits, row limits
+8. **Deployment**: Migration, cache clear, route cache clear
+
+**Output**: `quickstart.md` with step-by-step implementation instructions
+
+## Agent Context Update
+
+After Phase 1 artifacts are generated, run:
+
+```bash
+.specify/scripts/bash/update-agent-context.sh claude
+```
+
+This will update `CLAUDE.md` with:
+- New CSV export permission control feature entry
+- Technology: PHP 8.2 + Laravel 12.38.1 (no new technologies added, using existing stack)
+- Recent changes entry for Export CSV permission control implementation
 
 ## Next Steps
 
-### Phase 2: Task Breakdown (Run `/speckit.tasks`)
+After Phase 1 completion (this plan):
 
-The next command will generate `tasks.md` with:
-- Dependency-ordered task list
-- Test requirements for each task
-- Acceptance criteria per task
-- Estimated implementation order
-
-### Implementation Order (Recommended)
-
-1. **Database Layer** (Migrations, Models, Seeders)
-2. **Service Layer** (Authentication, Email, Password, Role, Quota services)
-3. **Controller Layer** (Auth controllers, User settings, Admin management)
-4. **Middleware Layer** (Role check, verification check, quota check)
-5. **View Layer** (Blade templates, components, email templates)
-6. **Test Layer** (Feature tests, Unit tests, Contract tests)
-7. **Routes Configuration** (Web routes, API routes)
-8. **Language Files** (Traditional Chinese translations)
+1. **Phase 2**: Run `/speckit.tasks` to generate `tasks.md` - incremental task breakdown
+2. **Implementation**: Execute tasks from `tasks.md` following TDD approach
+3. **Testing**: Run Feature tests and Contract tests to validate implementation
+4. **Integration**: Manual testing with all 5 user roles (Visitor, Regular, Paid, Website Editor, Admin)
+5. **Deployment**: Apply database migration, deploy code changes
 
 ---
 
-## Documentation Location
-
-All planning artifacts are in:
-```
-/Users/yueyu/Dev/DISINFO_SCANNER/specs/011-member-system/
-├── plan.md              ✅ This file
-├── research.md          ✅ Phase 0 output
-├── data-model.md        ✅ Phase 1 output
-├── quickstart.md        ✅ Phase 1 output
-├── contracts/           ✅ Phase 1 output
-│   ├── authentication-api.md
-│   └── user-management-api.md
-└── tasks.md             ⏳ Phase 2 (next step - run /speckit.tasks)
-```
-
----
-
-**Planning Status**: COMPLETE
-**Ready for**: Task breakdown (`/speckit.tasks`) and implementation
-**Branch**: `011-member-system`
-**Last Updated**: 2025-11-20
+**Plan Status**: ✅ Ready for Phase 0 (Research) execution
+**Next Command**: Agent will now proceed to Phase 0 - Generate `research.md`

@@ -2167,3 +2167,285 @@ Task: T530, T531, T532
 **User Stories**: 1 (US4)
 **Dependencies**: Core Module + UI Module must be complete
 **Estimated Completion**: Full RBAC system with all 5 roles
+
+
+---
+
+
+# Tasks: CSV Export Permission Control (INCREMENTAL UPDATE)
+
+**Feature**: 011-member-system
+**Module**: CSV Export Permissions (Incremental Update to User Story 4)
+**Branch**: `011-member-system`
+**Generated**: 2025-11-21
+**Type**: INCREMENTAL UPDATE
+
+## Overview
+
+This is an **incremental update** adding role-based permission control, rate limiting, and row limits to the existing Video Analysis CSV export feature. The core member system (User Stories 1-3) and base RBAC system are already implemented.
+
+**New Functionality (User Story 4 - CSV Export subset, Acceptance Scenarios 8-15)**:
+- Authentication gate: Visitors cannot use Export CSV (modal: "請登入會員")
+- Rate limiting: 5 exports per hour (rolling 60-minute window) for Regular/Paid/Website Editor roles
+- Row limits: Regular Members (1,000 rows), Paid Members & Website Editors (3,000 rows), Administrators (unlimited)
+- Administrators bypass all limits
+
+**Dependencies**: Requires existing member system (Core + UI + RBAC modules complete)
+
+**Total Tasks**: 28 (T601-T628)
+**Parallel Tasks**: 15 (marked with [P])
+
+---
+
+## Phase 1: Database & Foundational Setup (5 tasks)
+
+**Goal**: Set up database schema and core infrastructure for CSV export rate limiting.
+
+**Completion Criteria**:
+- Migration created and executable
+- `csv_export_logs` table exists with proper indexes
+- `CsvExportLog` model functional with relationships
+
+### Tasks
+
+- [ ] T601 Create migration for csv_export_logs table in database/migrations/2025_11_21_000010_create_csv_export_logs_table.php
+- [ ] T602 [P] Create CsvExportLog model in app/Models/CsvExportLog.php with User relationship
+- [ ] T603 [P] Create CsvExportRateLimitException in app/Exceptions/CsvExportRateLimitException.php
+- [ ] T604 [P] Create CsvExportRowLimitException in app/Exceptions/CsvExportRowLimitException.php
+- [ ] T605 Run migration to create csv_export_logs table: php artisan migrate
+
+**Parallel Execution**:
+```bash
+# After T601 completes, run T602-T604 in parallel:
+# Terminal 1: Create CsvExportLog model
+# Terminal 2: Create CsvExportRateLimitException
+# Terminal 3: Create CsvExportRowLimitException
+# Then run T605 after T602 completes
+```
+
+**Checkpoint**: Database foundation ready
+
+---
+
+## Phase 2: Service Layer & Business Logic (8 tasks)
+
+**Goal**: Implement rate limiting service, CSV export service with streaming, and row limit logic.
+
+**Completion Criteria**:
+- RateLimitService correctly implements rolling 60-minute window
+- CsvExportService generates CSV with streaming (Response::streamDownload)
+- Row limits enforced per role before CSV generation
+- All services unit-testable
+
+### Tasks
+
+- [ ] T606 Create RateLimitService in app/Services/RateLimitService.php with checkLimit() method (rolling window logic)
+- [ ] T607 Create CsvExportService in app/Services/CsvExportService.php with generate() method (streaming CSV generation using PHP generators)
+- [ ] T608 [P] Add getRowLimitForRole() helper method to User model in app/Models/User.php (returns 1000/3000/null based on role)
+- [ ] T609 [P] Write unit test for RateLimitService rolling window calculation in tests/Unit/RateLimitServiceTest.php
+- [ ] T610 [P] Write unit test for CsvExportService CSV generation in tests/Unit/CsvExportServiceTest.php
+- [ ] T611 [P] Write unit test for User::getRowLimitForRole() in tests/Unit/UserModelTest.php
+- [ ] T612 Implement structured logging in RateLimitService with trace_id, user_id, video_id per Constitution Principle III
+- [ ] T613 Implement structured logging in CsvExportService for export attempts (success/failure) with trace_id
+
+**Parallel Execution**:
+```bash
+# After T606-T607 complete, run T608-T611 in parallel:
+# Terminal 1: Add User helper method
+# Terminal 2: Write RateLimitService unit tests
+# Terminal 3: Write CsvExportService unit tests
+# Terminal 4: Write User model unit tests
+# Then run T612-T613 sequentially
+```
+
+**Checkpoint**: Service layer complete and unit-tested
+
+---
+
+## Phase 3: API Controller & Request Validation (6 tasks)
+
+**Goal**: Create API endpoint for CSV export with permission checks, rate limiting, and row limits.
+
+**Completion Criteria**:
+- POST /api/videos/{videoId}/comments/export-csv endpoint functional
+- Request validation (fields[], pattern, time_points[]) working
+- Authentication via auth:sanctum middleware enforced
+- All 5 roles tested (Visitor → Administrator)
+
+### Tasks
+
+- [ ] T614 Create CsvExportRequest form request in app/Http/Requests/CsvExportRequest.php (validate fields[], pattern, time_points[])
+- [ ] T615 Create CsvExportController in app/Http/Controllers/Api/CsvExportController.php with export() method
+- [ ] T616 Implement permission checks in CsvExportController: deny visitors (401), check rate limit (T606), check row limit (T608)
+- [ ] T617 Implement CSV streaming response in CsvExportController using CsvExportService (T607)
+- [ ] T618 Add API route in routes/api.php: POST /videos/{videoId}/comments/export-csv with auth:sanctum middleware
+- [ ] T619 [P] Add structured error responses (JSON) for 401/429/413/404/422 errors per plan.md API contract
+
+**Parallel Execution**:
+```bash
+# T614-T618 must run sequentially (dependencies)
+# T619 can run in parallel with T618 (different file sections)
+```
+
+**Checkpoint**: API endpoint functional and tested
+
+---
+
+## Phase 4: Feature Tests - CSV Export Permissions (9 tasks)
+
+**Goal**: Write comprehensive Feature tests covering all acceptance scenarios from User Story 4 (scenarios 8-15).
+
+**Completion Criteria**:
+- All 5 roles tested: Visitor, Regular Member, Paid Member, Website Editor, Administrator
+- Rate limiting tested (rolling window, 5 exports/hour)
+- Row limits tested per role (1,000 / 3,000 / unlimited)
+- Edge cases covered (rate limit exceeded, row limit exceeded, invalid requests)
+
+### Tasks
+
+- [ ] T620 [P] Write Feature test: Visitor attempts CSV export → 401 Unauthorized "請登入會員" in tests/Feature/CsvExportPermissionTest.php
+- [ ] T621 [P] Write Feature test: Regular Member exports CSV successfully (< 1,000 rows) in tests/Feature/CsvExportPermissionTest.php
+- [ ] T622 [P] Write Feature test: Regular Member exceeds rate limit (6th export in hour) → 429 with reset_at in tests/Feature/CsvExportRateLimitTest.php
+- [ ] T623 [P] Write Feature test: Regular Member exceeds row limit (1,500 rows) → 413 with suggestions in tests/Feature/CsvExportRowLimitTest.php
+- [ ] T624 [P] Write Feature test: Paid Member exports CSV successfully (< 3,000 rows) in tests/Feature/CsvExportPermissionTest.php
+- [ ] T625 [P] Write Feature test: Paid Member exceeds row limit (4,000 rows) → 413 in tests/Feature/CsvExportRowLimitTest.php
+- [ ] T626 [P] Write Feature test: Administrator exports > 5 times in hour (no rate limit) in tests/Feature/CsvExportPermissionTest.php
+- [ ] T627 [P] Write Feature test: Administrator exports 10,000 rows (no row limit) in tests/Feature/CsvExportPermissionTest.php
+- [ ] T628 [P] Write Contract test: Verify API response format (CSV headers, JSON error structure) in tests/Contract/CsvExportApiContractTest.php
+
+**Parallel Execution**:
+```bash
+# All T620-T628 can run in parallel (independent test files/methods)
+# Run: php artisan test --parallel --processes=8
+```
+
+**Checkpoint**: All acceptance scenarios 8-15 tested and passing
+
+---
+
+## Dependencies
+
+```text
+Phase 1 (Database Setup)
+    ↓
+Phase 2 (Service Layer)
+    ↓
+Phase 3 (API Controller)
+    ↓
+Phase 4 (Feature Tests)
+```
+
+**Critical Path**: T601 → T605 → T606 → T607 → T615 → T616 → T617 → T618
+
+**Parallel Opportunities**:
+- Phase 1: T602, T603, T604 (after T601)
+- Phase 2: T608, T609, T610, T611 (after T606-T607)
+- Phase 3: T619 (with T618)
+- Phase 4: T620-T628 (all parallelizable)
+
+---
+
+## Implementation Strategy
+
+### Test-First Development (TDD)
+
+**Constitution Principle I** requires Red-Green-Refactor:
+
+1. **Phase 2**: Write unit tests (T609-T611) → Implement services (T606-T608) → Refactor
+2. **Phase 4**: Write Feature tests (T620-T628) → Implement controller logic (T614-T619) → Refactor
+
+### Incremental Delivery
+
+**Recommended MVP** (Minimal viable increment):
+- **Phase 1-3 complete**: API endpoint functional with basic permission check
+- **Test subset**: T620 (Visitor denied), T621 (Regular Member success), T626 (Admin unlimited)
+- **Delivers value**: CSV export now requires authentication, rate limiting active
+
+**Full Feature** (Complete User Story 4 - CSV subset):
+- **All phases complete**: All acceptance scenarios 8-15 implemented and tested
+- **Delivers value**: Complete role-based CSV export with rate/row limits
+
+### Manual Testing Checklist
+
+After all phases complete, manually verify:
+
+1. ✅ Visitor clicks "Export CSV" → Modal "請登入會員" (scenario 8)
+2. ✅ Regular Member exports CSV (< 1,000 rows) → Success (scenario 9)
+3. ✅ Regular Member 6th export in hour → 429 error with reset time (scenario 10)
+4. ✅ Regular Member exports 1,500 rows → 413 error with suggestions (scenario 11)
+5. ✅ Paid Member exports 2,500 rows → Success (scenario 12)
+6. ✅ Paid Member exports 4,000 rows → 413 error (scenario 13)
+7. ✅ Administrator 6th+ export in hour → Success (scenario 14)
+8. ✅ Administrator exports 10,000 rows → Success (scenario 15)
+
+---
+
+## Performance Validation
+
+Per plan.md performance goals:
+
+| Metric | Target | Validation Method |
+|--------|--------|-------------------|
+| Rate limit check | < 50ms | Add timing logs in RateLimitService |
+| CSV generation (3,000 rows) | < 500ms | Add timing logs in CsvExportService |
+| Total API response | < 2 seconds | Browser Network tab + timing logs |
+
+**Test**: Use browser Network tab to measure total response time for 3,000 row export.
+
+---
+
+## Rollback Plan
+
+If issues arise post-deployment:
+
+1. **Disable CSV export API**: Comment out route in routes/api.php (T618)
+2. **Restore client-side CSV**: Frontend falls back to existing JavaScript CSV generation
+3. **Fix forward**: Keep database migration (csv_export_logs table), fix bugs, re-enable API
+
+---
+
+## Task Summary
+
+**Total Tasks**: 28 (T601-T628)
+- **Phase 1 (Database)**: 5 tasks
+- **Phase 2 (Services)**: 8 tasks
+- **Phase 3 (API)**: 6 tasks
+- **Phase 4 (Tests)**: 9 tasks
+
+**Parallel Opportunities**: 15 tasks marked [P]
+
+**Estimated Effort**:
+- Phase 1: 1 hour
+- Phase 2: 3 hours (includes unit tests)
+- Phase 3: 2 hours
+- Phase 4: 3 hours (Feature tests)
+- **Total**: ~9 hours for complete implementation + testing
+
+---
+
+## Success Metrics
+
+### Functionality
+- [ ] Visitor denied CSV export with 401 error
+- [ ] Regular Member can export up to 1,000 rows
+- [ ] Regular Member limited to 5 exports per hour
+- [ ] Paid Member can export up to 3,000 rows
+- [ ] Administrator has unlimited exports (no rate/row limits)
+- [ ] Rate limit error shows reset time
+- [ ] Row limit error shows suggestions
+
+### Performance
+- [ ] Rate limit check < 50ms
+- [ ] CSV generation (3,000 rows) < 500ms
+- [ ] Total API response < 2 seconds
+
+### Testing
+- [ ] All 8 acceptance scenarios (8-15) pass
+- [ ] Unit tests pass (rolling window, row limits)
+- [ ] Contract tests verify API format
+
+---
+
+**Status**: Ready for implementation
+**Next Command**: Start with Phase 1, Task T601
+**Test Command**: `php artisan test --filter=CsvExport`

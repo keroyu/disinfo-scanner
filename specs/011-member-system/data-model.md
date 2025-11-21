@@ -414,5 +414,141 @@ Execute migrations in this order to satisfy foreign key constraints:
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.1.0 (Incremental Update - CSV Export Permissions)
+**Status**: Ready for implementation
+
+---
+
+# ADDENDUM: CSV Export Rate Limiting Data Model
+
+**Date**: 2025-11-21
+**Context**: Incremental update - Adding `csv_export_logs` table for rate limiting and audit trail
+
+## Additional Entity Relationship
+
+```text
+┌──────────────┐         ┌────────────────────┐
+│    users     │────────<│  csv_export_logs   │
+└──────────────┘         └────────────────────┘
+```
+
+---
+
+### 10. `csv_export_logs` (NEW)
+
+**Purpose**: Track CSV export attempts per user for rolling window rate limiting (5 exports per 60-minute window) and audit trail.
+
+**Schema**:
+| Column | Type | Nullable | Default | Constraints | Description |
+|--------|------|----------|---------|-------------|-------------|
+| id | BIGINT UNSIGNED | NO | AUTO_INCREMENT | PRIMARY KEY | Log entry ID |
+| user_id | BIGINT UNSIGNED | NO | - | FOREIGN KEY(users.id) ON DELETE CASCADE, INDEX | User who attempted export |
+| video_id | VARCHAR(255) | NO | - | INDEX | YouTube video ID |
+| exported_at | DATETIME | NO | - | INDEX | Export attempt time (UTC) |
+| row_count | INT UNSIGNED | NO | - | - | Number of rows in export (0 if failed) |
+| pattern | VARCHAR(50) | YES | NULL | - | Comment pattern filter (daytime/night/late_night/all) |
+| time_points_filter | TEXT | YES | NULL | - | JSON array of time point timestamps |
+| status | ENUM('success', 'rate_limited', 'row_limited', 'error') | NO | - | INDEX | Export status |
+| trace_id | CHAR(36) | NO | - | INDEX | UUID for log correlation |
+| error_message | TEXT | YES | NULL | - | Error details if status != success |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | - | Record creation time (UTC) |
+
+**Composite Indexes**:
+```sql
+CREATE INDEX idx_csv_export_logs_user_exported ON csv_export_logs(user_id, exported_at);
+CREATE INDEX idx_csv_export_logs_trace_id ON csv_export_logs(trace_id);
+CREATE INDEX idx_csv_export_logs_status ON csv_export_logs(status);
+CREATE INDEX idx_csv_export_logs_video ON csv_export_logs(video_id);
+```
+
+**Validation Rules**:
+- `user_id` must exist in users table
+- `exported_at` must be valid UTC datetime
+- `row_count` must be >= 0
+- `status` must be one of enum values
+- `trace_id` must be valid UUID format (validated at application level)
+- `pattern` must be one of: daytime, night, late_night, all (if not NULL)
+
+**Rate Limiting Logic**:
+```sql
+-- Check rate limit before export (rolling 60-minute window)
+SELECT COUNT(*) as export_count
+FROM csv_export_logs
+WHERE user_id = ?
+  AND exported_at >= NOW() - INTERVAL 60 MINUTE
+  AND status = 'success';
+
+-- If export_count >= 5, reject with 429 status
+-- Administrators bypass this check entirely
+```
+
+**Rolling Window Calculation**:
+- **Fixed window from first export**: When user makes first export at 10:15:00, they can make 4 more exports until 11:15:00
+- **Window reset**: At 11:15:00, all 5 slots become available again
+- **Implementation**: Query finds first `exported_at` in current window, calculates reset time as `first_export + 60 minutes`
+
+**State Transitions**:
+```text
+New Export Attempt
+    ├─> Check last 60 minutes of logs
+    ├─> Count WHERE status = 'success'
+    │
+    ├─> If count >= 5 (AND user is not administrator)
+    │   └─> Insert log with status='rate_limited'
+    │   └─> Reject with 429 error
+    │
+    ├─> If row_count > role_limit (AND user is not administrator)
+    │   └─> Insert log with status='row_limited'
+    │   └─> Reject with 413 error
+    │
+    └─> If all checks pass
+        └─> Generate CSV
+        └─> Insert log with status='success', row_count=actual_count
+        └─> Return CSV file
+```
+
+**Cleanup Strategy**:
+- **Daily cron job**: Delete logs older than 7 days for audit retention
+- **Query**: `DELETE FROM csv_export_logs WHERE created_at < NOW() - INTERVAL 7 DAY`
+- **Rationale**: Logs older than 7 days not needed for rate limiting (60-minute window), but retained briefly for security audit
+
+**Relationships**:
+- Belongs to `users` (many-to-one)
+
+**Security & Observability**:
+- Every export attempt (success or failure) creates a log entry
+- `trace_id` links to application logs for debugging
+- Failed attempts (`rate_limited`, `row_limited`, `error`) logged for security analysis
+- Audit trail persists for 7 days minimum
+
+**Performance Considerations**:
+- `idx_user_exported` composite index optimizes rate limit query (30-50ms per check)
+- `exported_at` stored as DATETIME (not TIMESTAMP) to avoid MySQL TIMESTAMP range limitations (1970-2038)
+- `time_points_filter` stored as TEXT (JSON) for flexibility, not normalized (acceptable for audit log)
+
+---
+
+## Updated Migration Order
+
+Execute migrations in this order (new migration added at end):
+
+1-9. *(Existing migrations from initial member system - no changes)*
+
+10. **NEW**: `2025_11_21_000010_create_csv_export_logs_table.php`
+
+---
+
+## Timezone Handling (Updated)
+
+**All timestamps stored in UTC** (includes new table):
+- `csv_export_logs.exported_at`: UTC datetime
+- `csv_export_logs.created_at`: UTC timestamp
+
+**Display Conversion**:
+- Rate limit error messages convert to GMT+8: "Limit resets at 2025-11-21T15:15:00+08:00"
+- CSV export log display (if exposed in UI): Convert `exported_at` to GMT+8 using Carbon
+
+---
+
+**Version**: 1.1.0 (CSV Export Permissions)
 **Status**: Ready for implementation

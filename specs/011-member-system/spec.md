@@ -25,6 +25,14 @@
 - Q: What should happen when a verification link is clicked multiple times? → A: First click verifies account and invalidates token; subsequent clicks show "already verified" message
 - Q: How should permission-denied notifications be displayed to users? → A: When users click buttons/interface elements requiring higher permissions, display modal notifications with messages like "請登入會員" (Please login) or "需升級為付費會員" (Requires upgrade to Paid Member)
 
+### Session 2025-11-21
+
+- Q: The spec mentions "video analysis feature" but the update refers to "Export CSV feature on Video Analysis page." Are these the same feature, or is Export CSV a sub-feature within video analysis? → A: Export CSV is a separate sub-feature within video analysis that requires additional permissions beyond just viewing analysis results. Members (Regular Members) and above can use it.
+- Q: Should there be rate limiting or throttling on CSV export requests to prevent abuse or server overload? → A: Yes, implement rate limiting of 5 exports per user per hour to prevent abuse and protect server resources.
+- Q: How should the 5 exports per hour rate limit reset work? → A: Rolling window (resets based on time since first export, e.g., if first export at 10:15, can export again after 11:15).
+- Q: Should the 5 exports per hour rate limit apply equally to all authenticated users, or should Administrators have different (unlimited) access? → A: Administrators have unlimited CSV exports; rate limit only applies to Regular Members, Paid Members, and Website Editors.
+- Q: Should there be maximum limits on CSV export file size or number of rows to prevent memory issues and long processing times? → A: Tiered row limits - Regular Members: 1,000 rows max, Paid Members and Website Editors: 3,000 rows max, Administrators: unlimited. Error message displayed if data exceeds limit.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - New User Registration and Email Verification (Priority: P1)
@@ -89,11 +97,12 @@ The platform supports five distinct user roles with progressively expanding acce
 - Can view Home page and Videos List page
 - Cannot access Channels List or Comments List
 - Cannot use search function in Videos List
-- Can use video "analysis" feature but cannot use video "update" feature
+- Can use video "analysis" feature to view analysis results but cannot use "Export CSV" feature
+- Cannot use video "update" feature
 
 **Regular Members**:
 - Can view Home, Channels List, Videos List, and Comments List pages
-- Can use video "analysis" feature in Videos List
+- Can use video "analysis" feature in Videos List, including "Export CSV" functionality (limited to 1,000 rows per export)
 - Can access Comments List but cannot use search function
 - Can only use "U-API import", cannot use "Official API import"
 - After setting YouTube API Key in Settings, can use video "update" feature
@@ -101,16 +110,19 @@ The platform supports five distinct user roles with progressively expanding acce
 
 **Paid Members**:
 - Can use all current frontend features of the website
+- Can export CSV files with up to 3,000 rows per export
 - After setting YouTube API Key, can use "Official API import" button in top right of Videos List
 - "Official API import" is limited to 10 videos per month
 - After completing identity verification, unlimited "Official API import" is enabled
 
 **Website Editors**:
 - Can use all frontend functions, including all Paid Member capabilities
+- Can export CSV files with up to 3,000 rows per export
 - Has full access to all frontend features without restrictions
 
 **Administrators**:
 - Have unrestricted access to all frontend and backend platform features
+- Can export CSV files without rate limiting (unlimited exports) and without row count limits (unlimited rows per export)
 - Backend admin panel (data CRUD system, permission management system) UI will be included as placeholder, with full implementation to come later
 
 **All Authenticated Members** (Regular, Paid, Website Editor, Administrator):
@@ -129,7 +141,15 @@ The platform supports five distinct user roles with progressively expanding acce
 5. **Given** a Paid Member who has completed identity verification, **When** they use "Official API import", **Then** they can import unlimited videos without quota restrictions
 6. **Given** a Website Editor, **When** they access any frontend feature, **Then** they have full access equivalent to a verified Paid Member
 7. **Given** a visitor, **When** they click the search button in Videos List, **Then** a modal displays with message "請登入會員" (Please login as a member)
-8. **Given** any authenticated member, **When** they access Settings and change their password to a weak one, **Then** they see validation errors and the change is rejected
+8. **Given** a visitor viewing video analysis results, **When** they click the "Export CSV" button, **Then** a modal displays with message "請登入會員" (Please login as a member)
+9. **Given** a Regular Member viewing video analysis results, **When** they click the "Export CSV" button, **Then** the analysis data is exported as a CSV file and downloaded to their device
+10. **Given** a Regular Member who has already exported 5 CSV files in the current hour, **When** they attempt to export another CSV, **Then** system displays an error message showing "5/5 exports used" and time until limit resets
+11. **Given** a Regular Member viewing analysis data with 1,500 rows, **When** they attempt to export CSV, **Then** system displays an error message showing their 1,000 row limit is exceeded and suggests filtering data or upgrading to Paid Member
+12. **Given** a Paid Member viewing analysis data with 2,500 rows, **When** they click "Export CSV", **Then** the data is successfully exported as all 2,500 rows are within their 3,000 row limit
+13. **Given** a Paid Member viewing analysis data with 4,000 rows, **When** they attempt to export CSV, **Then** system displays an error message showing their 3,000 row limit is exceeded and suggests filtering data or contacting an administrator
+14. **Given** an Administrator viewing video analysis results, **When** they export CSV files more than 5 times in an hour, **Then** all exports succeed without rate limiting restrictions
+15. **Given** an Administrator viewing analysis data with 10,000 rows, **When** they click "Export CSV", **Then** the data is successfully exported with all rows as administrators have no row limits
+16. **Given** any authenticated member, **When** they access Settings and change their password to a weak one, **Then** they see validation errors and the change is rejected
 
 ---
 
@@ -149,6 +169,8 @@ The platform supports five distinct user roles with progressively expanding acce
 - What happens when the calendar month changes while a Paid Member is in the middle of an API import operation?
 - What happens if multiple users (Website Editor and Paid Member) try to import the same video simultaneously?
 - What happens when a visitor tries to directly access a restricted page URL without being logged in?
+- **CSV export rate limit exceeded**: When an authenticated user attempts to export CSV after reaching the 5 exports per hour limit, system displays an error message showing current usage (e.g., "5/5 exports used") and time remaining until the limit resets (e.g., "Limit resets in 42 minutes"). The rate limit uses a rolling window mechanism, resetting 60 minutes after the user's first export in the current window. Export request is blocked until the window expires.
+- **CSV export row count limit exceeded**: When a user attempts to export analysis data that exceeds their role-based row limit (Regular Members: 1,000 rows, Paid Members/Website Editors: 3,000 rows), system displays an error message indicating the data size exceeds the export limit, shows the actual row count and the user's limit (e.g., "Data contains 2,500 rows, your limit is 1,000 rows"), and suggests applying filters to reduce the dataset. For Regular Members, message also suggests upgrading to Paid Member for higher limits (3,000 rows). All users are informed they can contact an administrator for unlimited exports. Administrators can export any amount of data without row limits.
 
 ## Requirements *(mandatory)*
 
@@ -195,7 +217,17 @@ The platform supports five distinct user roles with progressively expanding acce
 - **FR-024**: System MUST allow visitors (unregistered users) to view Home page and Videos List page without authentication
 - **FR-025**: System MUST prevent visitors from accessing Channels List and Comments List pages
 - **FR-026**: System MUST prevent visitors from using search functionality in Videos List
-- **FR-027**: System MUST allow visitors to use video "analysis" feature but prevent them from using video "update" feature
+- **FR-027**: System MUST allow visitors to use video "analysis" feature to view analysis results but prevent them from using "Export CSV" functionality
+- **FR-027a**: System MUST prevent visitors from using video "update" feature
+- **FR-027b**: System MUST allow Regular Members and above to use "Export CSV" functionality within video analysis
+- **FR-027c**: System MUST display a modal notification with message "請登入會員" (Please login as a member) when visitors attempt to use "Export CSV"
+- **FR-027d**: System MUST implement rate limiting on CSV export requests at 5 exports per user per hour for Regular Members, Paid Members, and Website Editors using a rolling window mechanism
+- **FR-027e**: System MUST allow Administrators unlimited CSV export access without rate limiting
+- **FR-027f**: System MUST track CSV export usage per user with timestamp to enforce rate limiting, where the rate limit resets 60 minutes after the first export in the current window
+- **FR-027g**: System MUST display an error message when a user attempts to export CSV after exceeding the 5 exports per hour limit, showing current usage count and time until limit resets (based on 60 minutes from first export)
+- **FR-027h**: System MUST implement tiered row limits for CSV exports: Regular Members limited to 1,000 rows per export, Paid Members and Website Editors limited to 3,000 rows per export
+- **FR-027i**: System MUST allow Administrators to export CSV files without row count limits (unlimited rows)
+- **FR-027j**: System MUST display an error message when analysis data exceeds the user's row limit, showing the actual row count, the user's limit based on their role, and suggesting they filter the data, upgrade membership (for Regular Members), or contact an administrator
 - **FR-028**: System MUST allow Regular Members to access Home, Channels List, Videos List, and Comments List pages
 - **FR-029**: System MUST prevent Regular Members from using search functionality in Comments List
 - **FR-030**: System MUST allow Regular Members to use "U-API import" but prevent them from using "Official API import"
