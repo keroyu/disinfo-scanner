@@ -225,11 +225,14 @@ let commentPatternUI = null;
 let timeFilterState = null;
 
 // User permissions for search functionality
-const canSearch = @json(auth()->check() && (
-    auth()->user()->roles->contains('name', 'paid_member') ||
-    auth()->user()->roles->contains('name', 'website_editor') ||
-    auth()->user()->roles->contains('name', 'administrator')
-));
+@php
+    $canSearch = auth()->check() && (
+        auth()->user()->roles->contains('name', 'paid_member') ||
+        auth()->user()->roles->contains('name', 'website_editor') ||
+        auth()->user()->roles->contains('name', 'administrator')
+    );
+@endphp
+const canSearch = {{ $canSearch ? 'true' : 'false' }};
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
