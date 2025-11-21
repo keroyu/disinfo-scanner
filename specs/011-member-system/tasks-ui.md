@@ -70,7 +70,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 - [X] T118 [US2] Manually test mandatory password change flow renders correctly
 - [X] T119 [US2] Manually test password reset request form renders correctly
-- [ ] T120 [US2] Manually test password reset email displays correctly
+- [X] T120 [US2] Manually test password reset email displays correctly
 - [X] T121 [US2] Verify password strength indicator works
 
 **Checkpoint**: US2 views complete - password management UI functional
@@ -206,9 +206,9 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### Final UI Testing
 
-- [ ] T168 Test complete registration-to-login flow visually
-- [ ] T169 Test password change flow visually
-- [ ] T170 Test password reset flow visually
+- [X] T168 Test complete registration-to-login flow visually
+- [X] T169 Test password change flow visually
+- [X] T170 Test password reset flow visually
 - [ ] T171 Test all permission modals trigger correctly
 - [ ] T172 Test quota counter updates correctly
 - [ ] T173 Test all error messages display in Traditional Chinese
@@ -314,11 +314,11 @@ Task: T160, T161
 
 ### Functionality
 
-- [ ] Registration form submits and shows success/error messages
-- [ ] Login form authenticates and redirects correctly
-- [ ] Email verification page displays verification status
-- [ ] Mandatory password change form enforces requirements
-- [ ] Password reset flow works end-to-end visually
+- [X] Registration form submits and shows success/error messages
+- [X] Login form authenticates and redirects correctly
+- [X] Email verification page displays verification status
+- [X] Mandatory password change form enforces requirements
+- [X] Password reset flow works end-to-end visually
 - [ ] Settings page allows password and API key changes
 - [ ] Permission modals trigger on restricted actions
 - [ ] Quota counter displays correctly for Paid Members

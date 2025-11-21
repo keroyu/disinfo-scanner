@@ -19,16 +19,16 @@
             本系統提供 YouTube 留言資料的匯入、管理與分析功能。
         </p>
         <p class="text-gray-500">
-            請前往「留言列表」頁面使用匯入功能。
+            請前往「影片列表」頁面使用匯入功能。
         </p>
     </div>
 
     <!-- Quick Links -->
     <div class="flex justify-center gap-4">
-        <a href="{{ route('comments.index') }}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        <a href="{{ route('comments.index') }}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
             <i class="fas fa-list mr-2"></i>前往留言列表
         </a>
-        <a href="{{ route('videos.index') }}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+        <a href="{{ route('videos.index') }}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
             <i class="fas fa-video mr-2"></i>前往影片列表
         </a>
     </div>

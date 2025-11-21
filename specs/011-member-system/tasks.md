@@ -1196,20 +1196,20 @@ Task: T160, T161
 - [ ] All forms render correctly on all screen sizes
 - [ ] All modals display correctly with proper animations
 - [ ] All error messages display in Traditional Chinese
-- [ ] All email templates render correctly in major email clients
+- [X] All email templates render correctly in major email clients
 - [ ] All UI elements match existing platform design
 
 ### Functionality
 
-- [ ] Registration form submits and shows success/error messages
-- [ ] Login form authenticates and redirects correctly
-- [ ] Email verification page displays verification status
-- [ ] Mandatory password change form enforces requirements
-- [ ] Password reset flow works end-to-end visually
-- [ ] Settings page allows password and API key changes
-- [ ] Permission modals trigger on restricted actions
+- [X] Registration form submits and shows success/error messages
+- [X] Login form authenticates and redirects correctly
+- [X] Email verification page displays verification status
+- [X] Mandatory password change form enforces requirements
+- [X] Password reset flow works end-to-end visually
+- [X] Settings page allows password and API key changes
+- [X] Permission modals trigger on restricted actions
 - [ ] Quota counter displays correctly for Paid Members
-- [ ] Upgrade button displays for Regular Members
+- [X] Upgrade button displays for Regular Members
 
 ### Accessibility
 
@@ -1630,7 +1630,7 @@ Task: T299, T300
 
 ### Functionality
 
-- [ ] Admin account (themustbig@gmail.com / 2025Nov20) can log in
+- [X] Admin account (themustbig@gmail.com / 2025Nov20) can log in
 - [ ] Admin can view complete member list
 - [ ] Admin can change user roles (Regular → Paid Member, etc.)
 - [ ] Admin cannot change own permission level (warning displays)
