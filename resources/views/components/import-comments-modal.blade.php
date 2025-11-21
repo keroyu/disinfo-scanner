@@ -143,7 +143,10 @@
                         </h3>
                         <div class="flex flex-wrap gap-2">
                             <template x-for="tag in (previewData?.existing_channel_tags || [])" :key="tag.id">
-                                <span class="px-3 py-1 rounded-full text-sm text-white" :style="`background-color: ${tag.color}`" x-text="tag.name"></span>
+                                <span class="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg bg-white">
+                                    <span class="inline-block w-3 h-3 rounded-full" :style="`background-color: ${getColor(tag.color)}`"></span>
+                                    <span class="ml-2 font-medium text-sm text-gray-800" x-text="tag.name"></span>
+                                </span>
                             </template>
                         </div>
                     </div>
@@ -236,7 +239,7 @@
                                         class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     >
                                     <span class="ml-2 flex items-center gap-2">
-                                        <span class="inline-block w-3 h-3 rounded-full" :style="`background-color: ${tag.color}`"></span>
+                                        <span class="inline-block w-3 h-3 rounded-full" :style="`background-color: ${getColor(tag.color)}`"></span>
                                         <span class="font-medium text-sm" x-text="tag.name"></span>
                                     </span>
                                 </label>
@@ -321,6 +324,23 @@ function importCommentsModal() {
         previewData: null,
         importResult: null,
         errorMessage: '',
+
+        // Color map for Tailwind classes to hex colors
+        colorMap: {
+            'green-500': '#10b981',
+            'blue-500': '#3b82f6',
+            'blue-600': '#2563eb',
+            'red-500': '#ef4444',
+            'orange-500': '#f97316',
+            'rose-600': '#e11d48',
+            'purple-500': '#a855f7',
+            'purple-600': '#9333ea',
+            'gray-500': '#6b7280'
+        },
+
+        getColor(colorClass) {
+            return this.colorMap[colorClass] || '#6b7280';
+        },
 
         openModal() {
             this.show = true;
