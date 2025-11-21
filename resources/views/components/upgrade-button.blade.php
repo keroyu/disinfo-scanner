@@ -38,13 +38,8 @@
 function showUpgradeModal() {
     // Dispatch Alpine.js event to show the permission modal
     window.dispatchEvent(new CustomEvent('permission-modal', {
-        detail: { type: 'upgrade' }
+        detail: { type: 'upgrade', feature: '' }
     }));
 }
 </script>
-
-{{-- Include permission modal if not already present on page --}}
-@once
-    @include('components.permission-modal', ['type' => 'upgrade', 'feature' => ''])
-@endonce
 @endif

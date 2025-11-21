@@ -454,16 +454,7 @@
 @include('comments.uapi-import-modal')
 
 <!-- Include Permission Modals for different scenarios -->
-@guest
-    @include('components.permission-modal', ['type' => 'login', 'feature' => ''])
-@else
-    @if(auth()->user()->roles->contains('name', 'regular_member'))
-        @include('components.permission-modal', ['type' => 'upgrade', 'feature' => ''])
-    @endif
-    @if(!auth()->user()->youtube_api_key)
-        @include('components.permission-modal', ['type' => 'api_key', 'feature' => ''])
-    @endif
-@endguest
+{{-- Permission modals are now included in layouts/app.blade.php to avoid duplicates --}}
 
 <script>
 // Function to show permission modal based on type

@@ -7,10 +7,10 @@
     'show' => false            // Whether to show modal immediately
 ])
 
-<div x-data="{ open: @js($show) }"
+<div x-data="{ open: @js($show), modalType: '{{ $type }}' }"
      x-show="open"
      x-cloak
-     @permission-modal.window="open = true"
+     @permission-modal.window="if ($event.detail.type === modalType) { open = true }"
      @keydown.escape.window="open = false"
      class="fixed z-50 inset-0 overflow-y-auto"
      style="display: none;">
@@ -100,17 +100,17 @@
                                 @if($feature)
                                     「{{ $feature }}」功能僅供付費會員使用。
                                 @else
-                                    此功能僅供付費會員使用。
+                                    ⚠️ 付費功能尚未開放！如純支持可先贊助。
                                 @endif
                             </p>
                             <div class="mt-4 bg-blue-50 rounded-md p-4">
-                                <h4 class="text-sm font-medium text-blue-900 mb-2">付費會員專屬功能：</h4>
+                                <h4 class="text-sm font-medium text-blue-900 mb-2">付費會員專屬功能（Coming）</h4>
                                 <ul class="text-sm text-blue-700 space-y-1 text-left">
                                     <li class="flex items-start">
                                         <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                         </svg>
-                                        使用 YouTube 官方 API 匯入 (每月10次)
+                                        使用 YouTube 官方 API 匯入
                                     </li>
                                     <li class="flex items-start">
                                         <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -130,11 +130,12 @@
                     </div>
                 </div>
                 <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                    <button type="button"
-                            @click="open = false"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm">
-                        聯繫客服升級
-                    </button>
+                    <a href="https://portaly.cc/kyontw/support"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm">
+                        贊助支持本站維護
+                    </a>
                     <button type="button"
                             @click="open = false"
                             class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:col-start-1 sm:text-sm">

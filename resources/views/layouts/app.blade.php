@@ -103,18 +103,25 @@
                             </div>
                         </div>
 
-                        {{-- Include upgrade modal for regular members --}}
+                        {{-- Include modals based on user role --}}
                         @if(auth()->user()->roles->contains('name', 'regular_member'))
+                            {{-- Regular members need upgrade modal --}}
                             @once
-                                @include('components.permission-modal', ['type' => 'upgrade'])
-                                <script>
-                                function showUpgradeModal() {
-                                    window.dispatchEvent(new CustomEvent('permission-modal'));
-                                }
-                                </script>
+                                @include('components.permission-modal', ['type' => 'upgrade', 'feature' => ''])
+                            @endonce
+                        @endif
+
+                        {{-- API key modal for users without API key --}}
+                        @if(!auth()->user()->youtube_api_key)
+                            @once
+                                @include('components.permission-modal', ['type' => 'api_key', 'feature' => ''])
                             @endonce
                         @endif
                     @else
+                        {{-- Login modal for guests --}}
+                        @once
+                            @include('components.permission-modal', ['type' => 'login', 'feature' => ''])
+                        @endonce
                         {{-- Guest Links --}}
                         <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-900">登入</a>
                         <a href="{{ route('register') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">註冊</a>
@@ -123,6 +130,21 @@
             </div>
         </div>
     </nav>
+
+    {{-- Global modal functions --}}
+    <script>
+    // Function to show permission modal based on type
+    function showPermissionModal(type, feature) {
+        window.dispatchEvent(new CustomEvent('permission-modal', {
+            detail: { type: type, feature: feature }
+        }));
+    }
+
+    // Convenience function for upgrade modal
+    function showUpgradeModal(feature = '') {
+        showPermissionModal('upgrade', feature);
+    }
+    </script>
 
     @if(isset($breadcrumbs) && count($breadcrumbs) > 0)
     <div class="bg-white border-b">

@@ -749,10 +749,11 @@ document.addEventListener('keydown', function(event) {
 
 {{-- Permission Modal for Regular Members trying to use search --}}
 @if(auth()->check() && auth()->user()->roles->contains('name', 'regular_member'))
-    @include('components.permission-modal', ['type' => 'upgrade', 'feature' => '搜尋與篩選功能'])
     <script>
     function showUpgradeForSearchModal() {
-        window.dispatchEvent(new CustomEvent('permission-modal'));
+        window.dispatchEvent(new CustomEvent('permission-modal', {
+            detail: { type: 'upgrade', feature: '搜尋與篩選功能' }
+        }));
     }
     </script>
 @endif

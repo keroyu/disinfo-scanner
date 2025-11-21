@@ -183,23 +183,45 @@
             <form action="{{ route('settings.api-key') }}" method="POST" class="space-y-4">
                 @csrf
 
-                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                            </svg>
+                <!-- Two-column layout: Instructions on left, Privacy notice on right -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <!-- Left: How to get API key -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-blue-800">如何取得 YouTube API 金鑰？</h3>
+                                <div class="mt-2 text-sm text-blue-700">
+                                    <ol class="list-decimal list-inside space-y-1">
+                                        <li>前往 <a href="https://console.cloud.google.com/" target="_blank" class="underline">Google Cloud Console</a></li>
+                                        <li>建立新專案或選擇現有專案</li>
+                                        <li>啟用 YouTube Data API v3</li>
+                                        <li>建立 API 金鑰憑證</li>
+                                        <li>複製金鑰並貼到下方欄位</li>
+                                    </ol>
+                                </div>
+                            </div>
                         </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-blue-800">如何取得 YouTube API 金鑰？</h3>
-                            <div class="mt-2 text-sm text-blue-700">
-                                <ol class="list-decimal list-inside space-y-1">
-                                    <li>前往 <a href="https://console.cloud.google.com/" target="_blank" class="underline">Google Cloud Console</a></li>
-                                    <li>建立新專案或選擇現有專案</li>
-                                    <li>啟用 YouTube Data API v3</li>
-                                    <li>建立 API 金鑰憑證</li>
-                                    <li>複製金鑰並貼到下方欄位</li>
-                                </ol>
+                    </div>
+
+                    <!-- Right: Privacy notice -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-gray-900">隱私保護</h3>
+                                <div class="mt-2 text-sm text-gray-700 leading-relaxed space-y-2">
+                                    <p>您的 YouTube API Key 只用於您自行使用，抓取影片／留言資料。我們不會保存、分享或傳送您的 API Key 至任何第三方。</p>
+                                    <p>如有疑慮，請在使用完成後前往 Google 網站刪除 / 停用該 API Key。</p>
+                                </div>
                             </div>
                         </div>
                     </div>
