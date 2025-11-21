@@ -33,10 +33,10 @@ class VideoController extends Controller
             ->withCommentStats()
             ->hasComments();
 
-        // Apply search filter if provided
+        // Apply video title search filter if provided
         if ($request->filled('search')) {
             $keyword = $request->input('search');
-            $query->searchByKeyword($keyword);
+            $query->where('title', 'LIKE', "%{$keyword}%");
         }
 
         // Apply channel search filter
