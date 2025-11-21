@@ -66,10 +66,48 @@
                     <p class="text-sm text-gray-700 mb-4">
                         沒有收到驗證郵件？
                     </p>
-                    <form method="POST" action="{{ route('verification.resend') }}">
+
+                    @if ($errors->any())
+                        <div class="mb-4 rounded-md bg-red-50 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-red-800">
+                                        @foreach ($errors->all() as $error)
+                                            {{ $error }}
+                                        @endforeach
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('verification.resend') }}" class="space-y-4" id="resendForm">
                         @csrf
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 text-left">
+                                電子郵件
+                            </label>
+                            <input id="email"
+                                   name="email"
+                                   type="email"
+                                   required
+                                   value="{{ old('email') }}"
+                                   class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('email') border-red-500 @enderror"
+                                   placeholder="example@email.com">
+
+                            <!-- Real-time feedback message -->
+                            <div id="emailFeedback" class="mt-2 text-sm hidden"></div>
+                        </div>
+
                         <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                id="resendButton"
+                                class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                             重新發送驗證郵件
                         </button>
                     </form>
@@ -94,4 +132,91 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+(function() {
+    const emailInput = document.getElementById('email');
+    const emailFeedback = document.getElementById('emailFeedback');
+    const resendButton = document.getElementById('resendButton');
+    const resendForm = document.getElementById('resendForm');
+    let checkTimeout;
+
+    if (!emailInput) return;
+
+    // Debounced email check function
+    function checkEmailStatus() {
+        const email = emailInput.value.trim();
+
+        // Clear previous feedback
+        emailFeedback.classList.add('hidden');
+        emailFeedback.className = 'mt-2 text-sm hidden';
+
+        // Don't check if email is empty or invalid format
+        if (!email || !email.includes('@')) {
+            resendButton.disabled = false;
+            return;
+        }
+
+        // Show loading state
+        emailFeedback.textContent = '檢查中...';
+        emailFeedback.classList.remove('hidden');
+        emailFeedback.classList.add('text-gray-600');
+
+        // Make AJAX request to check status
+        fetch('{{ route('verification.check-status') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ email: email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            emailFeedback.classList.remove('hidden', 'text-gray-600', 'text-red-600', 'text-green-600', 'text-blue-600');
+
+            if (!data.valid) {
+                // Invalid email format
+                emailFeedback.classList.add('text-red-600');
+                emailFeedback.textContent = '⚠ ' + data.message;
+                resendButton.disabled = true;
+            } else if (!data.exists) {
+                // Email not found
+                emailFeedback.classList.add('text-red-600');
+                emailFeedback.textContent = '⚠ ' + data.message;
+                resendButton.disabled = true;
+            } else if (data.verified) {
+                // Already verified - show notice with login link
+                emailFeedback.classList.add('text-blue-600', 'font-medium');
+                emailFeedback.innerHTML = '✓ ' + data.message + ' <a href="{{ route('login') }}" class="underline hover:text-blue-700">前往登入</a>';
+                resendButton.disabled = true;
+            } else {
+                // Not verified - can resend
+                emailFeedback.classList.add('text-green-600');
+                emailFeedback.textContent = '✓ ' + data.message;
+                resendButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Email check failed:', error);
+            emailFeedback.classList.add('hidden');
+            resendButton.disabled = false;
+        });
+    }
+
+    // Add event listener with debouncing
+    emailInput.addEventListener('input', function() {
+        clearTimeout(checkTimeout);
+        checkTimeout = setTimeout(checkEmailStatus, 500); // 500ms delay
+    });
+
+    // Check on page load if there's a value
+    if (emailInput.value.trim()) {
+        checkEmailStatus();
+    }
+})();
+</script>
+@endpush
+
 @endsection

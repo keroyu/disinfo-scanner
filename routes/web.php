@@ -20,7 +20,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
     // Email verification
+    Route::get('/verify-email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify');
     Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend'])->name('verification.resend');
+    Route::post('/verify-email/check-status', [EmailVerificationController::class, 'checkStatus'])->name('verification.check-status');
 
     // Password reset routes (T054: User Story 2)
     Route::get('/password/reset', [PasswordResetController::class, 'showRequestForm'])->name('password.request');

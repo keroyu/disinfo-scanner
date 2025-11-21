@@ -150,5 +150,7 @@
             <p class="text-center text-gray-500 text-sm">YouTube 留言資料管理系統 MVP v1.0.0</p>
         </div>
     </footer>
+
+    @stack('scripts')
 </body>
 </html>

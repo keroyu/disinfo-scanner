@@ -95,21 +95,26 @@ class EmailVerificationController extends Controller
     /**
      * Resend verification email.
      *
+     * Supports both API and web requests
+     *
      * @param Request $request
-     * @return JsonResponse
+     * @return JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    public function resend(Request $request): JsonResponse
+    public function resend(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => '請提供有效的電子郵件',
-                'errors' => $validator->errors(),
-            ], 422);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '請提供有效的電子郵件',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $email = $request->input('email');
@@ -117,29 +122,83 @@ class EmailVerificationController extends Controller
         // Check if user already verified
         $user = User::where('email', $email)->first();
         if ($user->is_email_verified) {
-            return response()->json([
-                'success' => false,
-                'message' => '此帳號已驗證',
-            ], 400);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '此帳號已驗證',
+                ], 400);
+            }
+            return redirect()->route('login')->with('error', '此帳號已驗證，請直接登入');
         }
 
         // Resend verification (includes rate limit check)
         $result = $this->emailService->resendVerification($email);
 
         if (!$result['success']) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['message'],
-            ], 429);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 429);
+            }
+            return redirect()->back()->with('error', $result['message'])->withInput();
         }
 
         // Send email
         \Mail::to($email)->queue(new \App\Mail\VerificationEmail($result['token']));
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => '驗證郵件已重新發送',
+            ], 200);
+        }
+
+        return redirect()->back()->with('status', 'verification-link-sent');
+    }
+
+    /**
+     * Check email verification status (AJAX endpoint).
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function checkStatus(Request $request): JsonResponse
+    {
+        $email = $request->input('email');
+
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'valid' => false,
+                'message' => '請輸入有效的電子郵件',
+            ]);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'valid' => true,
+                'exists' => false,
+                'message' => '找不到此電子郵件的帳號',
+            ]);
+        }
+
+        if ($user->is_email_verified) {
+            return response()->json([
+                'valid' => true,
+                'exists' => true,
+                'verified' => true,
+                'message' => '此帳號已完成驗證，請直接登入',
+            ]);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => '驗證郵件已重新發送',
-        ], 200);
+            'valid' => true,
+            'exists' => true,
+            'verified' => false,
+            'message' => '可以重新發送驗證郵件',
+        ]);
     }
 
     /**

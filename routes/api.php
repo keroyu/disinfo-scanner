@@ -22,7 +22,7 @@ Route::prefix('auth')->group(function () {
     // Public routes (with 'web' middleware for session support)
     Route::middleware('web')->group(function () {
         Route::post('/register', [RegisterController::class, 'register']);
-        Route::get('/verify-email', [EmailVerificationController::class, 'verify'])->name('verification.verify');
+        Route::get('/verify-email', [EmailVerificationController::class, 'verify']); // API endpoint (no name to avoid conflict with web route)
         Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend']);
         Route::post('/login', [LoginController::class, 'login']);
     });
