@@ -89,7 +89,7 @@ class UrtubeApiImportService
 
             // Step 3: Check if video already exists - reject if it does
             if (Video::where('video_id', $videoId)->exists()) {
-                throw new \Exception('影片已建檔，請使用「更新留言」功能');
+                throw new \Exception('影片已建檔，請利用更新功能導入留言');
             }
 
             // Step 4: Fetch comment data from urtubeapi (determines comment count)
