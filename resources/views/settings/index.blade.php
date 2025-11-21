@@ -115,9 +115,34 @@
                     <input type="password" name="password" id="new_password" required
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="至少8個字元，包含大小寫字母、數字和特殊符號">
-                    <p class="mt-1 text-xs text-gray-500">
-                        密碼需包含：至少8個字元、1個大寫字母、1個小寫字母、1個數字、1個特殊符號
-                    </p>
+
+                    <!-- Password Strength Indicator -->
+                    <div class="mt-2 space-y-1">
+                        <div class="flex items-center text-xs text-gray-500">
+                            <span id="strength-indicator" class="flex items-center">
+                                <span class="inline-block w-2 h-2 rounded-full mr-1 bg-gray-300"></span>
+                                <span id="strength-text">輸入密碼以檢查強度</span>
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-600 space-y-0.5">
+                            <p id="req-length" class="flex items-center">
+                                <span class="inline-block w-4 text-gray-400">○</span> 至少8個字元
+                            </p>
+                            <p id="req-uppercase" class="flex items-center">
+                                <span class="inline-block w-4 text-gray-400">○</span> 至少1個大寫字母 (A-Z)
+                            </p>
+                            <p id="req-lowercase" class="flex items-center">
+                                <span class="inline-block w-4 text-gray-400">○</span> 至少1個小寫字母 (a-z)
+                            </p>
+                            <p id="req-number" class="flex items-center">
+                                <span class="inline-block w-4 text-gray-400">○</span> 至少1個數字 (0-9)
+                            </p>
+                            <p id="req-special" class="flex items-center">
+                                <span class="inline-block w-4 text-gray-400">○</span> 至少1個特殊符號 (!@#$%等)
+                            </p>
+                        </div>
+                    </div>
+
                     @error('password')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -130,13 +155,15 @@
                     <input type="password" name="password_confirmation" id="password_confirmation" required
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                            placeholder="請再次輸入新密碼">
+                    <p id="confirmation-feedback" class="mt-1 text-sm hidden"></p>
                 </div>
 
                 <div class="pt-4">
-                    <button type="submit"
-                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <button type="submit" id="password-submit-button"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                         更新密碼
                     </button>
+                    <p id="submit-feedback" class="mt-2 text-sm text-gray-600 hidden"></p>
                 </div>
             </form>
         </div>
@@ -248,4 +275,137 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('new_password');
+    const confirmationInput = document.getElementById('password_confirmation');
+    const strengthIndicator = document.querySelector('#strength-indicator .inline-block');
+    const strengthText = document.getElementById('strength-text');
+    const confirmationFeedback = document.getElementById('confirmation-feedback');
+    const submitButton = document.getElementById('password-submit-button');
+    const submitFeedback = document.getElementById('submit-feedback');
+
+    // Only run validation if password fields exist (they're in password change section)
+    if (!passwordInput || !confirmationInput) return;
+
+    const requirements = {
+        length: {el: document.getElementById('req-length'), regex: /.{8,}/},
+        uppercase: {el: document.getElementById('req-uppercase'), regex: /[A-Z]/},
+        lowercase: {el: document.getElementById('req-lowercase'), regex: /[a-z]/},
+        number: {el: document.getElementById('req-number'), regex: /[0-9]/},
+        special: {el: document.getElementById('req-special'), regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/}
+    };
+
+    let allRequirementsMet = false;
+    let passwordsMatch = false;
+
+    function validatePassword() {
+        const password = passwordInput.value;
+        let metCount = 0;
+
+        // Check each requirement
+        for (const [key, req] of Object.entries(requirements)) {
+            const met = req.regex.test(password);
+            if (met) {
+                metCount++;
+                req.el.querySelector('.inline-block').textContent = '✓';
+                req.el.querySelector('.inline-block').classList.remove('text-gray-400');
+                req.el.querySelector('.inline-block').classList.add('text-green-600');
+            } else {
+                req.el.querySelector('.inline-block').textContent = '○';
+                req.el.querySelector('.inline-block').classList.remove('text-green-600');
+                req.el.querySelector('.inline-block').classList.add('text-gray-400');
+            }
+        }
+
+        // Update strength indicator
+        if (metCount === 0) {
+            strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-gray-300';
+            strengthText.textContent = '輸入密碼以檢查強度';
+            allRequirementsMet = false;
+        } else if (metCount <= 2) {
+            strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-red-500';
+            strengthText.textContent = '密碼強度：弱';
+            allRequirementsMet = false;
+        } else if (metCount <= 4) {
+            strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-yellow-500';
+            strengthText.textContent = '密碼強度：中等';
+            allRequirementsMet = false;
+        } else {
+            strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-green-500';
+            strengthText.textContent = '密碼強度：強';
+            allRequirementsMet = true;
+        }
+
+        validateConfirmation();
+        updateSubmitButton();
+    }
+
+    function validateConfirmation() {
+        const password = passwordInput.value;
+        const confirmation = confirmationInput.value;
+
+        if (confirmation.length === 0) {
+            // No input yet, hide feedback
+            confirmationFeedback.classList.add('hidden');
+            confirmationInput.classList.remove('border-red-500', 'border-green-500');
+            confirmationInput.classList.add('border-gray-300');
+            passwordsMatch = false;
+        } else if (password === confirmation) {
+            // Passwords match
+            confirmationFeedback.textContent = '✓ 密碼相符';
+            confirmationFeedback.classList.remove('hidden', 'text-red-600');
+            confirmationFeedback.classList.add('text-green-600');
+            confirmationInput.classList.remove('border-red-500', 'border-gray-300');
+            confirmationInput.classList.add('border-green-500');
+            passwordsMatch = true;
+        } else {
+            // Passwords don't match
+            confirmationFeedback.textContent = '✗ 密碼不相符';
+            confirmationFeedback.classList.remove('hidden', 'text-green-600');
+            confirmationFeedback.classList.add('text-red-600');
+            confirmationInput.classList.remove('border-green-500', 'border-gray-300');
+            confirmationInput.classList.add('border-red-500');
+            passwordsMatch = false;
+        }
+
+        updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+        const currentPassword = document.getElementById('current_password').value;
+
+        if (!currentPassword) {
+            submitButton.disabled = true;
+            submitFeedback.textContent = '請輸入目前密碼';
+            submitFeedback.classList.remove('hidden', 'text-green-600');
+            submitFeedback.classList.add('text-gray-600');
+        } else if (!allRequirementsMet) {
+            submitButton.disabled = true;
+            submitFeedback.textContent = '請確保新密碼符合所有要求';
+            submitFeedback.classList.remove('hidden', 'text-green-600');
+            submitFeedback.classList.add('text-gray-600');
+        } else if (!passwordsMatch) {
+            submitButton.disabled = true;
+            submitFeedback.textContent = '請確保兩次輸入的密碼相同';
+            submitFeedback.classList.remove('hidden', 'text-green-600');
+            submitFeedback.classList.add('text-gray-600');
+        } else {
+            submitButton.disabled = false;
+            submitFeedback.textContent = '✓ 可以提交';
+            submitFeedback.classList.remove('hidden', 'text-gray-600');
+            submitFeedback.classList.add('text-green-600');
+        }
+    }
+
+    // Add event listeners
+    passwordInput.addEventListener('input', validatePassword);
+    confirmationInput.addEventListener('input', validateConfirmation);
+    document.getElementById('current_password').addEventListener('input', updateSubmitButton);
+
+    // Initial validation
+    updateSubmitButton();
+});
+</script>
 @endsection

@@ -120,12 +120,13 @@
                     <input id="password_confirmation" name="password_confirmation" type="password" required
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                            placeholder="請再次輸入新密碼">
+                    <p id="confirmation-feedback" class="mt-1 text-sm hidden"></p>
                 </div>
             </div>
 
             <div>
-                <button type="submit"
-                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" id="submit-button"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span class="absolute left-0 inset-y-0 flex items-center pl-3">
                         <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
@@ -133,6 +134,7 @@
                     </span>
                     更改密碼並繼續
                 </button>
+                <p id="submit-feedback" class="mt-2 text-sm text-center text-gray-600 hidden"></p>
             </div>
 
             <div class="text-sm text-center text-gray-600">
@@ -145,8 +147,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
+    const confirmationInput = document.getElementById('password_confirmation');
     const strengthIndicator = document.querySelector('#strength-indicator .inline-block');
     const strengthText = document.getElementById('strength-text');
+    const confirmationFeedback = document.getElementById('confirmation-feedback');
+    const submitButton = document.getElementById('submit-button');
+    const submitFeedback = document.getElementById('submit-feedback');
 
     const requirements = {
         length: {el: document.getElementById('req-length'), regex: /.{8,}/},
@@ -156,10 +162,14 @@ document.addEventListener('DOMContentLoaded', function() {
         special: {el: document.getElementById('req-special'), regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/}
     };
 
-    passwordInput.addEventListener('input', function() {
-        const password = this.value;
+    let allRequirementsMet = false;
+    let passwordsMatch = false;
+
+    function validatePassword() {
+        const password = passwordInput.value;
         let metCount = 0;
 
+        // Check each requirement
         for (const [key, req] of Object.entries(requirements)) {
             const met = req.regex.test(password);
             if (met) {
@@ -178,17 +188,89 @@ document.addEventListener('DOMContentLoaded', function() {
         if (metCount === 0) {
             strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-gray-300';
             strengthText.textContent = '輸入密碼以檢查強度';
+            allRequirementsMet = false;
         } else if (metCount <= 2) {
             strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-red-500';
             strengthText.textContent = '密碼強度：弱';
+            allRequirementsMet = false;
         } else if (metCount <= 4) {
             strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-yellow-500';
             strengthText.textContent = '密碼強度：中等';
+            allRequirementsMet = false;
         } else {
             strengthIndicator.className = 'inline-block w-2 h-2 rounded-full mr-1 bg-green-500';
             strengthText.textContent = '密碼強度：強';
+            allRequirementsMet = true;
         }
-    });
+
+        validateConfirmation();
+        updateSubmitButton();
+    }
+
+    function validateConfirmation() {
+        const password = passwordInput.value;
+        const confirmation = confirmationInput.value;
+
+        if (confirmation.length === 0) {
+            // No input yet, hide feedback
+            confirmationFeedback.classList.add('hidden');
+            confirmationInput.classList.remove('border-red-500', 'border-green-500');
+            confirmationInput.classList.add('border-gray-300');
+            passwordsMatch = false;
+        } else if (password === confirmation) {
+            // Passwords match
+            confirmationFeedback.textContent = '✓ 密碼相符';
+            confirmationFeedback.classList.remove('hidden', 'text-red-600');
+            confirmationFeedback.classList.add('text-green-600');
+            confirmationInput.classList.remove('border-red-500', 'border-gray-300');
+            confirmationInput.classList.add('border-green-500');
+            passwordsMatch = true;
+        } else {
+            // Passwords don't match
+            confirmationFeedback.textContent = '✗ 密碼不相符';
+            confirmationFeedback.classList.remove('hidden', 'text-green-600');
+            confirmationFeedback.classList.add('text-red-600');
+            confirmationInput.classList.remove('border-green-500', 'border-gray-300');
+            confirmationInput.classList.add('border-red-500');
+            passwordsMatch = false;
+        }
+
+        updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+        const currentPassword = document.getElementById('current_password').value;
+
+        if (!currentPassword) {
+            submitButton.disabled = true;
+            submitFeedback.textContent = '請輸入目前密碼';
+            submitFeedback.classList.remove('hidden', 'text-green-600');
+            submitFeedback.classList.add('text-gray-600');
+        } else if (!allRequirementsMet) {
+            submitButton.disabled = true;
+            submitFeedback.textContent = '請確保新密碼符合所有要求';
+            submitFeedback.classList.remove('hidden', 'text-green-600');
+            submitFeedback.classList.add('text-gray-600');
+        } else if (!passwordsMatch) {
+            submitButton.disabled = true;
+            submitFeedback.textContent = '請確保兩次輸入的密碼相同';
+            submitFeedback.classList.remove('hidden', 'text-green-600');
+            submitFeedback.classList.add('text-gray-600');
+        } else {
+            submitButton.disabled = false;
+            submitFeedback.textContent = '✓ 可以提交';
+            submitFeedback.classList.remove('hidden', 'text-gray-600');
+            submitFeedback.classList.add('text-green-600');
+        }
+    }
+
+    // Add event listeners
+    passwordInput.addEventListener('input', validatePassword);
+    confirmationInput.addEventListener('input', validateConfirmation);
+    document.getElementById('current_password').addEventListener('input', updateSubmitButton);
+
+    // Initial validation
+    updateSubmitButton();
 });
 </script>
 @endsection

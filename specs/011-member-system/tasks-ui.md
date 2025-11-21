@@ -70,7 +70,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 - [X] T118 [US2] Manually test mandatory password change flow renders correctly
 - [X] T119 [US2] Manually test password reset request form renders correctly
-- [X] T120 [US2] Manually test password reset email displays correctly
+- [ ] T120 [US2] Manually test password reset email displays correctly
 - [X] T121 [US2] Verify password strength indicator works
 
 **Checkpoint**: US2 views complete - password management UI functional
