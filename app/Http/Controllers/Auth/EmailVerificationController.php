@@ -22,9 +22,9 @@ class EmailVerificationController extends Controller
      * Verify user email with token.
      *
      * @param Request $request
-     * @return JsonResponse
+     * @return JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    public function verify(Request $request): JsonResponse
+    public function verify(Request $request)
     {
         // Validate request parameters
         $validator = Validator::make($request->all(), [
@@ -33,11 +33,14 @@ class EmailVerificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => '驗證參數不完整',
-                'errors' => $validator->errors(),
-            ], 422);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '驗證參數不完整',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            return redirect()->route('login')->with('error', '驗證參數不完整');
         }
 
         $email = $request->input('email');
@@ -47,20 +50,26 @@ class EmailVerificationController extends Controller
         $user = User::where('email', $email)->first();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => '找不到此電子郵件的帳號',
-            ], 400);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '找不到此電子郵件的帳號',
+                ], 400);
+            }
+            return redirect()->route('login')->with('error', '找不到此電子郵件的帳號');
         }
 
         // Validate token
         $validation = $this->emailService->validateToken($email, $token);
 
         if (!$validation['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => $validation['message'],
-            ], 400);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validation['message'],
+                ], 400);
+            }
+            return redirect()->route('login')->with('error', $validation['message']);
         }
 
         // Mark token as used
@@ -69,10 +78,18 @@ class EmailVerificationController extends Controller
         // Verify user email
         $this->emailService->verifyUserEmail($user);
 
-        return response()->json([
-            'success' => true,
-            'message' => '電子郵件驗證成功！您現在可以登入了',
-        ], 200);
+        // Log the user in automatically after verification
+        auth()->login($user);
+
+        // Redirect to settings page for web requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => '電子郵件驗證成功！您現在可以登入了',
+            ], 200);
+        }
+
+        return redirect()->route('settings.index')->with('success', '✓ 電子郵件驗證成功！歡迎使用 DISINFO_SCANNER');
     }
 
     /**

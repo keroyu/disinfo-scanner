@@ -48,42 +48,79 @@ class PasswordChangeController extends Controller
     /**
      * Change user password
      *
-     * API endpoint for password change
+     * Supports both API and web requests
      *
-     * @param PasswordChangeRequest $request
-     * @return JsonResponse
+     * @param Request $request
+     * @return JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    public function change(PasswordChangeRequest $request): JsonResponse
+    public function change(Request $request)
     {
         try {
             $user = Auth::user();
 
+            // Support both field naming conventions
+            $currentPassword = $request->input('current_password');
+            $newPassword = $request->input('new_password') ?? $request->input('password');
+            $newPasswordConfirmation = $request->input('new_password_confirmation') ?? $request->input('password_confirmation');
+
+            // Validate inputs
+            if (!$currentPassword || !$newPassword || !$newPasswordConfirmation) {
+                $errors = [];
+                if (!$currentPassword) $errors['current_password'] = ['請輸入目前密碼'];
+                if (!$newPassword) $errors['password'] = ['請輸入新密碼'];
+                if (!$newPasswordConfirmation) $errors['password_confirmation'] = ['請確認您的新密碼'];
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '密碼驗證失敗',
+                        'errors' => $errors
+                    ], 422);
+                }
+                return redirect()->back()->withErrors($errors)->withInput();
+            }
+
+            // Check password confirmation matches
+            if ($newPassword !== $newPasswordConfirmation) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '新密碼與確認密碼不符',
+                        'errors' => ['password_confirmation' => ['新密碼與確認密碼不符']]
+                    ], 422);
+                }
+                return redirect()->back()->withErrors(['password_confirmation' => '新密碼與確認密碼不符'])->withInput();
+            }
+
             // Verify current password
-            if (!$this->passwordService->verifyPassword($request->current_password, $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '當前密碼不正確',
-                    'errors' => [
-                        'current_password' => ['當前密碼不正確']
-                    ]
-                ], 422);
+            if (!$this->passwordService->verifyPassword($currentPassword, $user->password)) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '當前密碼不正確',
+                        'errors' => ['current_password' => ['當前密碼不正確']]
+                    ], 422);
+                }
+                return redirect()->back()->withErrors(['current_password' => '當前密碼不正確'])->withInput();
             }
 
             // Validate new password strength
-            $validation = $this->passwordService->validatePasswordStrength($request->new_password);
+            $validation = $this->passwordService->validatePasswordStrength($newPassword);
             if (!$validation['valid']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '新密碼不符合強度要求',
-                    'errors' => [
-                        'new_password' => $validation['errors']
-                    ]
-                ], 422);
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '新密碼不符合強度要求',
+                        'errors' => ['password' => $validation['errors']]
+                    ], 422);
+                }
+                return redirect()->back()->withErrors(['password' => $validation['errors']])->withInput();
             }
 
             // Hash and update password
-            $user->password = $this->passwordService->hashPassword($request->new_password);
+            $user->password = $this->passwordService->hashPassword($newPassword);
             $user->must_change_password = false;
+            $user->last_password_change_at = now();
             $user->save();
 
             // Log password change event
@@ -94,10 +131,15 @@ class PasswordChangeController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => '密碼已成功更改',
-            ]);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '密碼已成功更改',
+                ]);
+            }
+
+            // Redirect to settings page for web requests
+            return redirect()->route('settings.index')->with('success', '✓ 密碼已成功更改！');
 
         } catch (\Exception $e) {
             Log::error('Password change failed', [
@@ -105,10 +147,14 @@ class PasswordChangeController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => '密碼更改失敗，請稍後再試',
-            ], 500);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '密碼更改失敗，請稍後再試',
+                ], 500);
+            }
+
+            return redirect()->back()->withErrors(['error' => '密碼更改失敗，請稍後再試'])->withInput();
         }
     }
 
