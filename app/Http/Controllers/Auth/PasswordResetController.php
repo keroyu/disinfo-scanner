@@ -60,12 +60,12 @@ class PasswordResetController extends Controller
     /**
      * Send password reset link via email
      *
-     * API endpoint for password reset request
+     * Web endpoint for password reset request
      *
      * @param Request $request
-     * @return JsonResponse
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function sendResetLink(Request $request): JsonResponse
+    public function sendResetLink(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
@@ -77,10 +77,9 @@ class PasswordResetController extends Controller
         if (RateLimiter::tooManyAttempts($key, 3)) {
             $seconds = RateLimiter::availableIn($key);
 
-            return response()->json([
-                'success' => false,
-                'message' => sprintf('請求過於頻繁，請在 %d 分鐘後再試', ceil($seconds / 60)),
-            ], 429);
+            return back()->withErrors([
+                'email' => sprintf('請求過於頻繁，請在 %d 分鐘後再試', ceil($seconds / 60)),
+            ])->withInput();
         }
 
         RateLimiter::hit($key, 3600); // 1 hour
@@ -88,17 +87,16 @@ class PasswordResetController extends Controller
         try {
             $user = User::where('email', $request->email)->first();
 
-            // Always return success to prevent email enumeration
+            // Check if user exists
             if (!$user) {
                 Log::info('Password reset requested for non-existent email', [
                     'email' => $request->email,
                     'ip_address' => $request->ip(),
                 ]);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => '如果該電子郵件存在，我們已發送密碼重設連結',
-                ]);
+                return back()->withErrors([
+                    'email' => '此電子郵件尚未註冊，請確認電子郵件地址是否正確。'
+                ])->withInput();
             }
 
             // Create password reset token
@@ -113,10 +111,7 @@ class PasswordResetController extends Controller
                 'ip_address' => $request->ip(),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => '如果該電子郵件存在,我們已發送密碼重設連結',
-            ]);
+            return back()->with('status', '密碼重設連結已發送至您的信箱，請檢查您的收件匣（可能需要幾分鐘）。');
 
         } catch (\Exception $e) {
             Log::error('Password reset link send failed', [
@@ -124,23 +119,21 @@ class PasswordResetController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            // Return success to prevent information disclosure
-            return response()->json([
-                'success' => true,
-                'message' => '如果該電子郵件存在,我們已發送密碼重設連結',
-            ]);
+            return back()->withErrors([
+                'email' => '發送密碼重設連結失敗，請稍後再試。'
+            ])->withInput();
         }
     }
 
     /**
      * Reset password with token
      *
-     * API endpoint for password reset
+     * Web endpoint for password reset
      *
      * @param Request $request
-     * @return JsonResponse
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function reset(Request $request): JsonResponse
+    public function reset(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
@@ -152,13 +145,9 @@ class PasswordResetController extends Controller
             // Validate password strength
             $validation = $this->passwordService->validatePasswordStrength($request->password);
             if (!$validation['valid']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '密碼不符合強度要求',
-                    'errors' => [
-                        'password' => $this->translatePasswordErrors($validation['errors'])
-                    ]
-                ], 422);
+                return back()->withErrors([
+                    'password' => $this->translatePasswordErrors($validation['errors'])
+                ])->withInput($request->only('email'));
             }
 
             // Attempt to reset password using Laravel's Password broker
@@ -168,6 +157,7 @@ class PasswordResetController extends Controller
                     $user->forceFill([
                         'password' => $this->passwordService->hashPassword($password),
                         'has_default_password' => false,
+                        'last_password_change_at' => now(),
                         'remember_token' => Str::random(60),
                     ])->save();
                 }
@@ -182,17 +172,14 @@ class PasswordResetController extends Controller
                     'ip_address' => $request->ip(),
                 ]);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => '密碼已成功重設',
-                ]);
+                return redirect()->route('login')->with('status', '密碼已成功重設，請使用新密碼登入。');
             }
 
             // Handle various failure cases
             $errorMessage = match($status) {
-                Password::INVALID_TOKEN => '密碼重設連結無效或已過期',
-                Password::INVALID_USER => '找不到該電子郵件對應的用戶',
-                default => '密碼重設失敗，請稍後再試',
+                Password::INVALID_TOKEN => '密碼重設連結無效或已過期，請重新申請。',
+                Password::INVALID_USER => '找不到該電子郵件對應的用戶。',
+                default => '密碼重設失敗，請稍後再試。',
             };
 
             Log::warning('Password reset failed', [
@@ -201,10 +188,9 @@ class PasswordResetController extends Controller
                 'ip_address' => $request->ip(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $errorMessage,
-            ], 422);
+            return back()->withErrors([
+                'email' => $errorMessage
+            ])->withInput($request->only('email'));
 
         } catch (\Exception $e) {
             Log::error('Password reset exception', [
@@ -212,10 +198,9 @@ class PasswordResetController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => '密碼重設失敗，請稍後再試',
-            ], 500);
+            return back()->withErrors([
+                'email' => '密碼重設失敗，請稍後再試。'
+            ])->withInput($request->only('email'));
         }
     }
 
