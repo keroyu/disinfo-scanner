@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Log;
 class VideoIncrementalUpdateService
 {
     public function __construct(
-        private YouTubeApiService $youtubeApi,
         private CommentImportService $importService
     ) {}
 
@@ -18,10 +17,13 @@ class VideoIncrementalUpdateService
      * Get preview of new comments for a video
      *
      * @param string $videoId YouTube video ID
+     * @param string|null $userApiKey User's YouTube API key (required for authenticated users)
      * @return array Preview data including count and first 5 comments
      */
-    public function getPreview(string $videoId): array
+    public function getPreview(string $videoId, ?string $userApiKey = null): array
     {
+        // Create YouTubeApiService with user's API key
+        $youtubeApi = new YouTubeApiService($userApiKey);
         // 1. Get video details
         $video = Video::where('video_id', $videoId)->firstOrFail();
 
@@ -40,7 +42,7 @@ class VideoIncrementalUpdateService
             'earliest_comment_time' => $earliestCommentTime,
         ]);
 
-        $newComments = $this->youtubeApi->fetchCommentsOutsideRange(
+        $newComments = $youtubeApi->fetchCommentsOutsideRange(
             $videoId,
             $latestCommentTime,
             $earliestCommentTime,
@@ -80,10 +82,13 @@ class VideoIncrementalUpdateService
      * Execute incremental import of new comments
      *
      * @param string $videoId YouTube video ID
+     * @param string|null $userApiKey User's YouTube API key (required for authenticated users)
      * @return array Import result with counts and status
      */
-    public function executeImport(string $videoId): array
+    public function executeImport(string $videoId, ?string $userApiKey = null): array
     {
+        // Create YouTubeApiService with user's API key
+        $youtubeApi = new YouTubeApiService($userApiKey);
         // 1. Get video details
         $video = Video::where('video_id', $videoId)->firstOrFail();
 
@@ -99,7 +104,7 @@ class VideoIncrementalUpdateService
             'earliest_comment_time' => $earliestCommentTime,
         ]);
 
-        $newComments = $this->youtubeApi->fetchCommentsOutsideRange(
+        $newComments = $youtubeApi->fetchCommentsOutsideRange(
             $videoId,
             $latestCommentTime,
             $earliestCommentTime,

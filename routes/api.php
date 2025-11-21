@@ -56,7 +56,8 @@ Route::post('/comments/check', [\App\Http\Controllers\Api\ImportCommentsControll
 Route::post('/comments/import', [\App\Http\Controllers\Api\ImportCommentsController::class, 'import']);
 
 // Video Incremental Update endpoints (007-video-incremental-update)
-Route::prefix('video-update')->group(function () {
+// Requires authentication and user's YouTube API key
+Route::prefix('video-update')->middleware(['web', 'auth'])->group(function () {
     Route::post('/preview', [\App\Http\Controllers\Api\VideoUpdateController::class, 'preview']);
     Route::post('/import', [\App\Http\Controllers\Api\VideoUpdateController::class, 'import']);
 });

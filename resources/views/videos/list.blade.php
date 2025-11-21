@@ -278,14 +278,39 @@
                                 <td class="px-4 py-3 text-right text-sm text-gray-700">
                                     <div class="flex items-center justify-end gap-2">
                                         <span>{{ $video->actual_comment_count ?? 0 }}</span>
-                                        <button
-                                            type="button"
-                                            onclick="openUpdateModal('{{ $video->video_id }}', '{{ addslashes($fullTitle) }}')"
-                                            class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                                            title="更新此影片的新留言"
-                                        >
-                                            更新
-                                        </button>
+                                        @guest
+                                            {{-- Guest users need to login --}}
+                                            <button
+                                                type="button"
+                                                onclick="showPermissionModal('login', '影片留言更新')"
+                                                class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                                title="更新此影片的新留言"
+                                            >
+                                                更新
+                                            </button>
+                                        @else
+                                            @if(auth()->user()->youtube_api_key)
+                                                {{-- User has API key, allow update --}}
+                                                <button
+                                                    type="button"
+                                                    onclick="openUpdateModal('{{ $video->video_id }}', '{{ addslashes($fullTitle) }}')"
+                                                    class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                                    title="更新此影片的新留言"
+                                                >
+                                                    更新
+                                                </button>
+                                            @else
+                                                {{-- User needs to set API key --}}
+                                                <button
+                                                    type="button"
+                                                    onclick="showPermissionModal('api_key', '影片留言更新')"
+                                                    class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                                    title="更新此影片的新留言"
+                                                >
+                                                    更新
+                                                </button>
+                                            @endif
+                                        @endguest
                                     </div>
                                 </td>
 

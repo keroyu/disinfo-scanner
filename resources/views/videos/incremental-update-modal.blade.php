@@ -149,7 +149,21 @@
                 video_title: currentVideoTitle
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is 403 (no API key)
+            if (response.status === 403) {
+                return response.json().then(data => {
+                    if (data.error_type === 'no_api_key') {
+                        // Close this modal and show API key permission modal
+                        closeUpdateModal();
+                        showPermissionModal('api_key', '影片留言更新');
+                        throw new Error('NO_API_KEY'); // Stop further processing
+                    }
+                    throw new Error(data.error || 'Permission denied');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             document.getElementById('loading-section').classList.add('hidden');
 
@@ -192,6 +206,12 @@
         })
         .catch(error => {
             console.error('Preview error:', error);
+
+            // If error is NO_API_KEY, modal is already closed and permission modal shown
+            if (error.message === 'NO_API_KEY') {
+                return;
+            }
+
             showError('無法載入預覽資訊: ' + error.message);
         });
     }
@@ -248,7 +268,21 @@
                 video_id: currentVideoId
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is 403 (no API key)
+            if (response.status === 403) {
+                return response.json().then(data => {
+                    if (data.error_type === 'no_api_key') {
+                        // Close this modal and show API key permission modal
+                        closeUpdateModal();
+                        showPermissionModal('api_key', '影片留言更新');
+                        throw new Error('NO_API_KEY'); // Stop further processing
+                    }
+                    throw new Error(data.error || 'Permission denied');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showSuccess(data.data.message, data.data);
@@ -270,6 +304,12 @@
         })
         .catch(error => {
             console.error('Import error:', error);
+
+            // If error is NO_API_KEY, modal is already closed and permission modal shown
+            if (error.message === 'NO_API_KEY') {
+                return;
+            }
+
             showError('導入失敗: ' + error.message);
             confirmBtn.disabled = false;
             confirmBtn.textContent = '確認更新';

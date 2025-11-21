@@ -27,8 +27,18 @@ class VideoUpdateController extends Controller
             'video_title' => 'nullable|string|max:500',
         ]);
 
+        // Check if user has YouTube API key configured
+        $user = $request->user();
+        if (!$user->youtube_api_key) {
+            return response()->json([
+                'success' => false,
+                'error' => '請先在帳號設定中配置 YouTube API 金鑰',
+                'error_type' => 'no_api_key',
+            ], 403);
+        }
+
         try {
-            $result = $this->updateService->getPreview($validated['video_id']);
+            $result = $this->updateService->getPreview($validated['video_id'], $user->youtube_api_key);
 
             if ($result['new_comment_count'] === 0) {
                 return response()->json([
@@ -45,6 +55,7 @@ class VideoUpdateController extends Controller
         } catch (\Exception $e) {
             Log::error('Video preview error', [
                 'video_id' => $validated['video_id'],
+                'user_id' => $user->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -68,8 +79,18 @@ class VideoUpdateController extends Controller
             'video_id' => 'required|string|max:11|exists:videos,video_id',
         ]);
 
+        // Check if user has YouTube API key configured
+        $user = $request->user();
+        if (!$user->youtube_api_key) {
+            return response()->json([
+                'success' => false,
+                'error' => '請先在帳號設定中配置 YouTube API 金鑰',
+                'error_type' => 'no_api_key',
+            ], 403);
+        }
+
         try {
-            $result = $this->updateService->executeImport($validated['video_id']);
+            $result = $this->updateService->executeImport($validated['video_id'], $user->youtube_api_key);
 
             return response()->json([
                 'success' => true,
@@ -78,6 +99,7 @@ class VideoUpdateController extends Controller
         } catch (\Exception $e) {
             Log::error('Video import error', [
                 'video_id' => $validated['video_id'],
+                'user_id' => $user->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

@@ -13,9 +13,15 @@ class YouTubeApiService
 {
     private YouTube $youtube;
 
-    public function __construct()
+    /**
+     * Create a new YouTubeApiService instance
+     *
+     * @param string|null $apiKey Optional user-specific API key. Falls back to system config if not provided.
+     */
+    public function __construct(?string $apiKey = null)
     {
-        $apiKey = config('services.youtube.api_key');
+        // Use provided API key or fall back to system config
+        $apiKey = $apiKey ?? config('services.youtube.api_key');
 
         if (!$apiKey) {
             throw new AuthenticationException('YouTube API key not configured');
