@@ -25,7 +25,7 @@ class PasswordChangeController extends Controller
     public function __construct(PasswordService $passwordService)
     {
         $this->passwordService = $passwordService;
-        $this->middleware('auth');
+        // Note: Middleware 'auth' is applied in routes/web.php for this controller
     }
 
     /**
@@ -70,13 +70,13 @@ class PasswordChangeController extends Controller
             }
 
             // Validate new password strength
-            if (!$this->passwordService->isPasswordStrong($request->new_password)) {
-                $errors = $this->passwordService->getPasswordStrengthErrors($request->new_password);
+            $validation = $this->passwordService->validatePasswordStrength($request->new_password);
+            if (!$validation['valid']) {
                 return response()->json([
                     'success' => false,
                     'message' => '新密碼不符合強度要求',
                     'errors' => [
-                        'new_password' => $this->translatePasswordErrors($errors)
+                        'new_password' => $validation['errors']
                     ]
                 ], 422);
             }
@@ -112,24 +112,6 @@ class PasswordChangeController extends Controller
         }
     }
 
-    /**
-     * Translate password validation errors to Traditional Chinese
-     *
-     * @param array $errors
-     * @return array
-     */
-    protected function translatePasswordErrors(array $errors): array
-    {
-        $messages = [
-            'minimum_length' => '密碼長度至少需要8個字符',
-            'uppercase' => '密碼必須包含至少一個大寫字母',
-            'lowercase' => '密碼必須包含至少一個小寫字母',
-            'number' => '密碼必須包含至少一個數字',
-            'special_character' => '密碼必須包含至少一個特殊字符 (!@#$%^&*)',
-        ];
-
-        return array_map(fn($error) => $messages[$error] ?? $error, $errors);
-    }
 
     /**
      * Skip mandatory password change (debug only - remove in production)

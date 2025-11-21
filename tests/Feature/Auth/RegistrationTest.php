@@ -16,6 +16,10 @@ class RegistrationTest extends TestCase
     {
         parent::setUp();
         Mail::fake(); // Prevent actual email sending during tests
+
+        // Seed roles for tests
+        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(\Database\Seeders\PermissionSeeder::class);
     }
 
     /**
@@ -95,7 +99,9 @@ class RegistrationTest extends TestCase
         $this->assertNotNull($token);
         $this->assertNull($token->used_at);
         $this->assertTrue($token->expires_at->isFuture());
-        $this->assertTrue($token->expires_at->diffInHours(now()) >= 23); // At least 23 hours
+        // Check token expires in approximately 24 hours (allow small timing variance)
+        $hoursUntilExpiry = abs($token->expires_at->diffInMinutes(now())) / 60;
+        $this->assertTrue($hoursUntilExpiry >= 23.5 && $hoursUntilExpiry <= 24.5, "Token should expire in ~24 hours, got {$hoursUntilExpiry}");
     }
 
     /**

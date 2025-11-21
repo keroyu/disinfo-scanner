@@ -24,6 +24,7 @@ class MandatoryPasswordChangeTest extends TestCase
 
         // Seed roles
         $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(\Database\Seeders\PermissionSeeder::class);
     }
 
     /**
@@ -39,7 +40,7 @@ class MandatoryPasswordChangeTest extends TestCase
             'must_change_password' => true,
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         // Attempt to access platform homepage after login
@@ -62,7 +63,7 @@ class MandatoryPasswordChangeTest extends TestCase
             'must_change_password' => true,
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         // Try to access various pages
@@ -93,7 +94,7 @@ class MandatoryPasswordChangeTest extends TestCase
             'must_change_password' => true,
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         // Change password
@@ -127,7 +128,7 @@ class MandatoryPasswordChangeTest extends TestCase
             'must_change_password' => false,
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         // Should be able to access platform pages
@@ -205,7 +206,7 @@ class MandatoryPasswordChangeTest extends TestCase
             'must_change_password' => true,
         ]);
 
-        $adminRole = Role::where('slug', 'administrator')->first();
+        $adminRole = Role::where('name', 'administrator')->first();
         $user->roles()->attach($adminRole->id);
 
         // Admin should also be redirected
@@ -226,7 +227,7 @@ class MandatoryPasswordChangeTest extends TestCase
             'must_change_password' => false,
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         // Login multiple times

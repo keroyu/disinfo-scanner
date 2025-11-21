@@ -227,11 +227,16 @@ class LoginTest extends TestCase
         ]);
 
         // Login first
-        $this->postJson('/api/auth/login', [
+        $loginResponse = $this->postJson('/api/auth/login', [
             'email' => 'logout@example.com',
             'password' => 'LogoutPass123!',
         ]);
 
+        $loginResponse->assertStatus(200);
+
+        // For logout test, we need to authenticate the user explicitly since
+        // postJson() doesn't maintain sessions between requests
+        $this->actingAs($user);
         $this->assertAuthenticatedAs($user);
 
         // Now logout

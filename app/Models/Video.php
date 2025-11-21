@@ -44,11 +44,15 @@ class Video extends Model
 
     /**
      * Scope to filter videos that have at least one comment
-     * Note: Must be called AFTER withCommentStats() as it uses the computed actual_comment_count
+     * Compatible with both MySQL and SQLite
      */
     public function scopeHasComments($query)
     {
-        return $query->having('actual_comment_count', '>', 0);
+        return $query->whereExists(function($q) {
+            $q->selectRaw('1')
+              ->from('comments')
+              ->whereColumn('comments.video_id', 'videos.video_id');
+        });
     }
 
     /**

@@ -38,7 +38,7 @@ class PasswordChangeContractTest extends TestCase
             'must_change_password' => true,
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         $response = $this->actingAs($user)->postJson('/api/auth/password/change', [

@@ -105,7 +105,7 @@ class PasswordResetController extends Controller
             $token = Password::broker()->createToken($user);
 
             // Send email
-            Mail::to($user->email)->send(new PasswordResetEmail($user, $token));
+            Mail::to($user->email)->send(new PasswordResetEmail($user->email, $token));
 
             Log::info('Password reset link sent', [
                 'user_id' => $user->id,
@@ -150,13 +150,13 @@ class PasswordResetController extends Controller
 
         try {
             // Validate password strength
-            if (!$this->passwordService->isPasswordStrong($request->password)) {
-                $errors = $this->passwordService->getPasswordStrengthErrors($request->password);
+            $validation = $this->passwordService->validatePasswordStrength($request->password);
+            if (!$validation['valid']) {
                 return response()->json([
                     'success' => false,
                     'message' => '密碼不符合強度要求',
                     'errors' => [
-                        'password' => $this->translatePasswordErrors($errors)
+                        'password' => $this->translatePasswordErrors($validation['errors'])
                     ]
                 ], 422);
             }
@@ -167,7 +167,7 @@ class PasswordResetController extends Controller
                 function ($user, $password) {
                     $user->forceFill([
                         'password' => $this->passwordService->hashPassword($password),
-                        'must_change_password' => false,
+                        'has_default_password' => false,
                         'remember_token' => Str::random(60),
                     ])->save();
                 }

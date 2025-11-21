@@ -18,8 +18,11 @@ Route::prefix('auth')->group(function () {
     Route::get('/password/reset', [PasswordResetController::class, 'showRequestForm'])->name('password.request');
     Route::get('/password/reset/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
 
-    // Mandatory password change route (T054: User Story 2)
-    Route::middleware('auth')->get('/mandatory-password-change', [PasswordChangeController::class, 'showMandatoryChangeForm'])->name('password.mandatory');
+    // Mandatory password change routes (T054: User Story 2)
+    Route::middleware('auth')->group(function () {
+        Route::get('/mandatory-password-change', [PasswordChangeController::class, 'showMandatoryChangeForm'])->name('password.mandatory');
+        Route::post('/mandatory-password-change', [PasswordChangeController::class, 'change'])->name('password.mandatory-change');
+    });
 });
 
 // Import page
@@ -35,6 +38,9 @@ Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'
 
 // Videos list page
 Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->name('videos.index');
+
+// User settings page
+Route::middleware('auth')->get('/settings', [\App\Http\Controllers\UserSettingsController::class, 'index'])->name('settings.index');
 
 // Video Analysis page (008-video-comment-density)
 Route::get('/videos/{video}/analysis', [\App\Http\Controllers\VideoAnalysisController::class, 'showAnalysisPage'])->name('videos.analysis');

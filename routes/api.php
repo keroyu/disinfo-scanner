@@ -19,18 +19,21 @@ use App\Http\Controllers\Auth\PasswordResetController;
 
 // Authentication Routes (011-member-system)
 Route::prefix('auth')->group(function () {
-    // Public routes
-    Route::post('/register', [RegisterController::class, 'register']);
-    Route::get('/verify-email', [EmailVerificationController::class, 'verify'])->name('verification.verify');
-    Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend']);
-    Route::post('/login', [LoginController::class, 'login']);
+    // Public routes (with 'web' middleware for session support)
+    Route::middleware('web')->group(function () {
+        Route::post('/register', [RegisterController::class, 'register']);
+        Route::get('/verify-email', [EmailVerificationController::class, 'verify'])->name('verification.verify');
+        Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend']);
+        Route::post('/login', [LoginController::class, 'login']);
+    });
 
     // Password reset routes (T055: User Story 2)
     Route::post('/password/reset/request', [PasswordResetController::class, 'sendResetLink']);
     Route::post('/password/reset', [PasswordResetController::class, 'reset']);
 
-    // Authenticated routes
-    Route::middleware('auth:sanctum')->group(function () {
+    // Authenticated routes (supports both web sessions and Sanctum tokens)
+    // Note: Added 'web' middleware to enable session support for these endpoints
+    Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/logout', [LoginController::class, 'logout']);
         Route::get('/me', [LoginController::class, 'me']);
 
@@ -122,6 +125,6 @@ Route::get('/comments/{commentId}', function (string $commentId) {
     return response()->json($response);
 });
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });

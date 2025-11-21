@@ -61,8 +61,7 @@ class User extends Authenticatable
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'role_user')
-            ->withPivot('assigned_at', 'assigned_by')
-            ->withTimestamps();
+            ->withPivot('assigned_at', 'assigned_by');
     }
 
     public function apiQuota()

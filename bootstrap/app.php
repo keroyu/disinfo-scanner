@@ -12,7 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Register middleware aliases
+        $middleware->alias([
+            'check.default.password' => \App\Http\Middleware\CheckDefaultPassword::class,
+            'check.email.verified' => \App\Http\Middleware\CheckEmailVerified::class,
+        ]);
+
+        // Apply CheckDefaultPassword middleware to web group (excluding auth routes)
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckDefaultPassword::class,
+        ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
         // Clean up expired email verification tokens (daily at 2:00 AM)

@@ -42,7 +42,7 @@ class PasswordChangeRequest extends FormRequest
     {
         return [
             'current_password' => ['sometimes', 'required', 'string'],
-            'password' => [
+            'new_password' => [
                 'required',
                 'string',
                 'min:8',
@@ -52,7 +52,7 @@ class PasswordChangeRequest extends FormRequest
                 'regex:/[!@#$%^&*(),.?":{}|<>]/', // At least one special char
                 'confirmed',
             ],
-            'password_confirmation' => ['required', 'string'],
+            'new_password_confirmation' => ['required', 'string'],
         ];
     }
 
@@ -65,11 +65,11 @@ class PasswordChangeRequest extends FormRequest
     {
         return [
             'current_password.required' => '請輸入目前的密碼',
-            'password.required' => '請輸入新密碼',
-            'password.min' => '密碼長度至少需要 8 個字元',
-            'password.regex' => '密碼必須包含大寫字母、小寫字母、數字和特殊字元',
-            'password.confirmed' => '密碼確認不符',
-            'password_confirmation.required' => '請確認您的新密碼',
+            'new_password.required' => '請輸入新密碼',
+            'new_password.min' => '密碼長度至少需要 8 個字元',
+            'new_password.regex' => '密碼必須包含大寫字母、小寫字母、數字和特殊字元',
+            'new_password.confirmed' => '密碼確認不符',
+            'new_password_confirmation.required' => '請確認您的新密碼',
         ];
     }
 }

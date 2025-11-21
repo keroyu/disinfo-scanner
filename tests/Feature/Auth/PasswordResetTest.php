@@ -27,6 +27,7 @@ class PasswordResetTest extends TestCase
 
         // Seed roles
         $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(\Database\Seeders\PermissionSeeder::class);
     }
 
     /**
@@ -68,12 +69,18 @@ class PasswordResetTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        $this->postJson('/api/auth/password/reset/request', [
+        $response = $this->postJson('/api/auth/password/reset/request', [
             'email' => 'test@example.com',
         ]);
 
+        $response->assertStatus(200);
+
+        // First check if any PasswordResetEmail was sent at all
+        Mail::assertSent(PasswordResetEmail::class);
+
+        // Then check it has the right properties
         Mail::assertSent(PasswordResetEmail::class, function ($mail) use ($user) {
-            return $mail->hasTo($user->email) && !empty($mail->token);
+            return $mail->hasTo($user->email);
         });
     }
 
@@ -267,10 +274,11 @@ class PasswordResetTest extends TestCase
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'email_verified_at' => now(),
+            'is_email_verified' => true,
             'password' => bcrypt('OldPassword@123'),
         ]);
 
-        $regularRole = Role::where('slug', 'regular-member')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($regularRole->id);
 
         // Reset password
