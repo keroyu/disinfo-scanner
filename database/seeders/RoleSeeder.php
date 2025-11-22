@@ -28,9 +28,9 @@ class RoleSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name' => 'premium_Member',
+                'name' => 'premium_member',
                 'display_name' => '高級會員',
-                'description' => 'Premium Members with premium features',
+                'description' => 'Premium members with premium features',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -52,6 +52,6 @@ class RoleSeeder extends Seeder
 
         DB::table('roles')->insert($roles);
 
-        $this->command->info('✓ Seeded 5 roles: visitor, regular_member, premium_Member, website_editor, administrator');
+        $this->command->info('✓ Seeded 5 roles: visitor, regular_member, premium_member, website_editor, administrator');
     }
 }

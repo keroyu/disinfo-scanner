@@ -61,3 +61,35 @@ Route::middleware('auth')->group(function () {
 
 // Video Analysis page (008-video-comment-density)
 Route::get('/videos/{video}/analysis', [\App\Http\Controllers\VideoAnalysisController::class, 'showAnalysisPage'])->name('videos.analysis');
+
+// Admin Panel Routes (011-member-system - Admin Module)
+// T221: Add admin user management routes
+Route::prefix('admin')->middleware(['auth', 'check.admin'])->group(function () {
+    // Admin dashboard (Phase 3 - to be implemented)
+    Route::get('/dashboard', function () {
+        return view('admin.dashboard');
+    })->name('admin.dashboard');
+
+    // User management views (Phase 3 - to be implemented)
+    Route::get('/users', function () {
+        return view('admin.users.index');
+    })->name('admin.users.index');
+
+    Route::get('/users/{userId}/edit', function ($userId) {
+        return view('admin.users.edit', ['userId' => $userId]);
+    })->name('admin.users.edit');
+
+    // Identity verification views (Phase 4)
+    Route::get('/verifications', function () {
+        return view('admin.verifications.index');
+    })->name('admin.verifications.index');
+
+    Route::get('/verifications/{verificationId}/review', function ($verificationId) {
+        return view('admin.verifications.review', ['verificationId' => $verificationId]);
+    })->name('admin.verifications.review');
+
+    // Analytics & Reporting views (Phase 5)
+    Route::get('/analytics', function () {
+        return view('admin.analytics.index');
+    })->name('admin.analytics.index');
+});

@@ -129,3 +129,23 @@ Route::get('/comments/{commentId}', function (string $commentId) {
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Admin Management Routes (011-member-system - Admin Module)
+// T222: Add admin API routes
+Route::prefix('admin')->middleware(['web', 'auth', 'check.admin'])->group(function () {
+    // User Management (Phase 2)
+    Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index']);
+    Route::get('/users/{userId}', [\App\Http\Controllers\Admin\UserManagementController::class, 'show']);
+    Route::put('/users/{userId}/role', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateRole']);
+
+    // Identity Verification Management (Phase 4)
+    Route::get('/verifications', [\App\Http\Controllers\Admin\UserManagementController::class, 'listVerificationRequests']);
+    Route::get('/verifications/{verificationId}', [\App\Http\Controllers\Admin\UserManagementController::class, 'showVerificationRequest']);
+    Route::post('/verifications/{verificationId}/review', [\App\Http\Controllers\Admin\UserManagementController::class, 'reviewVerificationRequest']);
+
+    // Analytics & Reporting (Phase 5)
+    Route::get('/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getAnalytics']);
+    Route::get('/reports/users/export', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportUserList']);
+    Route::get('/reports/activity', [\App\Http\Controllers\Admin\AnalyticsController::class, 'generateActivityReport']);
+    Route::get('/reports/api-usage', [\App\Http\Controllers\Admin\AnalyticsController::class, 'generateApiUsageReport']);
+});

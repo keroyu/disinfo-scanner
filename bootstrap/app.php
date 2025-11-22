@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.default.password' => \App\Http\Middleware\CheckDefaultPassword::class,
             'check.email.verified' => \App\Http\Middleware\CheckEmailVerified::class,
+            'check.admin' => \App\Http\Middleware\CheckAdminRole::class,
         ]);
 
         // Apply CheckDefaultPassword middleware to web group (excluding auth routes)
