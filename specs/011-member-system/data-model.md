@@ -109,7 +109,7 @@ ADD INDEX idx_default_password (has_default_password);
 INSERT INTO roles (name, display_name, description) VALUES
 ('visitor', '訪客', 'Unregistered users with limited access'),
 ('regular_member', '一般會員', 'Registered users with basic access'),
-('paid_member', '付費會員', 'Paid members with premium features'),
+('premium_Member', '高級會員', 'Premium Members with premium features'),
 ('website_editor', '網站編輯', 'Content editors with full frontend access'),
 ('administrator', '管理員', 'System administrators with unrestricted access');
 ```
@@ -247,7 +247,7 @@ INSERT INTO permissions (name, display_name, category) VALUES
 
 ### 8. `api_quotas` (NEW)
 
-**Purpose**: Track API import quota usage for Paid Members.
+**Purpose**: Track API import quota usage for Premium Members.
 
 **Schema**:
 | Column | Type | Nullable | Default | Constraints | Description |
@@ -274,7 +274,7 @@ INSERT INTO permissions (name, display_name, category) VALUES
 
 ### 9. `identity_verifications` (NEW)
 
-**Purpose**: Track identity verification status for Paid Members to grant unlimited API access.
+**Purpose**: Track identity verification status for Premium Members to grant unlimited API access.
 
 **Schema**:
 | Column | Type | Nullable | Default | Constraints | Description |
@@ -365,7 +365,7 @@ CREATE INDEX idx_permission_role_permission_id ON permission_role(permission_id)
 Unverified → Verified (email verification)
 Default Password → Custom Password (mandatory change)
 No Role → Regular Member (auto-assigned)
-Regular Member → Paid Member (admin action)
+Regular Member → Premium Member (admin action)
 Regular Member → Website Editor (admin action)
 Regular Member → Administrator (admin action)
 ```

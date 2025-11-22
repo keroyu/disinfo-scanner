@@ -87,7 +87,7 @@
                 </div>
 
             @elseif($type === 'upgrade')
-                {{-- Upgrade to Paid Member Modal --}}
+                {{-- Upgrade to Premium Member Modal --}}
                 <div>
                     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100" aria-hidden="true">
                         <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -96,18 +96,18 @@
                     </div>
                     <div class="mt-3 text-center sm:mt-5">
                         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
-                            需升級為付費會員
+                            需升級為高級會員
                         </h3>
                         <div class="mt-2" id="modal-description">
                             <p class="text-sm text-gray-500">
                                 @if($feature)
-                                    「{{ $feature }}」功能僅供付費會員使用。
+                                    「{{ $feature }}」功能僅供高級會員使用。
                                 @else
                                     ⚠️ 付費功能尚未開放！如純支持可先贊助。
                                 @endif
                             </p>
                             <div class="mt-4 bg-blue-50 rounded-md p-4">
-                                <h4 class="text-sm font-medium text-blue-900 mb-2">付費會員專屬功能（Coming）</h4>
+                                <h4 class="text-sm font-medium text-blue-900 mb-2">高級會員專屬功能（Coming）</h4>
                                 <ul class="text-sm text-blue-700 space-y-1 text-left">
                                     <li class="flex items-start">
                                         <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

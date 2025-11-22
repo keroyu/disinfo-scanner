@@ -61,7 +61,7 @@ Tasks have been organized into **4 functional modules** to enable parallel devel
 - User settings interface
 - Permission modal components (Alpine.js integration)
 - Upgrade button component for Regular Members
-- Quota counter display for Paid Members
+- Quota counter display for Premium Members
 - Traditional Chinese language files
 - Responsive design and accessibility
 
@@ -110,7 +110,7 @@ User Story 3 provides admin panel for user management
 
 ### Key Deliverables
 - Permission system foundation (gates, policies, middleware)
-- API quota enforcement (10 imports/month for Paid Members)
+- API quota enforcement (10 imports/month for Premium Members)
 - Page access control (Channels List, Comments List, Admin Panel)
 - Feature access control (search, import, video update)
 - Permission modals integration
@@ -233,13 +233,13 @@ Advanced feature - can be deferred after MVP launch
 
 **Deliverables**:
 - 5 roles with distinct permissions
-- API quota enforcement (10/month for Paid Members)
+- API quota enforcement (10/month for Premium Members)
 - Permission modals for denied access
 - Role-specific settings
 
 **Success Criteria**:
 - [ ] All 5 roles enforced correctly
-- [ ] API quota limits Paid Members to 10 imports/month
+- [ ] API quota limits Premium Members to 10 imports/month
 - [ ] Permission modals display correct messages
 - [ ] 100% of permission scenarios tested
 
@@ -448,7 +448,7 @@ php artisan test --coverage
    - Mitigation: Server-side validation, middleware enforcement, comprehensive testing, security audit
 
 4. **API Quota Bypass**:
-   - Risk: Paid Members exceeding quota limits
+   - Risk: Premium Members exceeding quota limits
    - Mitigation: Server-side quota checks, transaction-safe increment, scheduled quota resets
 
 5. **Admin Account Security**:

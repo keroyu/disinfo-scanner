@@ -14,7 +14,7 @@
 ## Requirement Completeness
 
 - [x] No [NEEDS CLARIFICATION] markers remain
-  - **Resolved**: User Story 4 now includes detailed permissions for all five roles (Visitor, Regular Member, Paid Member, Website Editor, Administrator)
+  - **Resolved**: User Story 4 now includes detailed permissions for all five roles (Visitor, Regular Member, Premium Member, Website Editor, Administrator)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)

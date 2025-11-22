@@ -119,8 +119,8 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### RBAC UI Elements
 
-- [X] T134 [P] [US4] Add "Upgrade to Paid Member" button in top right for Regular Members
-- [ ] T135 [P] [US4] Add quota counter display for Paid Members (X/10 this month)
+- [X] T134 [P] [US4] Add "Upgrade to Premium Member" button in top right for Regular Members
+- [ ] T135 [P] [US4] Add quota counter display for Premium Members (X/10 this month)
 - [ ] T136 [P] [US4] Add conditional rendering based on user role in existing pages
 
 ### Feature Tests for US4
@@ -128,7 +128,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 - [X] T137 [P] [US4] Create role-based access feature test in tests/Feature/RoleBasedAccessTest.php
 - [X] T138 [US4] Test visitor sees "請登入會員" modal when accessing restricted features
 - [X] T139 [US4] Test Regular Member sees "需升級為高級會員" modal for paid features
-- [ ] T140 [US4] Test quota counter displays correctly for Paid Members
+- [ ] T140 [US4] Test quota counter displays correctly for Premium Members
 
 **Checkpoint**: US4 RBAC UI complete - permission modals work correctly
 
@@ -187,7 +187,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 - [X] T160 [P] Add user-friendly error pages (404, 403, 500)
 - [X] T161 [P] Add inline validation error display
 - [ ] T162 Add rate limiting exceeded message display
-- [ ] T163 Add network error handling for API calls
+- [ ] T163 Add newtwork error handling for API calls
 
 **Checkpoint**: Accessibility and UX improvements complete
 
@@ -321,7 +321,7 @@ Task: T160, T161
 - [X] Password reset flow works end-to-end visually
 - [X] Settings page allows password and API key changes
 - [X] Permission modals trigger on restricted actions
-- [ ] Quota counter displays correctly for Paid Members
+- [ ] Quota counter displays correctly for Premium Members
 - [ ] Upgrade button displays for Regular Members
 
 ### Accessibility

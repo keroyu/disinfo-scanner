@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class ApiQuotaService
 {
     /**
-     * Monthly quota limit for Paid Members.
+     * Monthly quota limit for Premium Members.
      */
     const MONTHLY_LIMIT = 10;
 

@@ -70,11 +70,11 @@
                                     @if(auth()->user()->roles->contains('name', 'regular_member'))
                                         <button onclick="showUpgradeModal()"
                                                 class="w-full text-left block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">
-                                            <i class="fas fa-star mr-2"></i> 升級為付費會員
+                                            <i class="fas fa-star mr-2"></i> 升級為高級會員
                                         </button>
                                     @endif
 
-                                    @if(auth()->user()->roles->contains('name', 'paid_member'))
+                                    @if(auth()->user()->roles->contains('name', 'premium_Member'))
                                         <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
                                             <i class="fas fa-chart-line mr-1"></i>
                                             本月 API 用量:

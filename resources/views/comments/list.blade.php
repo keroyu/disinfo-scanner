@@ -12,7 +12,7 @@
     <form method="GET" action="{{ route('comments.index') }}" class="bg-white rounded-lg shadow-md p-6 mb-6 space-y-4">
         @php
             $canSearch = auth()->check() && (
-                auth()->user()->roles->contains('name', 'paid_member') ||
+                auth()->user()->roles->contains('name', 'premium_Member') ||
                 auth()->user()->roles->contains('name', 'website_editor') ||
                 auth()->user()->roles->contains('name', 'administrator')
             );

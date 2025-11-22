@@ -9,8 +9,8 @@
 Add role-based permission control to the existing "Export CSV" feature on the Video Analysis page. Currently, the Export CSV button is visible to all users (including visitors). This update will:
 
 1. **Hide Export CSV button from visitors** - display modal "請登入會員" when clicked
-2. **Implement rate limiting** - 5 exports per hour (rolling window) for Regular Members, Paid Members, and Website Editors
-3. **Implement row limits** - Regular Members: 1,000 rows max, Paid Members & Website Editors: 3,000 rows max, Administrators: unlimited
+2. **Implement rate limiting** - 5 exports per hour (rolling window) for Regular Members, Premium Members, and Website Editors
+3. **Implement row limits** - Regular Members: 1,000 rows max, Premium Members & Website Editors: 3,000 rows max, Administrators: unlimited
 4. **Allow unlimited access for Administrators** - no rate limiting, no row limits
 
 **Technical Approach**: Add server-side API endpoint for CSV export with permission checks, rate limiting middleware, and quota tracking database table. Frontend JavaScript will call the API instead of generating CSV client-side.
@@ -283,7 +283,7 @@ Content-Disposition: attachment; filename="video_{videoId}_comments_{timestamp}.
       "trace_id": "uuid-here",
       "suggestions": [
         "套用時間篩選以減少資料量",
-        "升級為付費會員以提高限制至 3,000 筆",
+        "升級為高級會員以提高限制至 3,000 筆",
         "聯繫管理員申請無限制匯出"
       ]
     }

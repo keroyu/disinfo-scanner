@@ -81,7 +81,7 @@ This module contains admin panel functionality for managing users, permissions, 
 ### Integration for US3
 
 - [ ] T223 [US3] Test admin can view complete user list
-- [ ] T224 [US3] Test admin can change user role (Regular → Paid Member)
+- [ ] T224 [US3] Test admin can change user role (Regular → Premium Member)
 - [ ] T225 [US3] Test admin cannot change own permission level
 - [ ] T226 [US3] Test non-admin cannot access admin panel
 - [ ] T227 [US3] Test role changes take effect immediately
@@ -395,7 +395,7 @@ Task: T299, T300
 
 - [ ] Admin account (themustbig@gmail.com / 2025Nov20) can log in
 - [ ] Admin can view complete member list
-- [ ] Admin can change user roles (Regular → Paid Member, etc.)
+- [ ] Admin can change user roles (Regular → Premium Member, etc.)
 - [ ] Admin cannot change own permission level (warning displays)
 - [ ] Role changes take effect immediately without user re-login
 - [ ] Non-admin users cannot access admin panel

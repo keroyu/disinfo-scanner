@@ -72,7 +72,7 @@ php artisan db:seed --class=AdminUserSeeder
 ```
 
 This seeds:
-- 5 roles: visitor, regular_member, paid_member, website_editor, administrator
+- 5 roles: visitor, regular_member, premium_Member, website_editor, administrator
 - Permissions for pages, features, and actions
 - Admin account: themustbig@gmail.com / 2025Nov20
 
@@ -135,8 +135,8 @@ Visit: `http://localhost/password-reset`
 ### 4. Test Role-Based Access
 
 As Regular Member:
-- Try to access `/admin` → See modal: "需升級為付費會員"
-- Try to use "Official API Import" → See modal: "需升級為付費會員"
+- Try to access `/admin` → See modal: "需升級為高級會員"
+- Try to use "Official API Import" → See modal: "需升級為高級會員"
 
 As Administrator:
 - Visit `/admin/users` → See user list
@@ -144,7 +144,7 @@ As Administrator:
 
 ### 5. Test API Quota
 
-As Paid Member:
+As Premium Member:
 1. Use "Official API Import" 10 times
 2. On 11th attempt → See error: "您已達到本月配額上限 (10/10)"
 3. Submit identity verification
@@ -251,7 +251,7 @@ curl -X PUT http://localhost/api/admin/users/1/role \
   -H "Accept: application/json" \
   -H "Authorization: Bearer {admin_token}" \
   -d '{
-    "role": "paid_member"
+    "role": "premium_Member"
   }'
 ```
 
@@ -286,7 +286,7 @@ For Regular Members:
 @can('use_official_api_import')
     <button>Official API Import</button>
 @else
-    <button disabled>Official API Import (需升級為付費會員)</button>
+    <button disabled>Official API Import (需升級為高級會員)</button>
 @endcan
 ```
 
@@ -295,7 +295,7 @@ For Regular Members:
 In routes:
 
 ```php
-Route::middleware(['auth', 'role:paid_member'])->group(function () {
+Route::middleware(['auth', 'role:premium_Member'])->group(function () {
     Route::post('/api/official-import', [ImportController::class, 'officialImport']);
 });
 ```

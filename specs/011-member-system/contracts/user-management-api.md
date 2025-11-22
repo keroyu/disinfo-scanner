@@ -33,7 +33,7 @@ Authorization: Bearer {admin_token}
 
 **Example**:
 ```
-GET /api/admin/users?page=1&per_page=20&role=paid_member&search=example
+GET /api/admin/users?page=1&per_page=20&role=premium_Member&search=example
 ```
 
 ### Response
@@ -101,7 +101,7 @@ Authorization: Bearer {admin_token}
       "id": 1,
       "email": "user@example.com",
       "name": "User Name",
-      "roles": ["paid_member"],
+      "roles": ["premium_Member"],
       "permissions": [
         "view_comments_list",
         "use_search_comments",
@@ -156,12 +156,12 @@ Authorization: Bearer {admin_token}
 **Body**:
 ```json
 {
-  "role": "paid_member"
+  "role": "premium_Member"
 }
 ```
 
 **Validation Rules**:
-- `role`: Required, must be one of: regular_member, paid_member, website_editor, administrator
+- `role`: Required, must be one of: regular_member, premium_Member, website_editor, administrator
 
 ### Response
 
@@ -174,7 +174,7 @@ Authorization: Bearer {admin_token}
     "user_id": 1,
     "email": "user@example.com",
     "previous_role": "regular_member",
-    "new_role": "paid_member",
+    "new_role": "premium_Member",
     "updated_at": "2025-11-20T06:45:00Z",
     "updated_by": {
       "id": 2,
@@ -382,7 +382,7 @@ Authorization: Bearer {token}
 
 ---
 
-## 7. Submit Identity Verification (Paid Member)
+## 7. Submit Identity Verification (Premium Member)
 
 ### Endpoint
 ```
@@ -425,11 +425,11 @@ Authorization: Bearer {token}
 }
 ```
 
-**Error (403 Forbidden - Not Paid Member)**:
+**Error (403 Forbidden - Not Premium Member)**:
 ```json
 {
   "success": false,
-  "message": "需升級為付費會員才能申請身份驗證"
+  "message": "需升級為高級會員才能申請身份驗證"
 }
 ```
 
@@ -582,7 +582,7 @@ All endpoints require authentication via Bearer token. Role-based access control
 
 - **Admin Only**: `/api/admin/*` endpoints require `administrator` role
 - **Authenticated User**: `/api/user/*` endpoints require any authenticated user
-- **Role-Specific**: Some endpoints check specific roles (e.g., identity verification requires `paid_member`)
+- **Role-Specific**: Some endpoints check specific roles (e.g., identity verification requires `premium_Member`)
 
 ---
 

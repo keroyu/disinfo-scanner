@@ -9,14 +9,14 @@
             <p class="text-gray-600 mt-2">Browse all YouTube videos with comment activity</p>
         </div>
         <div class="flex gap-3">
-            {{-- Official API Import Button - Requires Paid Member + API Key --}}
+            {{-- Official API Import Button - Requires Premium Member + API Key --}}
             @guest
                 <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                         onclick="showPermissionModal('login', '官方API導入')">
                     <i class="fab fa-youtube mr-2"></i>官方API導入
                 </button>
             @else
-                @if(auth()->user()->roles->contains('name', 'paid_member') || auth()->user()->roles->contains('name', 'administrator'))
+                @if(auth()->user()->roles->contains('name', 'premium_Member') || auth()->user()->roles->contains('name', 'administrator'))
                     @if(auth()->user()->youtube_api_key)
                         <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                                 onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">

@@ -227,7 +227,7 @@ let timeFilterState = null;
 // User permissions for search functionality
 @php
     $canSearch = auth()->check() && (
-        auth()->user()->roles->contains('name', 'paid_member') ||
+        auth()->user()->roles->contains('name', 'premium_Member') ||
         auth()->user()->roles->contains('name', 'website_editor') ||
         auth()->user()->roles->contains('name', 'administrator')
     );

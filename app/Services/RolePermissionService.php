@@ -299,14 +299,14 @@ class RolePermissionService
     }
 
     /**
-     * Check if user is paid member.
+     * Check if user is Premium Member.
      *
      * @param User $user
      * @return bool
      */
     public function isPaidMember(User $user): bool
     {
-        return $this->hasRole($user, 'paid_member');
+        return $this->hasRole($user, 'premium_Member');
     }
 
     /**

@@ -7,7 +7,7 @@
 
 ## Overview
 
-This module implements role-based access control (RBAC) for 5 user types: Visitor, Regular Member, Paid Member, Website Editor, and Administrator. It enforces permissions across pages, features, and actions.
+This module implements role-based access control (RBAC) for 5 user types: Visitor, Regular Member, Premium Member, Website Editor, and Administrator. It enforces permissions across pages, features, and actions.
 
 **Dependencies**: Requires Core Module (tasks-core.md) and UI Module (tasks-ui.md) to be complete
 
@@ -29,7 +29,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 - [ ] T403 Create permission-role mapping seeder in database/seeders/PermissionRoleMappingSeeder.php
 - [ ] T404 Map permissions to Visitor role (view Home, Videos List, video analysis)
 - [ ] T405 Map permissions to Regular Member role (+ Channels List, Comments List, U-API import, video update with API key)
-- [ ] T406 Map permissions to Paid Member role (+ Official API import, search features)
+- [ ] T406 Map permissions to Premium Member role (+ Official API import, search features)
 - [ ] T407 Map permissions to Website Editor role (all frontend features)
 - [ ] T408 Map permissions to Administrator role (all features)
 
@@ -52,9 +52,9 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ## Phase 2: API Quota Management (User Story 4)
 
-**Purpose**: Enforce API quota limits for Paid Members
+**Purpose**: Enforce API quota limits for Premium Members
 
-**Goal**: Paid Members have 10 imports/month, unlimited after identity verification
+**Goal**: Premium Members have 10 imports/month, unlimited after identity verification
 
 ### Contract Tests for Quota
 
@@ -80,7 +80,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 - [ ] T424 [US4] Create CheckApiQuota middleware - already in Core Module (verify functionality)
 - [ ] T425 [US4] Apply quota middleware to Official API import routes
-- [ ] T426 [US4] Ensure quota check only applies to Paid Members (not verified Paid Members)
+- [ ] T426 [US4] Ensure quota check only applies to Premium Members (not verified Premium Members)
 
 ### Quota Error Handling
 
@@ -90,9 +90,9 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Integration Testing
 
-- [ ] T430 [US4] Test Paid Member can import 10 videos per month
+- [ ] T430 [US4] Test Premium Member can import 10 videos per month
 - [ ] T431 [US4] Test 11th import attempt shows quota exceeded error
-- [ ] T432 [US4] Test verified Paid Member has unlimited quota
+- [ ] T432 [US4] Test verified Premium Member has unlimited quota
 - [ ] T433 [US4] Test quota resets on 1st of month
 - [ ] T434 [US4] Test Regular Member cannot access Official API import
 
@@ -157,14 +157,14 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 - [ ] T451 [US4] Prevent visitors from using Videos List search
 - [ ] T452 [US4] Prevent Regular Members from using Comments List search
-- [ ] T453 [US4] Allow Paid Members to use all search features
+- [ ] T453 [US4] Allow Premium Members to use all search features
 
 ### Import Feature Protection
 
 - [ ] T454 [US4] Allow Regular Members to use U-API import
 - [ ] T455 [US4] Prevent Regular Members from using Official API import
-- [ ] T456 [US4] Allow Paid Members to use Official API import (with quota)
-- [ ] T457 [US4] Allow verified Paid Members unlimited Official API import
+- [ ] T456 [US4] Allow Premium Members to use Official API import (with quota)
+- [ ] T457 [US4] Allow verified Premium Members unlimited Official API import
 
 ### Video Update Protection
 
@@ -179,7 +179,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 - [ ] T463 [US4] Test visitor cannot use Videos List search
 - [ ] T464 [US4] Test Regular Member can use U-API import but not Official API import
 - [ ] T465 [US4] Test Regular Member can use video update after setting API key
-- [ ] T466 [US4] Test Paid Member can use Official API import with quota check
+- [ ] T466 [US4] Test Premium Member can use Official API import with quota check
 - [ ] T467 [US4] Test Website Editor has access to all frontend features
 
 **Checkpoint**: Feature access control complete
@@ -211,23 +211,23 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Upgrade Button Display
 
-- [ ] T477 [US4] Display "Upgrade to Paid Member" button for Regular Members - already in UI Module T134
+- [ ] T477 [US4] Display "Upgrade to Premium Member" button for Regular Members - already in UI Module T134
 - [ ] T478 [US4] Link upgrade button to membership information page
-- [ ] T479 [US4] Hide upgrade button for Paid Members and above
+- [ ] T479 [US4] Hide upgrade button for Premium Members and above
 
 ### Quota Counter Display
 
-- [ ] T480 [US4] Display quota counter for Paid Members (X/10 this month) - already in UI Module T135
+- [ ] T480 [US4] Display quota counter for Premium Members (X/10 this month) - already in UI Module T135
 - [ ] T481 [US4] Update quota counter after each import
-- [ ] T482 [US4] Show "Unlimited" for verified Paid Members
+- [ ] T482 [US4] Show "Unlimited" for verified Premium Members
 
 ### Integration Testing
 
 - [ ] T483 [US4] Test visitor sees "請登入會員" modal when clicking Comments List
 - [ ] T484 [US4] Test Regular Member sees "需升級為高級會員" modal on Official API import
-- [ ] T485 [US4] Test Paid Member sees quota counter (7/10 remaining)
+- [ ] T485 [US4] Test Premium Member sees quota counter (7/10 remaining)
 - [ ] T486 [US4] Test quota exceeded modal shows correct usage (10/10)
-- [ ] T487 [US4] Test verified Paid Member sees "Unlimited" instead of quota
+- [ ] T487 [US4] Test verified Premium Member sees "Unlimited" instead of quota
 
 **Checkpoint**: Permission modals and UI feedback complete
 
@@ -243,8 +243,8 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 - [ ] T488 [US4] All authenticated users see password change section
 - [ ] T489 [US4] Regular Members and above see YouTube API key configuration
-- [ ] T490 [US4] Paid Members see identity verification submission section
-- [ ] T491 [US4] Hide identity verification section for verified Paid Members
+- [ ] T490 [US4] Premium Members see identity verification submission section
+- [ ] T491 [US4] Hide identity verification section for verified Premium Members
 - [ ] T492 [US4] Website Editors and Admins see all settings
 
 ### YouTube API Key Configuration
@@ -266,7 +266,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 - [ ] T501 [US4] Test all authenticated users can change password
 - [ ] T502 [US4] Test Regular Member can configure YouTube API key
 - [ ] T503 [US4] Test video update enabled after API key configured
-- [ ] T504 [US4] Test Paid Member can submit identity verification
+- [ ] T504 [US4] Test Premium Member can submit identity verification
 - [ ] T505 [US4] Test verification status displays correctly in settings
 
 **Checkpoint**: Role-specific settings complete
@@ -283,7 +283,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 - [ ] T506 [P] Test all Visitor permissions (4 scenarios)
 - [ ] T507 [P] Test all Regular Member permissions (10 scenarios)
-- [ ] T508 [P] Test all Paid Member permissions (12 scenarios)
+- [ ] T508 [P] Test all Premium Member permissions (12 scenarios)
 - [ ] T509 [P] Test all Website Editor permissions (15 scenarios)
 - [ ] T510 [P] Test all Administrator permissions (all features)
 
@@ -297,8 +297,8 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Permission Boundary Testing
 
-- [ ] T516 [P] Test Regular Member cannot elevate to Paid Member permissions
-- [ ] T517 [P] Test Paid Member cannot access admin functions
+- [ ] T516 [P] Test Regular Member cannot elevate to Premium Member permissions
+- [ ] T517 [P] Test Premium Member cannot access admin functions
 - [ ] T518 [P] Test Website Editor cannot access admin panel
 - [ ] T519 Test permission denied for deleted/deactivated roles
 
@@ -445,13 +445,13 @@ Task: T530, T531, T532
 - [ ] All 5 roles have correct permissions assigned
 - [ ] Visitor permissions enforced (Home, Videos List only)
 - [ ] Regular Member permissions enforced (+ Channels List, Comments List, U-API, video update with API key)
-- [ ] Paid Member permissions enforced (+ Official API import with 10/month quota, search features)
+- [ ] Premium Member permissions enforced (+ Official API import with 10/month quota, search features)
 - [ ] Website Editor permissions enforced (all frontend features)
 - [ ] Administrator permissions enforced (all features)
 
 ### API Quota Management
 
-- [ ] Paid Members can import 10 videos per month
+- [ ] Premium Members can import 10 videos per month
 - [ ] 11th import shows quota exceeded error with usage (10/10)
 - [ ] Quota resets on 1st of month
 - [ ] Identity verification grants unlimited quota
@@ -463,14 +463,14 @@ Task: T530, T531, T532
 - [ ] Regular Members see "需升級為高級會員" modal for paid features
 - [ ] Quota exceeded modal shows correct usage and verification suggestion
 - [ ] Upgrade button displays for Regular Members only
-- [ ] Quota counter displays for Paid Members
+- [ ] Quota counter displays for Premium Members
 
 ### Settings Access
 
 - [ ] All authenticated users can change password
 - [ ] Regular Members can configure YouTube API key
 - [ ] Video update enabled after API key configured
-- [ ] Paid Members can submit identity verification
+- [ ] Premium Members can submit identity verification
 - [ ] Verification status displays correctly
 
 ### Performance

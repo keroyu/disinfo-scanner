@@ -74,10 +74,10 @@ This document captures research decisions for implementing a Laravel-based membe
 - **Single `role` enum on users table**: Rejected because doesn't support role-specific data (quotas, verification)
 
 **Implementation Notes**:
-- `roles` table: id, name (visitor, regular_member, paid_member, website_editor, administrator)
+- `roles` table: id, name (visitor, regular_member, premium_Member, website_editor, administrator)
 - `role_user` pivot: user_id, role_id, assigned_at
 - Middleware `CheckUserRole` for route protection
-- Role checking via `$user->hasRole('paid_member')` helper method
+- Role checking via `$user->hasRole('premium_Member')` helper method
 - Permission modals implemented in Blade components with Alpine.js for interactivity
 
 ---
@@ -171,7 +171,7 @@ This document captures research decisions for implementing a Laravel-based membe
 
 **Implementation Notes**:
 - Component: `resources/views/components/permission-modal.blade.php`
-- Props: `message` (請登入會員 or 需升級為付費會員), `show` (boolean)
+- Props: `message` (請登入會員 or 需升級為高級會員), `show` (boolean)
 - Alpine.js directive: `x-show="open"` for show/hide
 - Triggered by: Button click with permission check in Blade `@can` directive
 - Close button: `@click="open = false"`
@@ -391,7 +391,7 @@ How to efficiently generate CSV files with row limits (up to 3,000 rows) while m
 **Rationale**:
 1. **Memory Efficiency**: O(1) memory usage ensures well under 200MB limit even for unlimited administrator exports
 
-2. **Scalability**: If row limits increase in future (e.g., Paid Members upgraded to 10,000 rows), streaming handles it without code changes
+2. **Scalability**: If row limits increase in future (e.g., Premium Members upgraded to 10,000 rows), streaming handles it without code changes
 
 3. **Laravel Integration**: `Response::streamDownload()` is native Laravel, no external dependencies
 
@@ -555,7 +555,7 @@ What JSON structure for rate limit and row limit errors to ensure observability 
       "timestamp": "2025-11-21T14:33:00+08:00",
       "suggestions": [
         "套用時間篩選以減少資料量",
-        "升級為付費會員以提高限制至 3,000 筆",
+        "升級為高級會員以提高限制至 3,000 筆",
         "聯繫管理員申請無限制匯出"
       ]
     }

@@ -24,9 +24,9 @@ class CommentController extends Controller
         $query = Comment::with(['video.channel', 'author']);
 
         // T132: Check if user has permission to use search filters
-        // Only Paid Members, Website Editors, and Administrators can use search functionality
+        // Only Premium Members, Website Editors, and Administrators can use search functionality
         $canSearch = auth()->check() && (
-            auth()->user()->roles->contains('name', 'paid_member') ||
+            auth()->user()->roles->contains('name', 'premium_Member') ||
             auth()->user()->roles->contains('name', 'website_editor') ||
             auth()->user()->roles->contains('name', 'administrator')
         );

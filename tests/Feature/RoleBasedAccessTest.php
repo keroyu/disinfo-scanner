@@ -42,15 +42,15 @@ class RoleBasedAccessTest extends TestCase
 
         $response->assertStatus(200);
         // Check that upgrade modal component is included
-        $response->assertSee('需升級為付費會員', false);
+        $response->assertSee('需升級為高級會員', false);
         // Check that the button triggers upgrade modal for regular members
         $response->assertSee('showPermissionModal', false);
     }
 
     /** @test */
-    public function paid_member_without_api_key_sees_api_key_prompt()
+    public function premium_Member_without_api_key_sees_api_key_prompt()
     {
-        $role = Role::where('name', 'paid_member')->first();
+        $role = Role::where('name', 'premium_Member')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
             'youtube_api_key' => null, // No API key set
@@ -67,9 +67,9 @@ class RoleBasedAccessTest extends TestCase
     }
 
     /** @test */
-    public function paid_member_with_api_key_can_access_official_api_import()
+    public function premium_Member_with_api_key_can_access_official_api_import()
     {
-        $role = Role::where('name', 'paid_member')->first();
+        $role = Role::where('name', 'premium_Member')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
             'youtube_api_key' => 'test_api_key',
@@ -97,15 +97,15 @@ class RoleBasedAccessTest extends TestCase
         $response->assertStatus(200);
         // Check that search fields are disabled
         $response->assertSee('disabled', false);
-        $response->assertSee('搜尋功能需要付費會員', false);
+        $response->assertSee('搜尋功能需要高級會員', false);
         // Check that Apply Filters button shows upgrade modal
         $response->assertSee('showUpgradeForSearchModal', false);
     }
 
     /** @test */
-    public function paid_member_can_use_comments_search()
+    public function premium_Member_can_use_comments_search()
     {
-        $role = Role::where('name', 'paid_member')->first();
+        $role = Role::where('name', 'premium_Member')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
@@ -115,15 +115,15 @@ class RoleBasedAccessTest extends TestCase
 
         $response->assertStatus(200);
         // Check that search fields are NOT disabled
-        $response->assertDontSee('搜尋功能需要付費會員', false);
+        $response->assertDontSee('搜尋功能需要高級會員', false);
         // Check that Apply Filters button is a real submit button
         $response->assertSee('type="submit"', false);
     }
 
     /** @test */
-    public function quota_counter_displays_for_paid_member()
+    public function quota_counter_displays_for_premium_Member()
     {
-        $role = Role::where('name', 'paid_member')->first();
+        $role = Role::where('name', 'premium_Member')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
@@ -146,15 +146,15 @@ class RoleBasedAccessTest extends TestCase
     }
 
     /** @test */
-    public function verified_paid_member_shows_unlimited_quota()
+    public function verified_premium_Member_shows_unlimited_quota()
     {
-        $role = Role::where('name', 'paid_member')->first();
+        $role = Role::where('name', 'premium_Member')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
         $user->roles()->attach($role);
 
-        // Create unlimited API quota record (simulating identity-verified paid member)
+        // Create unlimited API quota record (simulating identity-verified Premium Member)
         $user->apiQuota()->create([
             'monthly_limit' => 10, // Required field, but ignored when is_unlimited is true
             'usage_count' => 0,
@@ -183,7 +183,7 @@ class RoleBasedAccessTest extends TestCase
 
         $response->assertStatus(200);
         // Check that upgrade button is shown in user dropdown
-        $response->assertSee('升級為付費會員', false);
+        $response->assertSee('升級為高級會員', false);
         $response->assertSee('showUpgradeModal', false);
     }
 
@@ -225,9 +225,9 @@ class RoleBasedAccessTest extends TestCase
     }
 
     /** @test */
-    public function paid_member_can_use_search_via_url()
+    public function premium_Member_can_use_search_via_url()
     {
-        $role = Role::where('name', 'paid_member')->first();
+        $role = Role::where('name', 'premium_Member')->first();
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
@@ -239,7 +239,7 @@ class RoleBasedAccessTest extends TestCase
         ]));
 
         $response->assertStatus(200);
-        // Paid member should be able to use search
+        // Premium Member should be able to use search
     }
 
     /** @test */
@@ -255,7 +255,7 @@ class RoleBasedAccessTest extends TestCase
 
         $response->assertStatus(200);
         // Administrator should NOT see the disabled search message
-        $response->assertDontSee('搜尋功能需要付費會員', false);
+        $response->assertDontSee('搜尋功能需要高級會員', false);
         // Administrator should see the submit button (not the upgrade modal trigger)
         $response->assertSee('type="submit"', false);
     }
