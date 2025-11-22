@@ -122,6 +122,10 @@ class AuthenticationService
         // Successful login
         Auth::login($user, $remember);
 
+        // Update last login IP
+        $user->last_login_ip = request()->ip();
+        $user->save();
+
         Log::info('SECURITY: User logged in', [
             'user_id' => $user->id,
             'email' => $user->email,
