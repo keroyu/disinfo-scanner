@@ -81,24 +81,36 @@ Includes MVP views for User Story 1 (registration/login UI)
 **File**: [tasks-admin.md](./tasks-admin.md)
 **Total Tasks**: 105 (T201-T305)
 **Parallel Tasks**: 45
+**Status**: 🚧 **IN PROGRESS** - Phase 1 & 2 Complete (T201-T227) ✅
 
 ### User Stories Covered
-- User Story 3 (P3): Admin Management of Member Accounts
+- User Story 3 (P3): Admin Management of Member Accounts (Phase 1-2 complete)
 
 ### Key Deliverables
-- Admin panel infrastructure
-- User management interface (list, view, edit users)
-- Role assignment functionality
-- Identity verification review system
-- Admin reporting and analytics
-- Audit logging for admin actions
-- Admin user guide and documentation
+- ✅ Admin panel infrastructure (Phase 1)
+- ✅ User management API endpoints (Phase 2)
+- ✅ Role assignment functionality (Phase 2)
+- ⏳ Admin panel UI (Phase 3)
+- ⏳ Identity verification review system (Phase 4)
+- ⏳ Admin reporting and analytics (Phase 5)
+- ⏳ Audit logging for admin actions (Phase 6)
+- ⏳ Admin user guide and documentation (Phase 7)
+
+### Completed Phases (v0.5.2)
+- **Phase 1**: Admin Foundation (T201-T208) ✅
+  - Admin account verified
+  - UserPolicy with authorization methods
+  - CheckAdminRole middleware
+- **Phase 2**: User Management Interface (T209-T227) ✅
+  - UserManagementController with 3 endpoints
+  - API routes at /api/admin/users
+  - 28 tests passing (108 assertions)
 
 ### Dependencies
-- **Requires Core Module completion** (Role and Permission models must exist)
+- **Requires Core Module completion** (Role and Permission models must exist) ✅
 
 ### MVP Status
-User Story 3 provides admin panel for user management
+Phase 1-2 complete: Admin can manage users via API (27 tasks complete)
 
 ---
 
