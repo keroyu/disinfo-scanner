@@ -2,6 +2,22 @@
 
 @section('title', '影片留言密度分析 - ' . $video->title)
 
+@php
+    // User permissions
+    $canSearch = auth()->check() && (
+        auth()->user()->roles->contains('name', 'premium_member') ||
+        auth()->user()->roles->contains('name', 'website_editor') ||
+        auth()->user()->roles->contains('name', 'administrator')
+    );
+
+    // CSV export permission - premium members only
+    $canExportCSV = auth()->check() && (
+        auth()->user()->roles->contains('name', 'premium_member') ||
+        auth()->user()->roles->contains('name', 'website_editor') ||
+        auth()->user()->roles->contains('name', 'administrator')
+    );
+@endphp
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Page Header -->
@@ -141,15 +157,29 @@
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-800">Commenter Pattern Summary</h2>
-            <button
-                id="exportCsvBtn"
-                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors flex items-center gap-2"
-                onclick="exportCommentsToCSV()"
-                title="匯出當前顯示的留言為 CSV 檔案"
-            >
-                <i class="fas fa-file-csv"></i>
-                <span>Export CSV</span>
-            </button>
+            @if($canExportCSV)
+                <button
+                    id="exportCsvBtn"
+                    class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors flex items-center gap-2"
+                    onclick="exportCommentsToCSV()"
+                    title="匯出當前顯示的留言為 CSV 檔案"
+                >
+                    <i class="fas fa-file-csv"></i>
+                    <span>Export CSV</span>
+                </button>
+            @else
+                <div class="flex flex-col items-end gap-1">
+                    <button
+                        class="px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded cursor-not-allowed flex items-center gap-2"
+                        disabled
+                        title="此功能僅限高級會員使用"
+                    >
+                        <i class="fas fa-file-csv"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <span class="text-xs text-gray-500">僅限高級會員使用</span>
+                </div>
+            @endif
         </div>
 
         <!-- Time Filter Indicator -->
@@ -224,15 +254,9 @@ const videoId = '{{ $video->video_id }}';
 let commentPatternUI = null;
 let timeFilterState = null;
 
-// User permissions for search functionality
-@php
-    $canSearch = auth()->check() && (
-        auth()->user()->roles->contains('name', 'premium_Member') ||
-        auth()->user()->roles->contains('name', 'website_editor') ||
-        auth()->user()->roles->contains('name', 'administrator')
-    );
-@endphp
+// User permissions (defined in PHP block at top of file)
 const canSearch = {{ $canSearch ? 'true' : 'false' }};
+const canExportCSV = {{ $canExportCSV ? 'true' : 'false' }};
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -562,6 +586,12 @@ function showEmptyState() {
 
 // Export comments to CSV - opens field selection modal
 function exportCommentsToCSV() {
+    // Check permission
+    if (!canExportCSV) {
+        alert('此功能僅限高級會員使用\n\nExport CSV 功能需要高級會員權限。\n請聯繫管理員升級您的帳號。');
+        return;
+    }
+
     if (!commentPatternUI) {
         alert('無法匯出留言：系統尚未初始化');
         return;

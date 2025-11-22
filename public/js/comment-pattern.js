@@ -357,6 +357,12 @@ class CommentPatternUI {
      * @param {Array} selectedFields Array of field names to export
      */
     exportToCSV(selectedFields = null) {
+        // Check permission (canExportCSV is defined globally in the view)
+        if (typeof canExportCSV !== 'undefined' && !canExportCSV) {
+            alert('此功能僅限高級會員使用\n\nExport CSV 功能需要高級會員權限。\n請聯繫管理員升級您的帳號。');
+            return;
+        }
+
         if (!this.currentComments || this.currentComments.length === 0) {
             alert('目前沒有留言可匯出');
             return;

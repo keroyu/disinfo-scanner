@@ -170,7 +170,7 @@
 
     <footer class="bg-white border-t mt-12">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <p class="text-center text-gray-500 text-sm">YouTube 留言資料管理系統 MVP v1.0.0</p>
+            <p class="text-center text-gray-500 text-sm">Disinfo Scanner 留言資料分析系統 v1.0.0</p>
         </div>
     </footer>
 
