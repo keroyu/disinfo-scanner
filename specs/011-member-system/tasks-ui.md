@@ -319,8 +319,8 @@ Task: T160, T161
 - [X] Email verification page displays verification status
 - [X] Mandatory password change form enforces requirements
 - [X] Password reset flow works end-to-end visually
-- [ ] Settings page allows password and API key changes
-- [ ] Permission modals trigger on restricted actions
+- [X] Settings page allows password and API key changes
+- [X] Permission modals trigger on restricted actions
 - [ ] Quota counter displays correctly for Paid Members
 - [ ] Upgrade button displays for Regular Members
 

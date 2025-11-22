@@ -29,7 +29,7 @@ class RoleSeeder extends Seeder
             ],
             [
                 'name' => 'paid_member',
-                'display_name' => '付費會員',
+                'display_name' => '高級會員',
                 'description' => 'Paid members with premium features',
                 'created_at' => now(),
                 'updated_at' => now(),

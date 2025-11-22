@@ -25,8 +25,8 @@
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                     </svg>
                     <div>
-                        <h3 class="text-sm font-medium text-blue-900">搜尋功能需要付費會員</h3>
-                        <p class="text-sm text-blue-700 mt-1">升級為付費會員即可使用留言搜尋與篩選功能。</p>
+                        <h3 class="text-sm font-medium text-blue-900">搜尋功能需要高級會員</h3>
+                        <p class="text-sm text-blue-700 mt-1">升級為高級會員即可使用留言搜尋與篩選功能。</p>
                     </div>
                 </div>
             </div>
@@ -39,7 +39,7 @@
                 <label for="search" class="block text-sm font-medium text-gray-700">
                     Search Comments
                     @if(!$canSearch)
-                        <span class="ml-2 text-xs text-gray-500">(需付費會員)</span>
+                        <span class="ml-2 text-xs text-gray-500">(需高級會員)</span>
                     @endif
                 </label>
                 <input
@@ -58,7 +58,7 @@
                 <label for="search_channel" class="block text-sm font-medium text-gray-700">
                     Search Channel
                     @if(!$canSearch)
-                        <span class="ml-2 text-xs text-gray-500">(需付費會員)</span>
+                        <span class="ml-2 text-xs text-gray-500">(需高級會員)</span>
                     @endif
                 </label>
                 <div class="mt-1 flex gap-2">
