@@ -405,7 +405,7 @@ Task: T299, T300
 
 ### Performance
 
-- [ ] User list loads within 30 seconds (with 1000+ users)
+- [X] User list loads within 30 seconds (with 1000+ users)
 - [X] Search/filter responds within 1 second
 - [ ] Role change applies within 1 second
 
