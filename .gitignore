@@ -26,6 +26,7 @@ storage/*.key
 # Build artifacts
 /public/hot
 /public/storage
+/public/build
 /storage/*.key
 /storage/framework/cache/*
 /storage/framework/sessions/*

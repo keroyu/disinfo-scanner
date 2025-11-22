@@ -65,8 +65,8 @@ class CommentPatternUI {
             { key: 'top_liked', label: '讚數最高的留言', count: this.statistics.top_liked.count, percentage: this.statistics.top_liked.percentage },
             { key: 'repeat', label: '重複留言者有', count: this.statistics.repeat.count, percentage: this.statistics.repeat.percentage },
             { key: 'night_time', label: '夜間高頻留言者有', count: this.statistics.night_time.count, percentage: this.statistics.night_time.percentage },
-            { key: 'aggressive', label: '高攻擊性留言者有', count: this.statistics.aggressive.count, percentage: this.statistics.aggressive.percentage },
-            { key: 'simplified_chinese', label: '簡體中文留言者有', count: this.statistics.simplified_chinese.count, percentage: this.statistics.simplified_chinese.percentage }
+            // { key: 'aggressive', label: '高攻擊性留言者有', count: this.statistics.aggressive.count, percentage: this.statistics.aggressive.percentage },
+            // { key: 'simplified_chinese', label: '簡體中文留言者有', count: this.statistics.simplified_chinese.count, percentage: this.statistics.simplified_chinese.percentage }
         ];
 
         container.innerHTML = filters.map(filter => {
