@@ -165,7 +165,7 @@ This module contains admin panel functionality for managing users, permissions, 
 
 - [X] T256 When verification approved, set api_quotas.is_unlimited = TRUE
 - [X] T257 When verification rejected, set api_quotas.is_unlimited = FALSE
-- [X] T258 Send notification email to user on approval/rejection
+- [ ] T258 Send notification email to user on approval/rejection
 - [X] T259 Log verification review actions
 
 ### Testing
@@ -173,9 +173,9 @@ This module contains admin panel functionality for managing users, permissions, 
 - [X] T260 Test admin can view pending verification requests
 - [X] T261 Test admin can approve verification (quota becomes unlimited)
 - [X] T262 Test admin can reject verification with notes
-- [X] T263 Test user receives notification email on approval/rejection
+- [ ] T263 Test user receives notification email on approval/rejection
 
-**Checkpoint**: Identity verification management complete
+**Checkpoint**: Identity verification management complete (except email notifications - T258, T263)
 
 ---
 
