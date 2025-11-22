@@ -155,18 +155,18 @@
                         </div>
 
                         <!-- Identity Verification Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6" x-show="user.identity_verification?.status">
+                        <div class="bg-white rounded-lg shadow-sm p-6" x-show="user.identity_verification?.verification_status">
                             <h2 class="text-lg font-semibold text-gray-900 mb-4">身份驗證</h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">驗證方式</label>
-                                    <p class="text-gray-900" x-text="user.identity_verification?.method || 'N/A'"></p>
+                                    <p class="text-gray-900" x-text="user.identity_verification?.verification_method || 'N/A'"></p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">驗證狀態</label>
-                                    <span :class="getVerificationBadgeClass(user.identity_verification?.status)"
+                                    <span :class="getVerificationBadgeClass(user.identity_verification?.verification_status)"
                                           class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                          x-text="getVerificationStatus(user.identity_verification?.status)">
+                                          x-text="getVerificationStatus(user.identity_verification?.verification_status)">
                                     </span>
                                 </div>
                             </div>
@@ -204,8 +204,15 @@
                     try {
                         const response = await fetch('/api/auth/me');
                         if (response.ok) {
-                            const data = await response.json();
-                            this.currentUserId = data.id;
+                            const result = await response.json();
+                            console.log('Current user response:', result);
+                            if (result.success && result.data && result.data.user) {
+                                this.currentUserId = result.data.user.id;
+                            } else {
+                                console.error('Invalid /api/auth/me response format:', result);
+                            }
+                        } else {
+                            console.error('Failed to fetch current user, status:', response.status);
                         }
                     } catch (error) {
                         console.error('Failed to fetch current user:', error);
@@ -216,16 +223,22 @@
                     this.loading = true;
                     try {
                         const response = await fetch(`/api/admin/users/${userId}`);
-                        if (response.ok) {
-                            const data = await response.json();
-                            this.user = data.data;  // Extract the data property
-                        } else {
-                            alert('無法載入用戶資訊');
-                            window.location.href = '{{ route("admin.users.index") }}';
+                        if (!response.ok) {
+                            const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+                            console.error('API Error:', response.status, error);
+                            return;
                         }
+
+                        const data = await response.json();
+
+                        if (!data.data) {
+                            console.error('Invalid response format:', data);
+                            return;
+                        }
+
+                        this.user = data.data;
                     } catch (error) {
                         console.error('Failed to fetch user:', error);
-                        alert('載入用戶資訊時發生錯誤');
                     } finally {
                         this.loading = false;
                     }

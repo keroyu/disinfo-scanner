@@ -62,13 +62,13 @@ class UserManagementController extends Controller
     /**
      * T218: Get user details including roles, API quota, and identity verification
      *
-     * @param int $id
+     * @param int $userId
      * @return JsonResponse
      */
-    public function show(int $id): JsonResponse
+    public function show(int $userId): JsonResponse
     {
         // Find user with relationships
-        $user = User::with(['roles', 'apiQuota', 'identityVerification'])->find($id);
+        $user = User::with(['roles', 'apiQuota', 'identityVerification'])->find($userId);
 
         if (!$user) {
             return response()->json([
@@ -113,10 +113,10 @@ class UserManagementController extends Controller
      * T219: Change user role (prevents self-permission change)
      *
      * @param Request $request
-     * @param int $id
+     * @param int $userId
      * @return JsonResponse
      */
-    public function updateRole(Request $request, int $id): JsonResponse
+    public function updateRole(Request $request, int $userId): JsonResponse
     {
         // Validate request
         $request->validate([
@@ -124,7 +124,7 @@ class UserManagementController extends Controller
         ]);
 
         // Find user
-        $targetUser = User::with('roles')->find($id);
+        $targetUser = User::with('roles')->find($userId);
 
         if (!$targetUser) {
             return response()->json([
