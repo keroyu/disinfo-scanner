@@ -59,7 +59,7 @@ return [
     'permissions' => [
         'denied' => '您沒有權限執行此操作。',
         'require_login' => '請登入會員。',
-        'require_paid' => '需升級為付費會員。',
+        'require_paid' => '需升級為高級會員。',
         'require_admin' => '需要管理員權限。',
     ],
 ];

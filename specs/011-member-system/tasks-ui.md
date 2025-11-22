@@ -115,7 +115,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 - [X] T131 [US4] Integrate permission modal with Alpine.js for interactivity
 - [X] T132 [US4] Add modal triggers to restricted buttons/links (Comments List, Official API Import, etc.)
-- [X] T133 [US4] Add Traditional Chinese modal messages ("請登入會員", "需升級為付費會員")
+- [X] T133 [US4] Add Traditional Chinese modal messages ("請登入會員", "需升級為高級會員")
 
 ### RBAC UI Elements
 
@@ -127,7 +127,7 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 - [X] T137 [P] [US4] Create role-based access feature test in tests/Feature/RoleBasedAccessTest.php
 - [X] T138 [US4] Test visitor sees "請登入會員" modal when accessing restricted features
-- [X] T139 [US4] Test Regular Member sees "需升級為付費會員" modal for paid features
+- [X] T139 [US4] Test Regular Member sees "需升級為高級會員" modal for paid features
 - [ ] T140 [US4] Test quota counter displays correctly for Paid Members
 
 **Checkpoint**: US4 RBAC UI complete - permission modals work correctly
@@ -177,10 +177,10 @@ This module contains all user-facing views, Blade templates, UI components, and 
 
 ### UX Improvements
 
-- [ ] T156 Add loading spinners for form submissions
-- [ ] T157 Add success animations for verification/password change
-- [ ] T158 Add autofocus to primary form inputs
-- [ ] T159 Add form field auto-completion hints (email, password)
+- [X] T156 Add loading spinners for form submissions
+- [X] T157 Add success animations for verification/password change
+- [X] T158 Add autofocus to primary form inputs
+- [X] T159 Add form field auto-completion hints (email, password)
 
 ### Error Handling UI
 

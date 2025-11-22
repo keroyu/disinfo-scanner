@@ -205,7 +205,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 ### Modal Messages
 
 - [ ] T473 [US4] Set modal message "請登入會員" for visitor access attempts
-- [ ] T474 [US4] Set modal message "需升級為付費會員" for Regular Member paid feature attempts
+- [ ] T474 [US4] Set modal message "需升級為高級會員" for Regular Member paid feature attempts
 - [ ] T475 [US4] Set modal message "需設定 YouTube API 金鑰" for video update without API key
 - [ ] T476 [US4] Set modal message with quota info when quota exceeded
 
@@ -224,7 +224,7 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 ### Integration Testing
 
 - [ ] T483 [US4] Test visitor sees "請登入會員" modal when clicking Comments List
-- [ ] T484 [US4] Test Regular Member sees "需升級為付費會員" modal on Official API import
+- [ ] T484 [US4] Test Regular Member sees "需升級為高級會員" modal on Official API import
 - [ ] T485 [US4] Test Paid Member sees quota counter (7/10 remaining)
 - [ ] T486 [US4] Test quota exceeded modal shows correct usage (10/10)
 - [ ] T487 [US4] Test verified Paid Member sees "Unlimited" instead of quota
@@ -460,7 +460,7 @@ Task: T530, T531, T532
 ### UI Feedback
 
 - [ ] Visitors see "請登入會員" modal for member-only features
-- [ ] Regular Members see "需升級為付費會員" modal for paid features
+- [ ] Regular Members see "需升級為高級會員" modal for paid features
 - [ ] Quota exceeded modal shows correct usage and verification suggestion
 - [ ] Upgrade button displays for Regular Members only
 - [ ] Quota counter displays for Paid Members

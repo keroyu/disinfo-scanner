@@ -18,7 +18,7 @@
                 <p class="font-semibold"><i class="fas fa-exclamation-triangle mr-1"></i>重要提示：</p>
                 <p>1. 導入任何影片請優先使用 U-API！</p>
                 <p>2. 留言過多可能導入失敗。</p>
-                <p>3. 使用本功能需加入付費會員，並設定 YouTube API Key。</p>
+                <p>3. 使用本功能需通過手機驗證，並設定 YouTube API Key。</p>
             </div>
         </div>
 
