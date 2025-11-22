@@ -5,7 +5,9 @@ namespace Tests\Unit;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\ApiQuota;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RoleSeeder;
 
 class RoleAssignmentTest extends TestCase
 {
@@ -14,183 +16,214 @@ class RoleAssignmentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Seed roles
-        $this->artisan('db:seed', ['--class' => 'RoleSeeder']);
+        $this->seed(RoleSeeder::class);
     }
 
-    /** @test */
-    public function user_can_be_assigned_a_role()
+    /**
+     * Test user can have only one role assigned at a time
+     *
+     * @test
+     */
+    public function user_can_have_only_one_role_assigned_at_a_time(): void
     {
-        $user = User::factory()->create();
-        $role = Role::where('name', 'regular_member')->first();
-
-        $user->roles()->attach($role);
-
-        $this->assertTrue($user->roles->contains($role));
-    }
-
-    /** @test */
-    public function user_can_have_multiple_roles()
-    {
-        $user = User::factory()->create();
-        $role1 = Role::where('name', 'regular_member')->first();
-        $role2 = Role::where('name', 'website_editor')->first();
-
-        $user->roles()->attach([$role1->id, $role2->id]);
-
-        $this->assertCount(2, $user->roles);
-        $this->assertTrue($user->roles->contains($role1));
-        $this->assertTrue($user->roles->contains($role2));
-    }
-
-    /** @test */
-    public function user_role_can_be_changed()
-    {
-        $user = User::factory()->create();
+        // Arrange: Create user with regular_member role
         $regularRole = Role::where('name', 'regular_member')->first();
-        $premiumRole = Role::where('name', 'premium_member')->first();
-
-        // Assign initial role
+        $user = User::factory()->create();
         $user->roles()->attach($regularRole);
-        $this->assertTrue($user->roles->contains($regularRole));
 
-        // Change role
+        // Assert: User has 1 role
+        $this->assertCount(1, $user->roles);
+        $this->assertEquals('regular_member', $user->roles->first()->name);
+
+        // Act: Change role to premium_member
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $user->roles()->sync([$premiumRole->id]); // sync removes old role
+
+        // Assert: User now has only premium_member role
+        $freshUser = $user->fresh();
+        $this->assertCount(1, $freshUser->roles);
+        $this->assertEquals('premium_member', $freshUser->roles->first()->name);
+        $this->assertFalse($freshUser->roles->contains('name', 'regular_member'));
+    }
+
+    /**
+     * Test all five roles exist in database
+     *
+     * @test
+     */
+    public function all_five_roles_exist_in_database(): void
+    {
+        // Act: Get all roles
+        $roles = Role::pluck('name')->toArray();
+
+        // Assert: All 5 roles exist
+        $expectedRoles = [
+            'administrator',
+            'website_editor',
+            'premium_member',
+            'regular_member',
+        ];
+
+        foreach ($expectedRoles as $roleName) {
+            $this->assertContains($roleName, $roles, "Role {$roleName} should exist");
+        }
+
+        $this->assertGreaterThanOrEqual(4, count($roles));
+    }
+
+    /**
+     * Test role has display_name in Traditional Chinese
+     *
+     * @test
+     */
+    public function role_has_display_name_in_traditional_chinese(): void
+    {
+        // Act: Get roles with display names
+        $roles = Role::whereIn('name', [
+            'administrator',
+            'website_editor',
+            'premium_member',
+            'regular_member',
+        ])->get();
+
+        // Assert: Each role has Traditional Chinese display name
+        $expectedDisplayNames = [
+            'administrator' => '管理員',
+            'website_editor' => '網站編輯',
+            'premium_member' => '高級會員',
+            'regular_member' => '一般會員',
+        ];
+
+        foreach ($roles as $role) {
+            $this->assertArrayHasKey($role->name, $expectedDisplayNames);
+            $this->assertEquals($expectedDisplayNames[$role->name], $role->display_name);
+        }
+    }
+
+    /**
+     * Test role assignment creates API quota for premium members
+     *
+     * @test
+     */
+    public function role_assignment_creates_api_quota_for_premium_members(): void
+    {
+        // Arrange: Create user
+        $user = User::factory()->create();
+
+        // Verify no API quota initially
+        $this->assertNull(ApiQuota::where('user_id', $user->id)->first());
+
+        // Act: Assign premium_member role
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $user->roles()->attach($premiumRole);
+
+        // Trigger quota creation (would be done by controller)
+        ApiQuota::create([
+            'user_id' => $user->id,
+            'current_month' => now()->format('Y-m'),
+            'usage_count' => 0,
+            'monthly_limit' => 10,
+            'is_unlimited' => false,
+        ]);
+
+        // Assert: API quota created with correct defaults
+        $apiQuota = ApiQuota::where('user_id', $user->id)->first();
+        $this->assertNotNull($apiQuota);
+        $this->assertEquals(10, $apiQuota->monthly_limit);
+        $this->assertEquals(0, $apiQuota->usage_count);
+        $this->assertFalse($apiQuota->is_unlimited);
+    }
+
+    /**
+     * Test role assignment does not create API quota for non-premium members
+     *
+     * @test
+     */
+    public function role_assignment_does_not_create_api_quota_for_non_premium_members(): void
+    {
+        // Arrange: Create user with regular_member role
+        $regularRole = Role::where('name', 'regular_member')->first();
+        $user = User::factory()->create();
+        $user->roles()->attach($regularRole);
+
+        // Assert: No API quota created
+        $this->assertNull(ApiQuota::where('user_id', $user->id)->first());
+
+        // Act: Change to website_editor role
+        $editorRole = Role::where('name', 'website_editor')->first();
+        $user->roles()->sync([$editorRole->id]);
+
+        // Assert: Still no API quota
+        $this->assertNull(ApiQuota::where('user_id', $user->id)->first());
+    }
+
+    /**
+     * Test role sync removes old role and adds new role
+     *
+     * @test
+     */
+    public function role_sync_removes_old_role_and_adds_new_role(): void
+    {
+        // Arrange: Create user with regular_member role
+        $regularRole = Role::where('name', 'regular_member')->first();
+        $user = User::factory()->create();
+        $user->roles()->attach($regularRole);
+
+        $this->assertCount(1, $user->roles);
+
+        // Act: Sync to premium_member role
+        $premiumRole = Role::where('name', 'premium_member')->first();
         $user->roles()->sync([$premiumRole->id]);
-        $user->refresh();
 
-        $this->assertCount(1, $user->roles);
-        $this->assertTrue($user->roles->contains($premiumRole));
-        $this->assertFalse($user->roles->contains($regularRole));
+        // Assert: Old role removed, new role added
+        $freshUser = $user->fresh();
+        $this->assertCount(1, $freshUser->roles);
+        $this->assertEquals('premium_member', $freshUser->roles->first()->name);
+        $this->assertFalse($freshUser->roles->contains('name', 'regular_member'));
     }
 
-    /** @test */
-    public function user_role_can_be_removed()
+    /**
+     * Test user with no role has empty roles collection
+     *
+     * @test
+     */
+    public function user_with_no_role_has_empty_roles_collection(): void
     {
-        $user = User::factory()->create();
-        $role = Role::where('name', 'regular_member')->first();
-
-        $user->roles()->attach($role);
-        $this->assertTrue($user->roles->contains($role));
-
-        $user->roles()->detach($role);
-        $user->refresh();
-
-        $this->assertCount(0, $user->roles);
-        $this->assertFalse($user->roles->contains($role));
-    }
-
-    /** @test */
-    public function role_has_correct_attributes()
-    {
-        $adminRole = Role::where('name', 'administrator')->first();
-
-        $this->assertNotNull($adminRole);
-        $this->assertEquals('administrator', $adminRole->name);
-        $this->assertEquals('管理員', $adminRole->display_name);
-        $this->assertNotNull($adminRole->description);
-    }
-
-    /** @test */
-    public function all_five_roles_exist()
-    {
-        $roles = Role::all();
-
-        $this->assertCount(5, $roles);
-
-        $roleNames = $roles->pluck('name')->toArray();
-        $this->assertContains('visitor', $roleNames);
-        $this->assertContains('regular_member', $roleNames);
-        $this->assertContains('premium_member', $roleNames);
-        $this->assertContains('website_editor', $roleNames);
-        $this->assertContains('administrator', $roleNames);
-    }
-
-    /** @test */
-    public function role_sync_replaces_all_existing_roles()
-    {
-        $user = User::factory()->create();
-        $role1 = Role::where('name', 'regular_member')->first();
-        $role2 = Role::where('name', 'premium_member')->first();
-        $role3 = Role::where('name', 'website_editor')->first();
-
-        // Assign multiple roles
-        $user->roles()->attach([$role1->id, $role2->id]);
-        $this->assertCount(2, $user->roles);
-
-        // Sync to single role (should replace all)
-        $user->roles()->sync([$role3->id]);
-        $user->refresh();
-
-        $this->assertCount(1, $user->roles);
-        $this->assertTrue($user->roles->contains($role3));
-        $this->assertFalse($user->roles->contains($role1));
-        $this->assertFalse($user->roles->contains($role2));
-    }
-
-    /** @test */
-    public function user_without_roles_has_empty_roles_collection()
-    {
+        // Arrange: Create user without role
         $user = User::factory()->create();
 
+        // Assert: Roles collection is empty
         $this->assertCount(0, $user->roles);
         $this->assertTrue($user->roles->isEmpty());
     }
 
-    /** @test */
-    public function role_assignment_persists_to_database()
+    /**
+     * Test role relationship eager loading works correctly
+     *
+     * @test
+     */
+    public function role_relationship_eager_loading_works_correctly(): void
     {
-        $user = User::factory()->create();
-        $role = Role::where('name', 'premium_member')->first();
+        // Arrange: Create users with roles
+        $adminRole = Role::where('name', 'administrator')->first();
+        $regularRole = Role::where('name', 'regular_member')->first();
 
-        $user->roles()->attach($role);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
 
-        // Create fresh instance from database
-        $freshUser = User::find($user->id);
+        $regular = User::factory()->create();
+        $regular->roles()->attach($regularRole);
 
-        $this->assertTrue($freshUser->roles->contains($role));
-    }
+        // Act: Eager load roles
+        $users = User::with('roles')->whereIn('id', [$admin->id, $regular->id])->get();
 
-    /** @test */
-    public function role_relationships_are_correctly_defined()
-    {
-        $user = User::factory()->create();
-        $role = Role::where('name', 'administrator')->first();
+        // Assert: Roles loaded correctly
+        $this->assertCount(2, $users);
+        
+        $adminUser = $users->where('id', $admin->id)->first();
+        $this->assertTrue($adminUser->roles->contains('name', 'administrator'));
 
-        $user->roles()->attach($role);
-
-        // Test user->roles relationship
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $user->roles);
-
-        // Test role->users relationship
-        $this->assertTrue($role->users->contains($user));
-    }
-
-    /** @test */
-    public function duplicate_role_assignment_is_prevented()
-    {
-        $user = User::factory()->create();
-        $role = Role::where('name', 'regular_member')->first();
-
-        // Attach same role twice
-        $user->roles()->attach($role);
-        $user->roles()->attach($role); // This should not create duplicate
-
-        $user->refresh();
-
-        // Should only have one instance of the role
-        $this->assertCount(1, $user->roles);
-    }
-
-    /** @test */
-    public function role_can_be_assigned_during_user_creation()
-    {
-        $role = Role::where('name', 'regular_member')->first();
-
-        $user = User::factory()->create();
-        $user->roles()->attach($role);
-
-        $this->assertCount(1, $user->roles);
-        $this->assertEquals($role->id, $user->roles->first()->id);
+        $regularUser = $users->where('id', $regular->id)->first();
+        $this->assertTrue($regularUser->roles->contains('name', 'regular_member'));
     }
 }

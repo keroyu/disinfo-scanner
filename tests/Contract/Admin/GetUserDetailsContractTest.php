@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\ApiQuota;
 use App\Models\IdentityVerification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RoleSeeder;
 
 class GetUserDetailsContractTest extends TestCase
 {
@@ -16,213 +17,194 @@ class GetUserDetailsContractTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Seed roles
-        $this->artisan('db:seed', ['--class' => 'RoleSeeder']);
+        $this->seed(RoleSeeder::class);
     }
 
-    /** @test */
-    public function get_user_details_endpoint_returns_correct_json_structure()
+    /**
+     * Test get user details endpoint returns correct JSON structure
+     *
+     * @test
+     */
+    public function get_user_details_returns_correct_json_structure(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Create target user
-        $targetUser = User::factory()->create();
-        $regularRole = Role::where('name', 'regular_member')->first();
-        $targetUser->roles()->attach($regularRole);
+        // Create target user with API quota
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $targetUser = User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'is_email_verified' => true,
+        ]);
+        $targetUser->roles()->attach($premiumRole);
 
-        // Create API quota for user
+        // Create API quota
         ApiQuota::create([
             'user_id' => $targetUser->id,
+            'current_month' => now()->format('Y-m'),
             'usage_count' => 5,
             'monthly_limit' => 10,
             'is_unlimited' => false,
-            'current_month' => now()->format('Y-m'),
         ]);
 
-        // Authenticate as admin
-        $this->actingAs($admin);
+        // Act: Request user details
+        $response = $this->actingAs($admin)
+            ->getJson("/admin/users/{$targetUser->id}");
 
-        // Get user details
-        $response = $this->getJson("/api/admin/users/{$targetUser->id}");
-
-        // Assert response structure
+        // Assert: Verify response structure
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'id',
-                'name',
-                'email',
-                'email_verified_at',
-                'is_email_verified',
-                'has_default_password',
-                'last_password_change_at',
-                'roles' => [
-                    '*' => [
-                        'id',
-                        'name',
-                        'display_name',
-                    ]
-                ],
-                'api_quota' => [
-                    'usage_count',
-                    'monthly_limit',
-                    'is_unlimited',
-                    'current_month',
-                ],
-                'identity_verification' => [
-                    'status',
-                    'method',
-                    'submitted_at',
-                    'reviewed_at',
-                    'reviewer_notes',
-                ],
-                'created_at',
-                'updated_at',
-            ])
-            ->assertJsonPath('id', $targetUser->id);
-    }
-
-    /** @test */
-    public function get_user_details_requires_authentication()
-    {
-        $user = User::factory()->create();
-
-        $response = $this->getJson("/api/admin/users/{$user->id}");
-
-        $response->assertStatus(401)
-            ->assertJson([
-                'message' => '請先登入'
+                'data' => [
+                    'id',
+                    'name',
+                    'email',
+                    'is_email_verified',
+                    'has_default_password',
+                    'youtube_api_key',
+                    'roles' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'display_name',
+                        ]
+                    ],
+                    'api_quota' => [
+                        'usage_count',
+                        'monthly_limit',
+                        'is_unlimited',
+                        'current_month',
+                    ],
+                    'identity_verification',
+                    'created_at',
+                    'updated_at',
+                ]
             ]);
+
+        // Verify data values
+        $response->assertJsonPath('data.email', 'test@example.com')
+            ->assertJsonPath('data.api_quota.usage_count', 5)
+            ->assertJsonPath('data.api_quota.monthly_limit', 10);
     }
 
-    /** @test */
-    public function get_user_details_requires_admin_role()
+    /**
+     * Test get user details requires admin authentication
+     *
+     * @test
+     */
+    public function get_user_details_requires_admin_authentication(): void
     {
-        // Create regular user
-        $user = User::factory()->create();
+        // Arrange: Create regular users
         $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
+        
+        $user1 = User::factory()->create();
+        $user1->roles()->attach($regularRole);
 
-        // Target user
-        $targetUser = User::factory()->create();
+        $user2 = User::factory()->create();
+        $user2->roles()->attach($regularRole);
 
-        // Authenticate as regular user
-        $this->actingAs($user);
+        // Act: Regular user tries to view another user's details
+        $response = $this->actingAs($user1)
+            ->getJson("/admin/users/{$user2->id}");
 
-        // Try to get user details
-        $response = $this->getJson("/api/admin/users/{$targetUser->id}");
-
-        // Should be forbidden
+        // Assert: Request denied
         $response->assertStatus(403)
             ->assertJson([
                 'message' => '無權限訪問此功能'
             ]);
     }
 
-    /** @test */
-    public function get_user_details_returns_404_for_nonexistent_user()
+    /**
+     * Test get user details returns 404 for non-existent user
+     *
+     * @test
+     */
+    public function get_user_details_returns_404_for_non_existent_user(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Authenticate as admin
-        $this->actingAs($admin);
+        // Act: Request details for non-existent user
+        $response = $this->actingAs($admin)
+            ->getJson("/admin/users/99999");
 
-        // Request nonexistent user
-        $response = $this->getJson("/api/admin/users/99999");
-
-        $response->assertStatus(404);
+        // Assert: Not found
+        $response->assertStatus(404)
+            ->assertJson([
+                'message' => '找不到指定的使用者'
+            ]);
     }
 
-    /** @test */
-    public function get_user_details_includes_api_quota_information()
+    /**
+     * Test get user details includes identity verification status
+     *
+     * @test
+     */
+    public function get_user_details_includes_identity_verification_status(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Create target user with premium role
-        $targetUser = User::factory()->create();
+        // Create user with pending verification
         $premiumRole = Role::where('name', 'premium_member')->first();
-        $targetUser->roles()->attach($premiumRole);
-
-        // Create API quota
-        ApiQuota::create([
-            'user_id' => $targetUser->id,
-            'usage_count' => 7,
-            'monthly_limit' => 10,
-            'is_unlimited' => false,
-            'current_month' => now()->format('Y-m'),
-        ]);
-
-        // Authenticate as admin
-        $this->actingAs($admin);
-
-        // Get user details
-        $response = $this->getJson("/api/admin/users/{$targetUser->id}");
-
-        $response->assertStatus(200)
-            ->assertJsonPath('api_quota.usage_count', 7)
-            ->assertJsonPath('api_quota.monthly_limit', 10)
-            ->assertJsonPath('api_quota.is_unlimited', false);
-    }
-
-    /** @test */
-    public function get_user_details_includes_identity_verification_status()
-    {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
-        $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Create target user
         $targetUser = User::factory()->create();
-        $premiumRole = Role::where('name', 'premium_member')->first();
         $targetUser->roles()->attach($premiumRole);
 
         // Create identity verification
         IdentityVerification::create([
             'user_id' => $targetUser->id,
-            'method' => 'ID card upload',
-            'status' => 'pending',
+            'verification_method' => 'email',
+            'verification_status' => 'pending',
             'submitted_at' => now(),
         ]);
 
-        // Authenticate as admin
-        $this->actingAs($admin);
+        // Act: Request user details
+        $response = $this->actingAs($admin)
+            ->getJson("/admin/users/{$targetUser->id}");
 
-        // Get user details
-        $response = $this->getJson("/api/admin/users/{$targetUser->id}");
-
+        // Assert: Verification included
         $response->assertStatus(200)
-            ->assertJsonPath('identity_verification.status', 'pending')
-            ->assertJsonPath('identity_verification.method', 'ID card upload');
+            ->assertJsonPath('data.identity_verification.verification_status', 'pending')
+            ->assertJsonPath('data.identity_verification.verification_method', 'email');
     }
 
-    /** @test */
-    public function get_user_details_shows_null_if_no_identity_verification()
+    /**
+     * Test get user details includes all roles
+     *
+     * @test
+     */
+    public function get_user_details_includes_all_roles(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Create target user without identity verification
+        // Create user with multiple roles (edge case)
+        $regularRole = Role::where('name', 'regular_member')->first();
+        $editorRole = Role::where('name', 'website_editor')->first();
+        
         $targetUser = User::factory()->create();
+        $targetUser->roles()->attach([$regularRole->id, $editorRole->id]);
 
-        // Authenticate as admin
-        $this->actingAs($admin);
+        // Act: Request user details
+        $response = $this->actingAs($admin)
+            ->getJson("/admin/users/{$targetUser->id}");
 
-        // Get user details
-        $response = $this->getJson("/api/admin/users/{$targetUser->id}");
-
-        $response->assertStatus(200)
-            ->assertJsonPath('identity_verification.status', null);
+        // Assert: All roles included
+        $response->assertStatus(200);
+        
+        $roles = $response->json('data.roles');
+        $this->assertCount(2, $roles);
+        
+        $roleNames = array_column($roles, 'name');
+        $this->assertContains('regular_member', $roleNames);
+        $this->assertContains('website_editor', $roleNames);
     }
 }

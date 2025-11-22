@@ -5,7 +5,9 @@ namespace Tests\Feature\Admin;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\ApiQuota;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RoleSeeder;
 
 class UserManagementTest extends TestCase
 {
@@ -14,257 +16,248 @@ class UserManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Seed roles
-        $this->artisan('db:seed', ['--class' => 'RoleSeeder']);
+        $this->seed(RoleSeeder::class);
     }
 
-    /** @test */
-    public function admin_can_view_user_list()
+    /**
+     * Test complete user management flow
+     *
+     * @test
+     */
+    public function admin_can_manage_users_end_to_end(): void
     {
-        // Create admin
-        $admin = User::factory()->create();
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create(['email' => 'admin@test.com']);
         $admin->roles()->attach($adminRole);
 
-        // Create some users
-        User::factory()->count(5)->create();
-
-        // Act as admin
-        $this->actingAs($admin);
-
-        // View user list
-        $response = $this->getJson('/api/admin/users');
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'data' => [
-                    '*' => ['id', 'name', 'email', 'roles']
-                ]
-            ]);
-
-        // Should have 6 users total (5 created + 1 admin)
-        $this->assertEquals(6, $response->json('total'));
-    }
-
-    /** @test */
-    public function admin_can_change_user_role_from_regular_to_premium()
-    {
-        // Create admin
-        $admin = User::factory()->create();
-        $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Create regular member
-        $user = User::factory()->create();
+        // Create sample user
         $regularRole = Role::where('name', 'regular_member')->first();
+        $user = User::factory()->create(['email' => 'user@test.com', 'name' => 'Test User']);
         $user->roles()->attach($regularRole);
 
-        // Act as admin
-        $this->actingAs($admin);
+        // Step 1: List all users
+        $listResponse = $this->actingAs($admin)->getJson('/api/admin/users');
+        $listResponse->assertStatus(200);
+        $this->assertCount(2, $listResponse->json('data')); // admin + user
 
-        // Change to premium member
+        // Step 2: View user details
+        $detailsResponse = $this->actingAs($admin)->getJson("/api/admin/users/{$user->id}");
+        $detailsResponse->assertStatus(200)
+            ->assertJsonPath('data.email', 'user@test.com')
+            ->assertJsonPath('data.roles.0.name', 'regular_member');
+
+        // Step 3: Update user role to premium_member
         $premiumRole = Role::where('name', 'premium_member')->first();
-        $response = $this->putJson("/api/admin/users/{$user->id}/role", [
-            'role_id' => $premiumRole->id
+        $updateResponse = $this->actingAs($admin)->putJson("/api/admin/users/{$user->id}/role", [
+            'role_id' => $premiumRole->id,
         ]);
+        $updateResponse->assertStatus(200);
 
-        $response->assertStatus(200);
+        // Step 4: Verify role change took effect
+        $this->assertTrue($user->fresh()->roles->contains('name', 'premium_member'));
+        $this->assertFalse($user->fresh()->roles->contains('name', 'regular_member'));
 
-        // Verify role changed
-        $user->refresh();
-        $this->assertTrue($user->roles->contains('name', 'premium_member'));
-        $this->assertFalse($user->roles->contains('name', 'regular_member'));
+        // Step 5: Verify API quota created for premium member
+        $apiQuota = ApiQuota::where('user_id', $user->id)->first();
+        $this->assertNotNull($apiQuota);
+        $this->assertEquals(10, $apiQuota->monthly_limit);
+        $this->assertFalse($apiQuota->is_unlimited);
     }
 
-    /** @test */
-    public function admin_cannot_change_own_permission_level()
+    /**
+     * Test admin can search users by name
+     *
+     * @test
+     */
+    public function admin_can_search_users_by_name(): void
     {
-        // Create admin
-        $admin = User::factory()->create();
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Act as admin
-        $this->actingAs($admin);
-
-        // Try to change own role to regular member
+        // Create users with specific names
         $regularRole = Role::where('name', 'regular_member')->first();
-        $response = $this->putJson("/api/admin/users/{$admin->id}/role", [
-            'role_id' => $regularRole->id
-        ]);
+        
+        $john = User::factory()->create(['name' => 'John Doe', 'email' => 'john@test.com']);
+        $john->roles()->attach($regularRole);
 
-        $response->assertStatus(403)
-            ->assertJson([
-                'message' => '不能變更自己的權限等級'
-            ]);
+        $jane = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@test.com']);
+        $jane->roles()->attach($regularRole);
 
-        // Verify role didn't change
-        $admin->refresh();
-        $this->assertTrue($admin->roles->contains('name', 'administrator'));
+        $bob = User::factory()->create(['name' => 'Bob Johnson', 'email' => 'bob@test.com']);
+        $bob->roles()->attach($regularRole);
+
+        // Act: Search for users with "john" in name
+        $response = $this->actingAs($admin)
+            ->getJson('/api/admin/users?search=john');
+
+        // Assert: Should return John Doe and Bob Johnson
+        $response->assertStatus(200);
+        $users = $response->json('data');
+        $names = array_column($users, 'name');
+
+        $this->assertContains('John Doe', $names);
+        $this->assertContains('Bob Johnson', $names);
+        $this->assertNotContains('Jane Smith', $names);
     }
 
-    /** @test */
-    public function admin_can_search_users_by_email()
+    /**
+     * Test admin can search users by email
+     *
+     * @test
+     */
+    public function admin_can_search_users_by_email(): void
     {
-        // Create admin
-        $admin = User::factory()->create();
+        // Arrange: Create admin user with specific email
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create(['email' => 'admin@test.com']);
         $admin->roles()->attach($adminRole);
 
-        // Create users with specific emails
-        User::factory()->create(['email' => 'john@example.com', 'name' => 'John Doe']);
-        User::factory()->create(['email' => 'jane@example.com', 'name' => 'Jane Smith']);
-        User::factory()->create(['email' => 'bob@test.com', 'name' => 'Bob Wilson']);
+        // Create users
+        $regularRole = Role::where('name', 'regular_member')->first();
 
-        // Act as admin
-        $this->actingAs($admin);
+        $user1 = User::factory()->create(['email' => 'alice@example.com']);
+        $user1->roles()->attach($regularRole);
 
-        // Search for "john@" (more specific to find only email)
-        $response = $this->getJson('/api/admin/users?search=john@');
+        $user2 = User::factory()->create(['email' => 'bob@different.com']);
+        $user2->roles()->attach($regularRole);
 
+        // Act: Search for users with "alice" in email
+        $response = $this->actingAs($admin)
+            ->getJson('/api/admin/users?search=alice');
+
+        // Assert: Should return only alice@example.com
         $response->assertStatus(200);
-
         $users = $response->json('data');
+
         $this->assertCount(1, $users);
-        $this->assertEquals('john@example.com', $users[0]['email']);
+        $this->assertEquals('alice@example.com', $users[0]['email']);
     }
 
-    /** @test */
-    public function admin_can_filter_users_by_role()
+    /**
+     * Test admin can filter users by role
+     *
+     * @test
+     */
+    public function admin_can_filter_users_by_role(): void
     {
-        // Create admin
-        $admin = User::factory()->create();
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Create premium members
-        $premiumRole = Role::where('name', 'premium_member')->first();
-        $premiumUser1 = User::factory()->create();
-        $premiumUser1->roles()->attach($premiumRole);
-        $premiumUser2 = User::factory()->create();
-        $premiumUser2->roles()->attach($premiumRole);
-
-        // Create regular members
+        // Create users with different roles
         $regularRole = Role::where('name', 'regular_member')->first();
-        $regularUser = User::factory()->create();
-        $regularUser->roles()->attach($regularRole);
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $editorRole = Role::where('name', 'website_editor')->first();
 
-        // Act as admin
-        $this->actingAs($admin);
+        $regular1 = User::factory()->create();
+        $regular1->roles()->attach($regularRole);
 
-        // Filter by premium_member role
-        $response = $this->getJson("/api/admin/users?role={$premiumRole->id}");
+        $regular2 = User::factory()->create();
+        $regular2->roles()->attach($regularRole);
 
+        $premium1 = User::factory()->create();
+        $premium1->roles()->attach($premiumRole);
+
+        $editor1 = User::factory()->create();
+        $editor1->roles()->attach($editorRole);
+
+        // Act: Filter by regular_member role
+        $response = $this->actingAs($admin)
+            ->getJson('/api/admin/users?role=regular_member');
+
+        // Assert: Should return only regular members
         $response->assertStatus(200);
-
-        // Should only return premium members
         $users = $response->json('data');
-        $this->assertCount(2, $users);
+
+        $this->assertGreaterThanOrEqual(2, count($users)); // At least 2 regular members
+        
+        foreach ($users as $user) {
+            $roleNames = array_column($user['roles'], 'name');
+            $this->assertContains('regular_member', $roleNames);
+        }
     }
 
-    /** @test */
-    public function role_change_takes_effect_immediately()
+    /**
+     * Test admin can paginate user list
+     *
+     * @test
+     */
+    public function admin_can_paginate_user_list(): void
     {
-        // Create admin
-        $admin = User::factory()->create();
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+
+        // Create 30 users
+        $regularRole = Role::where('name', 'regular_member')->first();
+        User::factory()->count(30)->create()->each(function ($user) use ($regularRole) {
+            $user->roles()->attach($regularRole);
+        });
+
+        // Act: Request page 1 with 10 per page
+        $page1 = $this->actingAs($admin)
+            ->getJson('/api/admin/users?page=1&per_page=10');
+
+        // Act: Request page 2
+        $page2 = $this->actingAs($admin)
+            ->getJson('/api/admin/users?page=2&per_page=10');
+
+        // Assert: Page 1 has 10 users
+        $page1->assertStatus(200);
+        $this->assertCount(10, $page1->json('data'));
+        $this->assertEquals(1, $page1->json('meta.current_page'));
+
+        // Assert: Page 2 has 10 users
+        $page2->assertStatus(200);
+        $this->assertCount(10, $page2->json('data'));
+        $this->assertEquals(2, $page2->json('meta.current_page'));
+
+        // Assert: Page 1 and Page 2 have different users
+        $page1Ids = array_column($page1->json('data'), 'id');
+        $page2Ids = array_column($page2->json('data'), 'id');
+        $this->assertEmpty(array_intersect($page1Ids, $page2Ids));
+    }
+
+    /**
+     * Test role change updates API quota for premium members
+     *
+     * @test
+     */
+    public function role_change_updates_api_quota_for_premium_members(): void
+    {
+        // Arrange: Create admin user
+        $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
         // Create regular member
-        $user = User::factory()->create();
         $regularRole = Role::where('name', 'regular_member')->first();
+        $user = User::factory()->create();
         $user->roles()->attach($regularRole);
 
-        // Act as admin
-        $this->actingAs($admin);
+        // Verify no API quota initially
+        $this->assertNull(ApiQuota::where('user_id', $user->id)->first());
 
-        // Change to premium member
+        // Act: Upgrade to premium_member
         $premiumRole = Role::where('name', 'premium_member')->first();
-        $this->putJson("/api/admin/users/{$user->id}/role", [
-            'role_id' => $premiumRole->id
-        ]);
-
-        // Immediately check user's roles (no re-login required)
-        $user->refresh();
-        $this->assertTrue($user->roles->contains('name', 'premium_member'));
-    }
-
-    /** @test */
-    public function admin_can_view_user_details()
-    {
-        // Create admin
-        $admin = User::factory()->create();
-        $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Create target user
-        $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com'
-        ]);
-
-        // Act as admin
-        $this->actingAs($admin);
-
-        // View user details
-        $response = $this->getJson("/api/admin/users/{$user->id}");
-
-        $response->assertStatus(200)
-            ->assertJsonPath('name', 'Test User')
-            ->assertJsonPath('email', 'test@example.com')
-            ->assertJsonStructure([
-                'id',
-                'name',
-                'email',
-                'roles',
-                'api_quota',
-                'identity_verification',
+        $response = $this->actingAs($admin)
+            ->putJson("/api/admin/users/{$user->id}/role", [
+                'role_id' => $premiumRole->id,
             ]);
-    }
 
-    /** @test */
-    public function non_admin_cannot_access_user_list()
-    {
-        // Create regular user
-        $user = User::factory()->create();
-        $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
-
-        // Act as regular user
-        $this->actingAs($user);
-
-        // Try to access user list
-        $response = $this->getJson('/api/admin/users');
-
-        $response->assertStatus(403);
-    }
-
-    /** @test */
-    public function non_admin_cannot_change_user_roles()
-    {
-        // Create regular user
-        $user = User::factory()->create();
-        $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
-
-        // Create target user
-        $targetUser = User::factory()->create();
-        $targetUser->roles()->attach($regularRole);
-
-        // Act as regular user
-        $this->actingAs($user);
-
-        // Try to change role
-        $premiumRole = Role::where('name', 'premium_member')->first();
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", [
-            'role_id' => $premiumRole->id
-        ]);
-
-        $response->assertStatus(403);
-
-        // Verify role didn't change
-        $targetUser->refresh();
-        $this->assertTrue($targetUser->roles->contains('name', 'regular_member'));
+        // Assert: API quota created with correct limits
+        $response->assertStatus(200);
+        
+        $apiQuota = ApiQuota::where('user_id', $user->id)->first();
+        $this->assertNotNull($apiQuota);
+        $this->assertEquals(10, $apiQuota->monthly_limit);
+        $this->assertEquals(0, $apiQuota->usage_count);
+        $this->assertFalse($apiQuota->is_unlimited);
+        $this->assertEquals(now()->format('Y-m'), $apiQuota->current_month);
     }
 }

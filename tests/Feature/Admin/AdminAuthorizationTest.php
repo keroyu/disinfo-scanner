@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RoleSeeder;
 
 class AdminAuthorizationTest extends TestCase
 {
@@ -14,217 +15,228 @@ class AdminAuthorizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Seed roles
-        $this->artisan('db:seed', ['--class' => 'RoleSeeder']);
+        $this->seed(RoleSeeder::class);
     }
 
-    /** @test */
-    public function visitor_cannot_access_admin_panel()
+    /**
+     * Test only administrators can access admin panel
+     *
+     * @test
+     */
+    public function only_administrators_can_access_admin_panel(): void
     {
-        // No authentication
+        // Arrange: Create users with different roles
+        $roles = [
+            'regular_member',
+            'premium_member',
+            'website_editor',
+            'administrator',
+        ];
 
-        $response = $this->getJson('/api/admin/users');
+        $users = [];
+        foreach ($roles as $roleName) {
+            $role = Role::where('name', $roleName)->first();
+            $user = User::factory()->create();
+            $user->roles()->attach($role);
+            $users[$roleName] = $user;
+        }
 
-        // Laravel's default auth middleware returns "Unauthenticated."
+        // Act & Assert: Only administrator can access
+        foreach ($users as $roleName => $user) {
+            $response = $this->actingAs($user)->getJson('/admin/users');
+
+            if ($roleName === 'administrator') {
+                $response->assertStatus(200);
+            } else {
+                $response->assertStatus(403)
+                    ->assertJson(['message' => '無權限訪問此功能']);
+            }
+        }
+    }
+
+    /**
+     * Test unauthenticated users cannot access admin panel
+     *
+     * @test
+     */
+    public function unauthenticated_users_cannot_access_admin_panel(): void
+    {
+        // Act: Access admin panel without authentication
+        $response = $this->getJson('/admin/users');
+
+        // Assert: Unauthorized (Laravel's default message for unauthenticated API requests)
         $response->assertStatus(401)
-            ->assertJson([
-                'message' => 'Unauthenticated.'
-            ]);
+            ->assertJson(['message' => 'Unauthenticated.']);
     }
 
-    /** @test */
-    public function regular_member_cannot_access_admin_panel()
+    /**
+     * Test admin cannot change own permission level
+     *
+     * @test
+     */
+    public function admin_cannot_change_own_permission_level(): void
     {
-        // Create regular member
-        $user = User::factory()->create();
+        // Arrange: Create admin user
+        $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+
+        // Act: Try to demote self to regular member
         $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
-
-        // Act as regular member
-        $this->actingAs($user);
-
-        $response = $this->getJson('/api/admin/users');
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'message' => '無權限訪問此功能'
+        $response = $this->actingAs($admin)
+            ->putJson("/api/admin/users/{$admin->id}/role", [
+                'role_id' => $regularRole->id,
             ]);
-    }
 
-    /** @test */
-    public function premium_member_cannot_access_admin_panel()
-    {
-        // Create premium member
-        $user = User::factory()->create();
-        $premiumRole = Role::where('name', 'premium_member')->first();
-        $user->roles()->attach($premiumRole);
-
-        // Act as premium member
-        $this->actingAs($user);
-
-        $response = $this->getJson('/api/admin/users');
-
+        // Assert: Request denied
         $response->assertStatus(403)
-            ->assertJson([
-                'message' => '無權限訪問此功能'
-            ]);
+            ->assertJson(['message' => '您無法變更自己的權限等級']);
+
+        // Verify role unchanged
+        $this->assertTrue($admin->fresh()->roles->contains('name', 'administrator'));
+        $this->assertFalse($admin->fresh()->roles->contains('name', 'regular_member'));
     }
 
-    /** @test */
-    public function website_editor_cannot_access_admin_panel()
+    /**
+     * Test admin can change other users' roles
+     *
+     * @test
+     */
+    public function admin_can_change_other_users_roles(): void
     {
-        // Create website editor
-        $user = User::factory()->create();
-        $editorRole = Role::where('name', 'website_editor')->first();
-        $user->roles()->attach($editorRole);
-
-        // Act as website editor
-        $this->actingAs($user);
-
-        $response = $this->getJson('/api/admin/users');
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'message' => '無權限訪問此功能'
-            ]);
-    }
-
-    /** @test */
-    public function administrator_can_access_admin_panel()
-    {
-        // Create administrator
-        $admin = User::factory()->create();
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Act as administrator
-        $this->actingAs($admin);
-
-        $response = $this->getJson('/api/admin/users');
-
-        $response->assertStatus(200);
-    }
-
-    /** @test */
-    public function admin_role_is_checked_on_every_request()
-    {
-        // Create admin
         $admin = User::factory()->create();
-        $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Act as admin
-        $this->actingAs($admin);
-
-        // First request succeeds
-        $response1 = $this->getJson('/api/admin/users');
-        $response1->assertStatus(200);
-
-        // Simulate role removal (admin demoted)
-        $admin->roles()->detach($adminRole);
-
-        // Second request should fail
-        $response2 = $this->getJson('/api/admin/users');
-        $response2->assertStatus(403);
-    }
-
-    /** @test */
-    public function admin_authorization_works_for_all_admin_endpoints()
-    {
-        // Create admin
-        $admin = User::factory()->create();
-        $adminRole = Role::where('name', 'administrator')->first();
         $admin->roles()->attach($adminRole);
 
         // Create target user
-        $user = User::factory()->create();
-
-        // Act as admin
-        $this->actingAs($admin);
-
-        // Test list users endpoint
-        $response1 = $this->getJson('/api/admin/users');
-        $response1->assertStatus(200);
-
-        // Test get user details endpoint
-        $response2 = $this->getJson("/api/admin/users/{$user->id}");
-        $response2->assertStatus(200);
-
-        // Test update user role endpoint
         $regularRole = Role::where('name', 'regular_member')->first();
-        $response3 = $this->putJson("/api/admin/users/{$user->id}/role", [
-            'role_id' => $regularRole->id
-        ]);
-        $response3->assertStatus(200);
-    }
-
-    /** @test */
-    public function admin_cannot_elevate_to_admin_from_regular_user()
-    {
-        // Create regular user
-        $user = User::factory()->create();
-        $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
-
-        // Create target user
         $targetUser = User::factory()->create();
+        $targetUser->roles()->attach($regularRole);
 
-        // Act as regular user
-        $this->actingAs($user);
-
-        // Try to change target user's role
-        $adminRole = Role::where('name', 'administrator')->first();
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", [
-            'role_id' => $adminRole->id
-        ]);
-
-        // Should be forbidden (no access to endpoint at all)
-        $response->assertStatus(403);
-    }
-
-    /** @test */
-    public function unauthenticated_requests_are_rejected()
-    {
-        // Create a user
-        $user = User::factory()->create();
-
-        // Try to access admin endpoints without authentication
-
-        // List users
-        $response1 = $this->getJson('/api/admin/users');
-        $response1->assertStatus(401);
-
-        // Get user details
-        $response2 = $this->getJson("/api/admin/users/{$user->id}");
-        $response2->assertStatus(401);
-
-        // Update user role
-        $regularRole = Role::where('name', 'regular_member')->first();
-        $response3 = $this->putJson("/api/admin/users/{$user->id}/role", [
-            'role_id' => $regularRole->id
-        ]);
-        $response3->assertStatus(401);
-    }
-
-    /** @test */
-    public function admin_middleware_returns_json_for_api_requests()
-    {
-        // Create regular user
-        $user = User::factory()->create();
-        $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
-
-        // Act as regular user
-        $this->actingAs($user);
-
-        // API request should return JSON
-        $response = $this->getJson('/api/admin/users');
-
-        $response->assertStatus(403)
-            ->assertHeader('Content-Type', 'application/json')
-            ->assertJson([
-                'message' => '無權限訪問此功能'
+        // Act: Change target user's role to premium_member
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $response = $this->actingAs($admin)
+            ->putJson("/api/admin/users/{$targetUser->id}/role", [
+                'role_id' => $premiumRole->id,
             ]);
+
+        // Assert: Request successful
+        $response->assertStatus(200);
+
+        // Verify role changed
+        $this->assertTrue($targetUser->fresh()->roles->contains('name', 'premium_member'));
+        $this->assertFalse($targetUser->fresh()->roles->contains('name', 'regular_member'));
+    }
+
+    /**
+     * Test non-admin cannot view other users' details
+     *
+     * @test
+     */
+    public function non_admin_cannot_view_other_users_details(): void
+    {
+        // Arrange: Create two regular members
+        $regularRole = Role::where('name', 'regular_member')->first();
+        
+        $user1 = User::factory()->create();
+        $user1->roles()->attach($regularRole);
+
+        $user2 = User::factory()->create();
+        $user2->roles()->attach($regularRole);
+
+        // Act: User1 tries to view User2's details
+        $response = $this->actingAs($user1)
+            ->getJson("/api/admin/users/{$user2->id}");
+
+        // Assert: Request denied
+        $response->assertStatus(403)
+            ->assertJson(['message' => '無權限訪問此功能']);
+    }
+
+    /**
+     * Test non-admin cannot change other users' roles
+     *
+     * @test
+     */
+    public function non_admin_cannot_change_other_users_roles(): void
+    {
+        // Arrange: Create two regular members
+        $regularRole = Role::where('name', 'regular_member')->first();
+        
+        $user1 = User::factory()->create();
+        $user1->roles()->attach($regularRole);
+
+        $user2 = User::factory()->create();
+        $user2->roles()->attach($regularRole);
+
+        // Act: User1 tries to change User2's role
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $response = $this->actingAs($user1)
+            ->putJson("/api/admin/users/{$user2->id}/role", [
+                'role_id' => $premiumRole->id,
+            ]);
+
+        // Assert: Request denied
+        $response->assertStatus(403)
+            ->assertJson(['message' => '無權限訪問此功能']);
+
+        // Verify role unchanged
+        $this->assertTrue($user2->fresh()->roles->contains('name', 'regular_member'));
+    }
+
+    /**
+     * Test website editor cannot access admin panel
+     *
+     * @test
+     */
+    public function website_editor_cannot_access_admin_panel(): void
+    {
+        // Arrange: Create website editor
+        $editorRole = Role::where('name', 'website_editor')->first();
+        $editor = User::factory()->create();
+        $editor->roles()->attach($editorRole);
+
+        // Act: Editor tries to access admin panel
+        $response = $this->actingAs($editor)
+            ->getJson('/admin/users');
+
+        // Assert: Request denied
+        $response->assertStatus(403)
+            ->assertJson(['message' => '無權限訪問此功能']);
+    }
+
+    /**
+     * Test admin can elevate user to administrator role
+     *
+     * @test
+     */
+    public function admin_can_elevate_user_to_administrator_role(): void
+    {
+        // Arrange: Create admin user
+        $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+
+        // Create regular user
+        $regularRole = Role::where('name', 'regular_member')->first();
+        $targetUser = User::factory()->create();
+        $targetUser->roles()->attach($regularRole);
+
+        // Act: Elevate target user to administrator
+        $response = $this->actingAs($admin)
+            ->putJson("/api/admin/users/{$targetUser->id}/role", [
+                'role_id' => $adminRole->id,
+            ]);
+
+        // Assert: Request successful
+        $response->assertStatus(200);
+
+        // Verify user is now administrator
+        $freshUser = $targetUser->fresh();
+        $this->assertTrue($freshUser->roles->contains('name', 'administrator'));
+
+        // Verify no longer has old role
+        $this->assertFalse($freshUser->roles->contains('name', 'regular_member'));
     }
 }

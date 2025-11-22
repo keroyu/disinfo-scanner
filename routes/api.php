@@ -149,3 +149,4 @@ Route::prefix('admin')->middleware(['web', 'auth', 'check.admin'])->group(functi
     Route::get('/reports/activity', [\App\Http\Controllers\Admin\AnalyticsController::class, 'generateActivityReport']);
     Route::get('/reports/api-usage', [\App\Http\Controllers\Admin\AnalyticsController::class, 'generateApiUsageReport']);
 });
+

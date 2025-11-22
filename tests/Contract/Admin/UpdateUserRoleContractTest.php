@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RoleSeeder;
 
 class UpdateUserRoleContractTest extends TestCase
 {
@@ -14,40 +15,38 @@ class UpdateUserRoleContractTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Seed roles
-        $this->artisan('db:seed', ['--class' => 'RoleSeeder']);
+        $this->seed(RoleSeeder::class);
     }
 
-    /** @test */
-    public function update_user_role_endpoint_returns_correct_json_structure()
+    /**
+     * Test update user role endpoint returns correct JSON structure
+     *
+     * @test
+     */
+    public function update_user_role_returns_correct_json_structure(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
         // Create target user
-        $targetUser = User::factory()->create();
         $regularRole = Role::where('name', 'regular_member')->first();
+        $targetUser = User::factory()->create();
         $targetUser->roles()->attach($regularRole);
 
-        // Get premium role ID
+        // Act: Update user role to premium_member
         $premiumRole = Role::where('name', 'premium_member')->first();
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/users/{$targetUser->id}/role", [
+                'role_id' => $premiumRole->id,
+            ]);
 
-        // Authenticate as admin
-        $this->actingAs($admin);
-
-        // Update user role
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", [
-            'role_id' => $premiumRole->id
-        ]);
-
-        // Assert response structure
+        // Assert: Verify response structure
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'message',
-                'user' => [
+                'data' => [
                     'id',
                     'name',
                     'email',
@@ -59,157 +58,157 @@ class UpdateUserRoleContractTest extends TestCase
                         ]
                     ],
                 ]
-            ])
-            ->assertJsonPath('user.id', $targetUser->id);
-    }
-
-    /** @test */
-    public function update_user_role_requires_authentication()
-    {
-        $user = User::factory()->create();
-        $premiumRole = Role::where('name', 'premium_member')->first();
-
-        $response = $this->putJson("/api/admin/users/{$user->id}/role", [
-            'role_id' => $premiumRole->id
-        ]);
-
-        $response->assertStatus(401)
-            ->assertJson([
-                'message' => '請先登入'
             ]);
+
+        // Verify role was updated
+        $this->assertTrue($targetUser->fresh()->roles->contains('name', 'premium_member'));
     }
 
-    /** @test */
-    public function update_user_role_requires_admin_role()
+    /**
+     * Test admin cannot change own role
+     *
+     * @test
+     */
+    public function admin_cannot_change_own_role(): void
     {
-        // Create regular user
-        $user = User::factory()->create();
+        // Arrange: Create admin user
+        $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+
+        // Act: Try to change own role
         $regularRole = Role::where('name', 'regular_member')->first();
-        $user->roles()->attach($regularRole);
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/users/{$admin->id}/role", [
+                'role_id' => $regularRole->id,
+            ]);
 
-        // Target user
-        $targetUser = User::factory()->create();
-        $targetUser->roles()->attach($regularRole);
+        // Assert: Request denied
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => '您無法變更自己的權限等級'
+            ]);
 
-        // Premium role
+        // Verify role unchanged
+        $this->assertTrue($admin->fresh()->roles->contains('name', 'administrator'));
+    }
+
+    /**
+     * Test update user role requires admin authentication
+     *
+     * @test
+     */
+    public function update_user_role_requires_admin_authentication(): void
+    {
+        // Arrange: Create regular users
+        $regularRole = Role::where('name', 'regular_member')->first();
+        
+        $user1 = User::factory()->create();
+        $user1->roles()->attach($regularRole);
+
+        $user2 = User::factory()->create();
+        $user2->roles()->attach($regularRole);
+
+        // Act: Regular user tries to change another user's role
         $premiumRole = Role::where('name', 'premium_member')->first();
+        $response = $this->actingAs($user1)
+            ->putJson("/admin/users/{$user2->id}/role", [
+                'role_id' => $premiumRole->id,
+            ]);
 
-        // Authenticate as regular user
-        $this->actingAs($user);
-
-        // Try to update role
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", [
-            'role_id' => $premiumRole->id
-        ]);
-
-        // Should be forbidden
+        // Assert: Request denied
         $response->assertStatus(403)
             ->assertJson([
                 'message' => '無權限訪問此功能'
             ]);
+
+        // Verify role unchanged
+        $this->assertTrue($user2->fresh()->roles->contains('name', 'regular_member'));
     }
 
-    /** @test */
-    public function update_user_role_prevents_self_permission_change()
+    /**
+     * Test update user role validates role_id
+     *
+     * @test
+     */
+    public function update_user_role_validates_role_id(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Get regular role
+        // Create target user
         $regularRole = Role::where('name', 'regular_member')->first();
+        $targetUser = User::factory()->create();
+        $targetUser->roles()->attach($regularRole);
 
-        // Authenticate as admin
-        $this->actingAs($admin);
+        // Act: Try to update with invalid role_id
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/users/{$targetUser->id}/role", [
+                'role_id' => 999, // Non-existent role
+            ]);
 
-        // Try to change own role
-        $response = $this->putJson("/api/admin/users/{$admin->id}/role", [
-            'role_id' => $regularRole->id
-        ]);
+        // Assert: Validation error
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['role_id']);
+    }
 
-        // Should be forbidden
-        $response->assertStatus(403)
+    /**
+     * Test update user role validates user exists
+     *
+     * @test
+     */
+    public function update_user_role_validates_user_exists(): void
+    {
+        // Arrange: Create admin user
+        $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+
+        // Act: Try to update non-existent user
+        $premiumRole = Role::where('name', 'premium_member')->first();
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/users/99999/role", [
+                'role_id' => $premiumRole->id,
+            ]);
+
+        // Assert: Not found
+        $response->assertStatus(404)
             ->assertJson([
-                'message' => '不能變更自己的權限等級'
+                'message' => '找不到指定的使用者'
             ]);
     }
 
-    /** @test */
-    public function update_user_role_validates_required_fields()
+    /**
+     * Test role change takes effect immediately
+     *
+     * @test
+     */
+    public function role_change_takes_effect_immediately(): void
     {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
+        // Arrange: Create admin user
         $adminRole = Role::where('name', 'administrator')->first();
+        $admin = User::factory()->create();
         $admin->roles()->attach($adminRole);
 
-        // Target user
-        $targetUser = User::factory()->create();
-
-        // Authenticate as admin
-        $this->actingAs($admin);
-
-        // Missing role_id
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", []);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['role_id']);
-    }
-
-    /** @test */
-    public function update_user_role_validates_role_exists()
-    {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
-        $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Target user
-        $targetUser = User::factory()->create();
-
-        // Authenticate as admin
-        $this->actingAs($admin);
-
-        // Invalid role ID
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", [
-            'role_id' => 99999
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['role_id']);
-    }
-
-    /** @test */
-    public function update_user_role_replaces_existing_roles()
-    {
-        // Create admin user
-        $admin = User::factory()->create(['email' => 'admin@test.com']);
-        $adminRole = Role::where('name', 'administrator')->first();
-        $admin->roles()->attach($adminRole);
-
-        // Create target user with regular role
-        $targetUser = User::factory()->create();
+        // Create target user
         $regularRole = Role::where('name', 'regular_member')->first();
+        $targetUser = User::factory()->create();
         $targetUser->roles()->attach($regularRole);
 
-        // Get premium role
+        // Act: Change role to premium_member
         $premiumRole = Role::where('name', 'premium_member')->first();
-
-        // Authenticate as admin
-        $this->actingAs($admin);
-
-        // Update to premium role
-        $response = $this->putJson("/api/admin/users/{$targetUser->id}/role", [
-            'role_id' => $premiumRole->id
-        ]);
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/users/{$targetUser->id}/role", [
+                'role_id' => $premiumRole->id,
+            ]);
 
         $response->assertStatus(200);
 
-        // Refresh user
-        $targetUser->refresh();
-
-        // Should only have premium role now
-        $this->assertCount(1, $targetUser->roles);
-        $this->assertEquals('premium_member', $targetUser->roles->first()->name);
+        // Assert: Check user has new role immediately
+        $freshUser = $targetUser->fresh();
+        $this->assertFalse($freshUser->roles->contains('name', 'regular_member'));
+        $this->assertTrue($freshUser->roles->contains('name', 'premium_member'));
     }
 }
