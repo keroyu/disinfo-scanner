@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\EscapesLikeQueries;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\ApiQuota;
@@ -13,6 +14,8 @@ use Illuminate\Http\JsonResponse;
 
 class UserManagementController extends Controller
 {
+    use EscapesLikeQueries;
+
     /**
      * T217: List all users with pagination, search, and role filtering
      *
@@ -29,11 +32,12 @@ class UserManagementController extends Controller
         // Start query with eager loading
         $query = User::with('roles');
 
-        // Apply search filter (name or email)
+        // Apply search filter (name or email) with escaped wildcards
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+            $escapedSearch = $this->buildLikePattern($search);
+            $query->where(function ($q) use ($escapedSearch) {
+                $q->where('name', 'like', $escapedSearch)
+                  ->orWhere('email', 'like', $escapedSearch);
             });
         }
 
@@ -354,12 +358,22 @@ class UserManagementController extends Controller
      */
     public function auditLogs(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 15);
-        $actionType = $request->input('action_type');
-        $userId = $request->input('user_id');
-        $adminId = $request->input('admin_id');
-        $dateFrom = $request->input('date_from');
-        $dateTo = $request->input('date_to');
+        // Validate input including date formats
+        $validated = $request->validate([
+            'per_page' => 'nullable|integer|min:1|max:100',
+            'action_type' => 'nullable|string|max:50',
+            'user_id' => 'nullable|integer|exists:users,id',
+            'admin_id' => 'nullable|integer|exists:users,id',
+            'date_from' => 'nullable|date|date_format:Y-m-d',
+            'date_to' => 'nullable|date|date_format:Y-m-d|after_or_equal:date_from',
+        ]);
+
+        $perPage = $validated['per_page'] ?? 15;
+        $actionType = $validated['action_type'] ?? null;
+        $userId = $validated['user_id'] ?? null;
+        $adminId = $validated['admin_id'] ?? null;
+        $dateFrom = $validated['date_from'] ?? null;
+        $dateTo = $validated['date_to'] ?? null;
 
         $query = AuditLog::with(['user', 'admin'])
             ->orderBy('created_at', 'desc');
@@ -379,13 +393,13 @@ class UserManagementController extends Controller
             $query->where('admin_id', $adminId);
         }
 
-        // T288: Filter by date range
+        // T288: Filter by date range (using whereDate for proper date comparison)
         if ($dateFrom) {
-            $query->where('created_at', '>=', $dateFrom);
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
 
         if ($dateTo) {
-            $query->where('created_at', '<=', $dateTo . ' 23:59:59');
+            $query->whereDate('created_at', '<=', $dateTo);
         }
 
         $auditLogs = $query->paginate($perPage);
@@ -409,11 +423,20 @@ class UserManagementController extends Controller
      */
     public function exportAuditLogs(Request $request)
     {
-        $actionType = $request->input('action_type');
-        $userId = $request->input('user_id');
-        $adminId = $request->input('admin_id');
-        $dateFrom = $request->input('date_from');
-        $dateTo = $request->input('date_to');
+        // Validate input including date formats
+        $validated = $request->validate([
+            'action_type' => 'nullable|string|max:50',
+            'user_id' => 'nullable|integer|exists:users,id',
+            'admin_id' => 'nullable|integer|exists:users,id',
+            'date_from' => 'nullable|date|date_format:Y-m-d',
+            'date_to' => 'nullable|date|date_format:Y-m-d|after_or_equal:date_from',
+        ]);
+
+        $actionType = $validated['action_type'] ?? null;
+        $userId = $validated['user_id'] ?? null;
+        $adminId = $validated['admin_id'] ?? null;
+        $dateFrom = $validated['date_from'] ?? null;
+        $dateTo = $validated['date_to'] ?? null;
 
         $query = AuditLog::with(['user', 'admin'])
             ->orderBy('created_at', 'desc');
@@ -430,22 +453,22 @@ class UserManagementController extends Controller
             $query->where('admin_id', $adminId);
         }
 
+        // Use whereDate for proper date comparison (no string concatenation)
         if ($dateFrom) {
-            $query->where('created_at', '>=', $dateFrom);
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
 
         if ($dateTo) {
-            $query->where('created_at', '<=', $dateTo . ' 23:59:59');
+            $query->whereDate('created_at', '<=', $dateTo);
         }
-
-        $auditLogs = $query->get();
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="audit_logs_' . now()->format('Y-m-d_His') . '.csv"',
         ];
 
-        $callback = function() use ($auditLogs) {
+        // Use chunking to prevent memory exhaustion on large exports
+        $callback = function() use ($query) {
             $file = fopen('php://output', 'w');
 
             // Add BOM for UTF-8
@@ -465,21 +488,23 @@ class UserManagementController extends Controller
                 'Created At',
             ]);
 
-            // Data rows
-            foreach ($auditLogs as $log) {
-                fputcsv($file, [
-                    $log->id,
-                    $log->trace_id,
-                    $log->action_type,
-                    $log->description,
-                    $log->user_id,
-                    $log->user ? $log->user->email : '-',
-                    $log->admin_id,
-                    $log->admin ? $log->admin->email : '-',
-                    $log->ip_address,
-                    $log->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
+            // Data rows - use chunk() to process in batches of 1000
+            $query->chunk(1000, function ($auditLogs) use ($file) {
+                foreach ($auditLogs as $log) {
+                    fputcsv($file, [
+                        $log->id,
+                        $log->trace_id,
+                        $log->action_type,
+                        $log->description,
+                        $log->user_id,
+                        $log->user ? $log->user->email : '-',
+                        $log->admin_id,
+                        $log->admin ? $log->admin->email : '-',
+                        $log->ip_address,
+                        $log->created_at->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
 
             fclose($file);
         };

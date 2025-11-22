@@ -63,13 +63,19 @@ Route::prefix('video-update')->middleware(['web', 'auth'])->group(function () {
 });
 
 // Video Comment Density Analysis endpoint (008-video-comment-density)
-Route::get('/videos/{videoId}/comment-density', [\App\Http\Controllers\VideoAnalysisController::class, 'getCommentDensityData']);
+// Constraint: YouTube video IDs are 11 characters (base64url encoding)
+Route::get('/videos/{videoId}/comment-density', [\App\Http\Controllers\VideoAnalysisController::class, 'getCommentDensityData'])
+    ->where('videoId', '[A-Za-z0-9_-]{11}');
 
 // Comment Pattern Analysis endpoints (009-comments-pattern-summary)
-Route::get('/videos/{videoId}/pattern-statistics', [\App\Http\Controllers\CommentPatternController::class, 'getPatternStatistics']);
-Route::get('/videos/{videoId}/comments', [\App\Http\Controllers\CommentPatternController::class, 'getCommentsByPattern']);
+// Constraint: YouTube video IDs are 11 characters
+Route::get('/videos/{videoId}/pattern-statistics', [\App\Http\Controllers\CommentPatternController::class, 'getPatternStatistics'])
+    ->where('videoId', '[A-Za-z0-9_-]{11}');
+Route::get('/videos/{videoId}/comments', [\App\Http\Controllers\CommentPatternController::class, 'getCommentsByPattern'])
+    ->where('videoId', '[A-Za-z0-9_-]{11}');
 
 // Get single comment data with parent and siblings (for modal display)
+// Constraint: YouTube comment IDs can be up to 100 characters (base64url + optional suffixes)
 Route::get('/comments/{commentId}', function (string $commentId) {
     $comment = \App\Models\Comment::where('comment_id', $commentId)
         ->with('author')
@@ -124,7 +130,7 @@ Route::get('/comments/{commentId}', function (string $commentId) {
     }
 
     return response()->json($response);
-});
+})->where('commentId', '[A-Za-z0-9_-]{1,100}');
 
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();

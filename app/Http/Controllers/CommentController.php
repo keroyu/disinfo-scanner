@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Traits\EscapesLikeQueries;
 use App\Models\Comment;
 use App\Models\Channel;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
+    use EscapesLikeQueries;
+
     /**
      * GET /comments - Display paginated list of all comments with search, filter, and sort
      *

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Traits\EscapesLikeQueries;
 use App\Models\Video;
 use Illuminate\Http\Request;
 
 class VideoController extends Controller
 {
+    use EscapesLikeQueries;
+
     /**
      * GET /videos - Display paginated list of all videos with comment activity
      *
@@ -33,17 +36,19 @@ class VideoController extends Controller
             ->withCommentStats()
             ->hasComments();
 
-        // Apply video title search filter if provided
+        // Apply video title search filter if provided (with escaped wildcards)
         if ($request->filled('search')) {
             $keyword = $request->input('search');
-            $query->where('title', 'LIKE', "%{$keyword}%");
+            $escapedKeyword = $this->buildLikePattern($keyword);
+            $query->where('title', 'LIKE', $escapedKeyword);
         }
 
-        // Apply channel search filter
+        // Apply channel search filter (with escaped wildcards)
         if ($request->filled('search_channel')) {
             $channelKeyword = $request->input('search_channel');
-            $query->whereHas('channel', function($q) use ($channelKeyword) {
-                $q->where('channel_name', 'like', '%' . $channelKeyword . '%');
+            $escapedChannelKeyword = $this->buildLikePattern($channelKeyword);
+            $query->whereHas('channel', function($q) use ($escapedChannelKeyword) {
+                $q->where('channel_name', 'like', $escapedChannelKeyword);
             });
         }
 

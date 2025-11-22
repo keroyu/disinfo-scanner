@@ -50,28 +50,36 @@ class Comment extends Model
     /**
      * Filter comments by keyword across multiple fields
      * Searches: video title, author name, author_channel_id, and comment text
+     * Note: Escapes LIKE wildcards to prevent performance attacks
      */
     public function scopeFilterByKeyword(Builder $query, string $keyword): Builder
     {
-        return $query->where(function (Builder $q) use ($keyword) {
-            $q->whereHas('video', function (Builder $vq) use ($keyword) {
-                $vq->where('title', 'like', '%' . $keyword . '%');
+        // Escape LIKE wildcards (%, _, \) to prevent performance attacks
+        $escapedKeyword = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $keyword) . '%';
+
+        return $query->where(function (Builder $q) use ($escapedKeyword) {
+            $q->whereHas('video', function (Builder $vq) use ($escapedKeyword) {
+                $vq->where('title', 'like', $escapedKeyword);
             })
-                ->orWhereHas('author', function (Builder $aq) use ($keyword) {
-                    $aq->where('name', 'like', '%' . $keyword . '%');
+                ->orWhereHas('author', function (Builder $aq) use ($escapedKeyword) {
+                    $aq->where('name', 'like', $escapedKeyword);
                 })
-                ->orWhere('author_channel_id', 'like', '%' . $keyword . '%')
-                ->orWhere('text', 'like', '%' . $keyword . '%');
+                ->orWhere('author_channel_id', 'like', $escapedKeyword)
+                ->orWhere('text', 'like', $escapedKeyword);
         });
     }
 
     /**
      * Filter comments by channel name
+     * Note: Escapes LIKE wildcards to prevent performance attacks
      */
     public function scopeFilterByChannel(Builder $query, string $channelKeyword): Builder
     {
-        return $query->whereHas('video.channel', function (Builder $q) use ($channelKeyword) {
-            $q->where('channel_name', 'like', '%' . $channelKeyword . '%');
+        // Escape LIKE wildcards (%, _, \) to prevent performance attacks
+        $escapedKeyword = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $channelKeyword) . '%';
+
+        return $query->whereHas('video.channel', function (Builder $q) use ($escapedKeyword) {
+            $q->where('channel_name', 'like', $escapedKeyword);
         });
     }
 
