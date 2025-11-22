@@ -217,7 +217,8 @@
                     try {
                         const response = await fetch(`/api/admin/users/${userId}`);
                         if (response.ok) {
-                            this.user = await response.json();
+                            const data = await response.json();
+                            this.user = data.data;  // Extract the data property
                         } else {
                             alert('無法載入用戶資訊');
                             window.location.href = '{{ route("admin.users.index") }}';

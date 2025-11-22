@@ -22,15 +22,34 @@
             <main class="flex-1 p-6">
                 <div class="max-w-7xl mx-auto">
                     <!-- Page Title -->
-                    <div class="mb-6">
-                        <h1 class="text-3xl font-bold text-gray-900">管理後台儀表板</h1>
-                        <p class="mt-1 text-sm text-gray-600">系統管理與用戶管理概覽</p>
+                    <div class="mb-6 flex items-start justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">管理後台儀表板</h1>
+                            <p class="mt-1 text-sm text-gray-600">系統管理與用戶管理概覽</p>
+                        </div>
+                        <!-- Help Button (T299) -->
+                        <div x-data="{ showHelp: false }" class="relative">
+                            <button @click="showHelp = !showHelp" class="p-2 text-gray-400 hover:text-gray-600 transition" title="顯示幫助">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </button>
+                            <!-- Help Tooltip -->
+                            <div x-show="showHelp" @click.away="showHelp = false" x-transition class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-10">
+                                <h3 class="font-semibold text-gray-900 mb-2">管理後台幫助</h3>
+                                <div class="space-y-2 text-sm text-gray-600">
+                                    <p><strong>統計卡片:</strong> 顯示系統關鍵指標,每5分鐘自動更新</p>
+                                    <p><strong>快速操作:</strong> 點擊卡片快速前往對應管理頁面</p>
+                                    <p><strong>使用者指南:</strong> 詳細說明請參閱 <a href="/docs/admin-guide.md" class="text-blue-600 hover:underline">管理員使用指南</a></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Statistics Cards (T230) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" x-data="dashboardStats">
                         <!-- Total Users Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="bg-white rounded-lg shadow-sm p-6 relative group">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-600">總用戶數</p>
@@ -45,10 +64,14 @@
                             <p class="mt-2 text-xs text-gray-500">
                                 <span class="text-green-600" x-text="newUsersToday > 0 ? '+' + newUsersToday : newUsersToday">0</span> 今日新增
                             </p>
+                            <!-- Contextual Help Tooltip (T300) -->
+                            <div class="hidden group-hover:block absolute top-0 right-0 mt-2 mr-2 w-48 bg-gray-800 text-white text-xs rounded p-2 z-10">
+                                包含所有角色的註冊用戶總數 (訪客除外)
+                            </div>
                         </div>
 
                         <!-- Premium Members Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="bg-white rounded-lg shadow-sm p-6 relative group">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-600">高級會員</p>
@@ -63,10 +86,14 @@
                             <p class="mt-2 text-xs text-gray-500">
                                 <span x-text="Math.round((premiumMembers / totalUsers) * 100)">0</span>% 佔比
                             </p>
+                            <!-- Contextual Help Tooltip -->
+                            <div class="hidden group-hover:block absolute top-0 right-0 mt-2 mr-2 w-56 bg-gray-800 text-white text-xs rounded p-2 z-10">
+                                擁有進階功能的會員,包含 10 次/月 API 配額
+                            </div>
                         </div>
 
                         <!-- Verified Users Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="bg-white rounded-lg shadow-sm p-6 relative group">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-600">已驗證用戶</p>
@@ -81,10 +108,14 @@
                             <p class="mt-2 text-xs text-gray-500">
                                 <span x-text="pendingVerifications">0</span> 待審核
                             </p>
+                            <!-- Contextual Help Tooltip -->
+                            <div class="hidden group-hover:block absolute top-0 right-0 mt-2 mr-2 w-56 bg-gray-800 text-white text-xs rounded p-2 z-10">
+                                完成電子郵件驗證的用戶數量。待審核為身份驗證申請數
+                            </div>
                         </div>
 
                         <!-- Active Today Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="bg-white rounded-lg shadow-sm p-6 relative group">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-600">今日活躍</p>
@@ -97,6 +128,10 @@
                                 </div>
                             </div>
                             <p class="mt-2 text-xs text-gray-500">過去24小時</p>
+                            <!-- Contextual Help Tooltip -->
+                            <div class="hidden group-hover:block absolute top-0 right-0 mt-2 mr-2 w-56 bg-gray-800 text-white text-xs rounded p-2 z-10">
+                                過去 24 小時內有登入或使用平台功能的用戶數
+                            </div>
                         </div>
                     </div>
 
