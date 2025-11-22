@@ -64,7 +64,9 @@ Route::get('/videos/{video}/analysis', [\App\Http\Controllers\VideoAnalysisContr
 
 // Admin Panel Routes (011-member-system - Admin Module)
 // T221: Add admin user management routes
-Route::prefix('admin')->middleware(['auth', 'check.admin'])->group(function () {
+// T284: Admin routes with rate limiting (120 requests per minute for web)
+// T286: Admin session timeout middleware
+Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session', 'throttle:120,1'])->group(function () {
     // Admin dashboard (Phase 3 - to be implemented)
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
@@ -92,4 +94,9 @@ Route::prefix('admin')->middleware(['auth', 'check.admin'])->group(function () {
     Route::get('/analytics', function () {
         return view('admin.analytics.index');
     })->name('admin.analytics.index');
+
+    // Audit Logs view (Phase 6 - T287)
+    Route::get('/audit-logs', function () {
+        return view('admin.audit.index');
+    })->name('admin.audit.index');
 });

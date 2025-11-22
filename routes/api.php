@@ -132,7 +132,9 @@ Route::middleware('auth')->get('/user', function (Request $request) {
 
 // Admin Management Routes (011-member-system - Admin Module)
 // T222: Add admin API routes
-Route::prefix('admin')->middleware(['web', 'auth', 'check.admin'])->group(function () {
+// T284: Admin routes with rate limiting (60 requests per minute)
+// T286: Admin session timeout middleware
+Route::prefix('admin')->middleware(['web', 'auth', 'check.admin', 'check.admin.session', 'throttle:60,1'])->group(function () {
     // User Management (Phase 2)
     Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index']);
     Route::get('/users/{userId}', [\App\Http\Controllers\Admin\UserManagementController::class, 'show']);
@@ -148,5 +150,9 @@ Route::prefix('admin')->middleware(['web', 'auth', 'check.admin'])->group(functi
     Route::get('/reports/users/export', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportUserList']);
     Route::get('/reports/activity', [\App\Http\Controllers\Admin\AnalyticsController::class, 'generateActivityReport']);
     Route::get('/reports/api-usage', [\App\Http\Controllers\Admin\AnalyticsController::class, 'generateApiUsageReport']);
+
+    // Audit Logs (Phase 6 - T282, T288, T289)
+    Route::get('/audit-logs', [\App\Http\Controllers\Admin\UserManagementController::class, 'auditLogs']);
+    Route::get('/audit-logs/export', [\App\Http\Controllers\Admin\UserManagementController::class, 'exportAuditLogs']);
 });
 

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\ApiQuota;
+use App\Models\AuditLog;
+use App\Models\IdentityVerification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -137,11 +139,42 @@ class UserManagementController extends Controller
             ], 403);
         }
 
-        // Get new role
+        // Get current and new roles
+        $oldRole = $targetUser->roles->first();
         $newRole = Role::find($request->role_id);
 
         // Sync role (removes old role, adds new role)
         $targetUser->roles()->sync([$newRole->id]);
+
+        // T279: Log role change
+        AuditLog::log(
+            actionType: 'user_role_changed',
+            description: sprintf(
+                'Admin %s (%s) 將使用者 %s (%s) 的角色從 %s 變更為 %s',
+                auth()->user()->name,
+                auth()->user()->email,
+                $targetUser->name,
+                $targetUser->email,
+                $oldRole ? $oldRole->display_name : '無',
+                $newRole->display_name
+            ),
+            userId: $targetUser->id,
+            adminId: auth()->id(),
+            resourceType: 'user',
+            resourceId: $targetUser->id,
+            changes: [
+                'old_role' => $oldRole ? [
+                    'id' => $oldRole->id,
+                    'name' => $oldRole->name,
+                    'display_name' => $oldRole->display_name,
+                ] : null,
+                'new_role' => [
+                    'id' => $newRole->id,
+                    'name' => $newRole->name,
+                    'display_name' => $newRole->display_name,
+                ],
+            ]
+        );
 
         // Create API quota if upgrading to premium_member
         if ($newRole->name === 'premium_member' && !$targetUser->apiQuota) {
@@ -173,5 +206,284 @@ class UserManagementController extends Controller
                 }),
             ],
         ]);
+    }
+
+    /**
+     * T249: List all identity verification requests
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function listVerificationRequests(Request $request): JsonResponse
+    {
+        $status = $request->input('status', 'pending');
+        $perPage = $request->input('per_page', 15);
+
+        $verifications = IdentityVerification::with('user')
+            ->where('verification_status', $status)
+            ->orderBy('submitted_at', 'desc')
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => $verifications->items(),
+            'meta' => [
+                'current_page' => $verifications->currentPage(),
+                'last_page' => $verifications->lastPage(),
+                'per_page' => $verifications->perPage(),
+                'total' => $verifications->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * T250: Show single verification request details
+     *
+     * @param int $verificationId
+     * @return JsonResponse
+     */
+    public function showVerificationRequest(int $verificationId): JsonResponse
+    {
+        $verification = IdentityVerification::with('user')->find($verificationId);
+
+        if (!$verification) {
+            return response()->json([
+                'message' => '找不到指定的驗證申請'
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $verification,
+        ]);
+    }
+
+    /**
+     * T251: Review identity verification request (approve/reject)
+     *
+     * @param Request $request
+     * @param int $verificationId
+     * @return JsonResponse
+     */
+    public function reviewVerificationRequest(Request $request, int $verificationId): JsonResponse
+    {
+        $request->validate([
+            'action' => 'required|in:approve,reject',
+            'notes' => 'nullable|string',
+        ]);
+
+        $verification = IdentityVerification::with('user')->find($verificationId);
+
+        if (!$verification) {
+            return response()->json([
+                'message' => '找不到指定的驗證申請'
+            ], 404);
+        }
+
+        if ($verification->verification_status !== 'pending') {
+            return response()->json([
+                'message' => '此驗證申請已被審核過'
+            ], 400);
+        }
+
+        $action = $request->input('action');
+        $notes = $request->input('notes');
+
+        // Update verification status
+        $verification->verification_status = $action === 'approve' ? 'approved' : 'rejected';
+        $verification->reviewed_at = now();
+        $verification->notes = $notes;
+        $verification->save();
+
+        // T256-T257: Update API quota unlimited status
+        if ($action === 'approve') {
+            $apiQuota = $verification->user->apiQuota;
+            if ($apiQuota) {
+                $apiQuota->is_unlimited = true;
+                $apiQuota->save();
+            }
+        } else {
+            $apiQuota = $verification->user->apiQuota;
+            if ($apiQuota) {
+                $apiQuota->is_unlimited = false;
+                $apiQuota->save();
+            }
+        }
+
+        // T280: Log identity verification review
+        AuditLog::log(
+            actionType: 'identity_verification_reviewed',
+            description: sprintf(
+                'Admin %s (%s) %s了使用者 %s (%s) 的身份驗證申請。備註: %s',
+                auth()->user()->name,
+                auth()->user()->email,
+                $action === 'approve' ? '批准' : '拒絕',
+                $verification->user->name,
+                $verification->user->email,
+                $notes ?? '無'
+            ),
+            userId: $verification->user_id,
+            adminId: auth()->id(),
+            resourceType: 'identity_verification',
+            resourceId: $verification->id,
+            changes: [
+                'action' => $action,
+                'old_status' => 'pending',
+                'new_status' => $verification->verification_status,
+                'notes' => $notes,
+                'api_quota_unlimited' => $action === 'approve',
+            ]
+        );
+
+        return response()->json([
+            'message' => $action === 'approve' ? '身份驗證已批准' : '身份驗證已拒絕',
+            'verification' => [
+                'id' => $verification->id,
+                'user_id' => $verification->user_id,
+                'verification_method' => $verification->verification_method,
+                'verification_status' => $verification->verification_status,
+                'reviewed_at' => $verification->reviewed_at,
+                'notes' => $verification->notes,
+            ],
+        ]);
+    }
+
+    /**
+     * T282: List audit logs with pagination and filtering
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function auditLogs(Request $request): JsonResponse
+    {
+        $perPage = $request->input('per_page', 15);
+        $actionType = $request->input('action_type');
+        $userId = $request->input('user_id');
+        $adminId = $request->input('admin_id');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = AuditLog::with(['user', 'admin'])
+            ->orderBy('created_at', 'desc');
+
+        // T288: Filter by action type
+        if ($actionType) {
+            $query->where('action_type', $actionType);
+        }
+
+        // T288: Filter by user
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        // T288: Filter by admin
+        if ($adminId) {
+            $query->where('admin_id', $adminId);
+        }
+
+        // T288: Filter by date range
+        if ($dateFrom) {
+            $query->where('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->where('created_at', '<=', $dateTo . ' 23:59:59');
+        }
+
+        $auditLogs = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => $auditLogs->items(),
+            'meta' => [
+                'current_page' => $auditLogs->currentPage(),
+                'last_page' => $auditLogs->lastPage(),
+                'per_page' => $auditLogs->perPage(),
+                'total' => $auditLogs->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * T289: Export audit logs as CSV
+     *
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
+    public function exportAuditLogs(Request $request)
+    {
+        $actionType = $request->input('action_type');
+        $userId = $request->input('user_id');
+        $adminId = $request->input('admin_id');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = AuditLog::with(['user', 'admin'])
+            ->orderBy('created_at', 'desc');
+
+        if ($actionType) {
+            $query->where('action_type', $actionType);
+        }
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        if ($adminId) {
+            $query->where('admin_id', $adminId);
+        }
+
+        if ($dateFrom) {
+            $query->where('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->where('created_at', '<=', $dateTo . ' 23:59:59');
+        }
+
+        $auditLogs = $query->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="audit_logs_' . now()->format('Y-m-d_His') . '.csv"',
+        ];
+
+        $callback = function() use ($auditLogs) {
+            $file = fopen('php://output', 'w');
+
+            // Add BOM for UTF-8
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Header row
+            fputcsv($file, [
+                'ID',
+                'Trace ID',
+                'Action Type',
+                'Description',
+                'User ID',
+                'User Email',
+                'Admin ID',
+                'Admin Email',
+                'IP Address',
+                'Created At',
+            ]);
+
+            // Data rows
+            foreach ($auditLogs as $log) {
+                fputcsv($file, [
+                    $log->id,
+                    $log->trace_id,
+                    $log->action_type,
+                    $log->description,
+                    $log->user_id,
+                    $log->user ? $log->user->email : '-',
+                    $log->admin_id,
+                    $log->admin ? $log->admin->email : '-',
+                    $log->ip_address,
+                    $log->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Services\AuthenticationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -59,6 +60,22 @@ class LoginController extends Controller
         $result = $this->authService->login($email, $password, $remember);
 
         if (!$result['success']) {
+            // T281: Log failed admin login attempt
+            // Note: We check if user exists and has admin role even on failed login
+            $user = \App\Models\User::where('email', $email)->first();
+            if ($user && $user->roles->contains('name', 'administrator')) {
+                AuditLog::log(
+                    actionType: 'admin_login_failed',
+                    description: sprintf(
+                        '管理員 %s (%s) 登入失敗',
+                        $user->name,
+                        $user->email
+                    ),
+                    userId: $user->id,
+                    adminId: $user->id
+                );
+            }
+
             // For web requests, redirect back with error message
             if (!$request->expectsJson()) {
                 return redirect()->back()
@@ -81,6 +98,20 @@ class LoginController extends Controller
 
         // Successful login
         $user = $result['user'];
+
+        // T281: Log successful admin login
+        if ($user->roles->contains('name', 'administrator')) {
+            AuditLog::log(
+                actionType: 'admin_login_success',
+                description: sprintf(
+                    '管理員 %s (%s) 成功登入',
+                    $user->name,
+                    $user->email
+                ),
+                userId: $user->id,
+                adminId: $user->id
+            );
+        }
 
         // For web requests, check if user needs to change password
         if (!$request->expectsJson()) {
