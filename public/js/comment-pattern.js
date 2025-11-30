@@ -64,7 +64,7 @@ class CommentPatternUI {
             { key: 'all', label: '所有留言', count: this.statistics.all.count, percentage: this.statistics.all.percentage, totalComments: this.statistics.all.total_comments },
             { key: 'top_liked', label: '讚數最高的留言', count: this.statistics.top_liked.count, percentage: this.statistics.top_liked.percentage },
             { key: 'repeat', label: '重複留言者有', count: this.statistics.repeat.count, percentage: this.statistics.repeat.percentage, totalComments: this.statistics.repeat.total_comments },
-            { key: 'night_time', label: '夜間高頻留言者有', count: this.statistics.night_time.count, percentage: this.statistics.night_time.percentage },
+            { key: 'night_time', label: '夜間高頻留言者有', count: this.statistics.night_time.count, percentage: this.statistics.night_time.percentage, totalComments: this.statistics.night_time.total_comments },
             // { key: 'aggressive', label: '高攻擊性留言者有', count: this.statistics.aggressive.count, percentage: this.statistics.aggressive.percentage },
             // { key: 'simplified_chinese', label: '簡體中文留言者有', count: this.statistics.simplified_chinese.count, percentage: this.statistics.simplified_chinese.percentage }
         ];
@@ -78,8 +78,8 @@ class CommentPatternUI {
             if (filter.key === 'all') {
                 // "所有留言" - show total comments
                 countDisplay = `<span class="text-xs text-gray-500">共 ${filter.totalComments?.toLocaleString() || 0} 則留言</span>`;
-            } else if (filter.key === 'repeat') {
-                // "重複留言者" - show count + percentage + total comments by repeat commenters
+            } else if (filter.key === 'repeat' || filter.key === 'night_time') {
+                // "重複留言者" and "夜間高頻留言者" - show count + percentage + total comments
                 countDisplay = `<span class="font-bold">${filter.count} 個 (${filter.percentage}%)</span>`;
                 countDisplay += `<br><span class="text-xs text-gray-500">共 ${filter.totalComments?.toLocaleString() || 0} 則留言</span>`;
             } else if (filter.key !== 'top_liked') {

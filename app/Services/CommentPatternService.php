@@ -312,9 +312,12 @@ class CommentPatternService
         }
 
         // Count how many of these commenters are in the filtered time periods
-        $nightTimeCommentersCount = $query
+        $nightTimeCommentersCount = (clone $query)
             ->distinct('author_channel_id')
             ->count('author_channel_id');
+
+        // Count total comments made by night-time commenters
+        $nightTimeCommentsCount = (clone $query)->count();
 
         $percentage = $totalUniqueCommenters > 0
             ? round(($nightTimeCommentersCount / $totalUniqueCommenters) * 100)
@@ -322,7 +325,8 @@ class CommentPatternService
 
         return [
             'count' => $nightTimeCommentersCount,
-            'percentage' => $percentage
+            'percentage' => $percentage,
+            'total_comments' => $nightTimeCommentsCount
         ];
     }
 
