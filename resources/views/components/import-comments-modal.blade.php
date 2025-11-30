@@ -369,6 +369,7 @@ function importCommentsModal() {
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                     },
                     body: JSON.stringify({
                         video_url: this.videoUrl
@@ -406,6 +407,7 @@ function importCommentsModal() {
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                     },
                     body: JSON.stringify({
                         video_url: this.videoUrl,

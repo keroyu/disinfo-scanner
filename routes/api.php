@@ -52,8 +52,12 @@ Route::prefix('uapi')->group(function () {
 });
 
 // Official YouTube API comment import endpoints (005-api-import-comments)
-Route::post('/comments/check', [\App\Http\Controllers\Api\ImportCommentsController::class, 'check']);
-Route::post('/comments/import', [\App\Http\Controllers\Api\ImportCommentsController::class, 'import']);
+// Requires authentication for quota tracking; import also checks API quota
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/comments/check', [\App\Http\Controllers\Api\ImportCommentsController::class, 'check']);
+    Route::post('/comments/import', [\App\Http\Controllers\Api\ImportCommentsController::class, 'import'])
+        ->middleware('check.api.quota');
+});
 
 // Video Incremental Update endpoints (007-video-incremental-update)
 // Requires authentication and user's YouTube API key
