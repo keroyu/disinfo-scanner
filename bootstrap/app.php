@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.admin' => \App\Http\Middleware\CheckAdminRole::class,
             'check.admin.session' => \App\Http\Middleware\CheckAdminSessionTimeout::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'check.api.quota' => \App\Http\Middleware\CheckApiQuota::class,
         ]);
 
         // Apply CheckDefaultPassword middleware to web group (excluding auth routes)

@@ -47,20 +47,11 @@
                                     @php
                                         // Get channel tags and use first tag's color if available
                                         $tags = $channel->tags();
-
-                                        $colorMap = [
-                                            'green-500' => '#10b981',
-                                            'blue-500' => '#3b82f6',
-                                            'red-500' => '#ef4444',
-                                            'orange-500' => '#f97316',
-                                            'rose-600' => '#e11d48',
-                                        ];
-
                                         $iconColor = '#9ca3af'; // Default gray
 
                                         if ($tags->isNotEmpty()) {
                                             $firstTag = $tags->first();
-                                            $iconColor = $colorMap[$firstTag->color] ?? '#9ca3af';
+                                            $iconColor = \App\Helpers\TailwindColor::toHex($firstTag->color);
                                         } else {
                                             $colors = ['#ef4444', '#3b82f6', '#10b981', '#eab308', '#a855f7', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#06b6d4'];
                                             $colorIndex = hexdec(substr(md5($channel->channel_id), 0, 8)) % count($colors);
@@ -99,18 +90,8 @@
                                 <td class="px-6 py-4">
                                     <div class="flex justify-center flex-wrap gap-2">
                                         @forelse($channel->tags() as $tag)
-                                            @php
-                                                // Map tag color to badge class
-                                                $badgeClass = match($tag->color) {
-                                                    'green-500' => 'badge-green',
-                                                    'blue-500' => 'badge-blue',
-                                                    'red-500' => 'badge-red',
-                                                    'orange-500' => 'badge-orange',
-                                                    'rose-600' => 'badge-rose',
-                                                    default => 'badge-blue',
-                                                };
-                                            @endphp
-                                            <span class="{{ $badgeClass }}">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
+                                                  style="background-color: {{ \App\Helpers\TailwindColor::toHex($tag->color) }};">
                                                 {{ $tag->name }}
                                             </span>
                                         @empty
@@ -155,39 +136,4 @@
     @endif
 </div>
 
-<style>
-.tag-green { background-color: #10b981; }
-.tag-blue { background-color: #3b82f6; }
-.tag-red { background-color: #ef4444; }
-.tag-orange { background-color: #f97316; }
-.tag-rose { background-color: #e11d48; }
-</style>
-
-<script>
-// Helper function to get tag color
-function getTagColor(colorClass) {
-    const colorMap = {
-        'green-500': '#10b981',
-        'blue-500': '#3b82f6',
-        'red-500': '#ef4444',
-        'orange-500': '#f97316',
-        'rose-600': '#e11d48'
-    };
-    return colorMap[colorClass] || '#6b7280';
-}
-</script>
 @endsection
-
-<?php
-// Helper function for blade
-function getTagColor($colorClass) {
-    $colorMap = [
-        'green-500' => '#10b981',
-        'blue-500' => '#3b82f6',
-        'red-500' => '#ef4444',
-        'orange-500' => '#f97316',
-        'rose-600' => '#e11d48'
-    ];
-    return $colorMap[$colorClass] ?? '#6b7280';
-}
-?>

@@ -241,25 +241,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 availableTags = data.data;
                 renderTagsContainer();
 
-                // Add CSS variables for tag colors
-                const colorMap = {
-                    'green-500': '#10b981',
-                    'blue-500': '#3b82f6',
-                    'red-500': '#ef4444',
-                    'orange-500': '#f97316',
-                    'rose-600': '#e11d48'
-                };
-
-                const style = document.createElement('style');
-                let colorStyles = '';
-                Object.entries(colorMap).forEach(([name, hex]) => {
-                    colorStyles += `--color-${name}: ${hex};`;
-                });
-                style.innerHTML = `:root { ${colorStyles} }`;
-                if (!document.getElementById('uapi-tag-colors')) {
-                    style.id = 'uapi-tag-colors';
-                    document.head.appendChild(style);
-                }
+                // Color map dynamically generated from TailwindColor helper
+                window.tailwindColorMap = {!! \App\Helpers\TailwindColor::toJson() !!};
             }
         } catch (error) {
             console.error('Failed to load tags:', error);
@@ -272,10 +255,11 @@ document.addEventListener('DOMContentLoaded', function() {
         availableTags.forEach(tag => {
             const label = document.createElement('label');
             label.className = 'inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 whitespace-nowrap';
+            const tagColor = window.tailwindColorMap?.[tag.color] || '#6b7280';
             label.innerHTML = `
                 <input type="checkbox" class="uapi-tag-checkbox" value="${tag.code}" data-id="${tag.tag_id}">
                 <span class="ml-2 flex items-center gap-2">
-                    <span class="inline-block w-3 h-3 rounded-full" style="background-color: var(--color-${tag.color})"></span>
+                    <span class="inline-block w-3 h-3 rounded-full" style="background-color: ${tagColor}"></span>
                     <span class="font-medium text-sm">${tag.name}</span>
                 </span>
             `;

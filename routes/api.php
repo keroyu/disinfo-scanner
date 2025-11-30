@@ -136,6 +136,17 @@ Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Quota Management Routes (011-member-system - RBAC Module T416-T429)
+Route::prefix('quota')->middleware(['web', 'auth'])->group(function () {
+    Route::get('/check', [\App\Http\Controllers\Api\QuotaController::class, 'check']);
+    Route::get('/stats', [\App\Http\Controllers\Api\QuotaController::class, 'stats']);
+});
+
+// Official YouTube API Import with Quota Enforcement (T425)
+Route::prefix('videos/import')->middleware(['web', 'auth', 'check.api.quota'])->group(function () {
+    Route::post('/official', [\App\Http\Controllers\Api\OfficialImportController::class, 'import']);
+});
+
 // Admin Management Routes (011-member-system - Admin Module)
 // T222: Add admin API routes
 // T284: Admin routes with rate limiting (60 requests per minute)

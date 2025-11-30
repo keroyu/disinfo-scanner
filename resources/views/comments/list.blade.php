@@ -12,7 +12,7 @@
     <form method="GET" action="{{ route('comments.index') }}" class="bg-white rounded-lg shadow-md p-6 mb-6 space-y-4">
         @php
             $canSearch = auth()->check() && (
-                auth()->user()->roles->contains('name', 'premium_Member') ||
+                auth()->user()->roles->contains('name', 'premium_member') ||
                 auth()->user()->roles->contains('name', 'website_editor') ||
                 auth()->user()->roles->contains('name', 'administrator')
             );
@@ -240,20 +240,11 @@
 
                                             // Get channel tags and use first tag's color if available
                                             $tags = $channel->tags();
-
-                                            $colorMap = [
-                                                'green-500' => '#10b981',
-                                                'blue-500' => '#3b82f6',
-                                                'red-500' => '#ef4444',
-                                                'orange-500' => '#f97316',
-                                                'rose-600' => '#e11d48',
-                                            ];
-
                                             $iconColor = '#9ca3af'; // Default gray
 
                                             if ($tags->isNotEmpty()) {
                                                 $firstTag = $tags->first();
-                                                $iconColor = $colorMap[$firstTag->color] ?? '#9ca3af';
+                                                $iconColor = \App\Helpers\TailwindColor::toHex($firstTag->color);
                                             } else {
                                                 $colors = ['#ef4444', '#3b82f6', '#10b981', '#eab308', '#a855f7', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#06b6d4'];
                                                 $colorIndex = hexdec(substr(md5($channelId), 0, 8)) % count($colors);

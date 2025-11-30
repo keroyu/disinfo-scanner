@@ -29,7 +29,7 @@ class CommentController extends Controller
         // T132: Check if user has permission to use search filters
         // Only Premium Members, Website Editors, and Administrators can use search functionality
         $canSearch = auth()->check() && (
-            auth()->user()->roles->contains('name', 'premium_Member') ||
+            auth()->user()->roles->contains('name', 'premium_member') ||
             auth()->user()->roles->contains('name', 'website_editor') ||
             auth()->user()->roles->contains('name', 'administrator')
         );

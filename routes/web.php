@@ -42,11 +42,15 @@ Route::get('/', function () {
     return view('import.index');
 })->name('import.index');
 
-// Channel list page
-Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'index'])->name('channels.index');
+// Channel list page (T437: Apply auth middleware for Regular Members+)
+Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'index'])
+    ->middleware('auth')
+    ->name('channels.index');
 
-// Comments list page
-Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'])->name('comments.index');
+// Comments list page (T438: Apply auth middleware for Regular Members+)
+Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'])
+    ->middleware('auth')
+    ->name('comments.index');
 
 // Videos list page
 Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->name('videos.index');
