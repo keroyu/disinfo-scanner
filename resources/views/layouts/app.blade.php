@@ -19,9 +19,19 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <a href="/" class="text-gray-600 hover:text-gray-900">首頁</a>
-                    <a href="{{ route('channels.index') }}" class="{{ request()->is('channels*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">頻道列表</a>
+                    @auth
+                        <a href="{{ route('channels.index') }}" class="{{ request()->is('channels*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">頻道列表</a>
+                    @else
+                        {{-- T468: Show login modal for visitors trying to access Channels List --}}
+                        <button type="button" onclick="showPermissionModal('login', '頻道列表')" class="text-gray-600 hover:text-gray-900">頻道列表</button>
+                    @endauth
                     <a href="{{ route('videos.index') }}" class="{{ request()->is('videos*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">影片列表</a>
-                    <a href="{{ route('comments.index') }}" class="{{ request()->is('comments*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">留言列表</a>
+                    @auth
+                        <a href="{{ route('comments.index') }}" class="{{ request()->is('comments*') ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900' }}">留言列表</a>
+                    @else
+                        {{-- T468: Show login modal for visitors trying to access Comments List --}}
+                        <button type="button" onclick="showPermissionModal('login', '留言列表')" class="text-gray-600 hover:text-gray-900">留言列表</button>
+                    @endauth
                     <span class="text-gray-400 cursor-not-allowed">留言者列表</span>
 
                     @auth
@@ -81,7 +91,7 @@
                                         </button>
                                     @endif
 
-                                    @if(auth()->user()->roles->contains('name', 'premium_Member'))
+                                    @if(auth()->user()->roles->contains('name', 'premium_member'))
                                         <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
                                             <i class="fas fa-chart-line mr-1"></i>
                                             本月 API 用量:
@@ -119,6 +129,20 @@
                             @endonce
                         @endif
 
+                        {{-- T476: Quota exceeded modal for Premium Members --}}
+                        @if(auth()->user()->roles->contains('name', 'premium_member'))
+                            @once
+                                @include('components.permission-modal', ['type' => 'quota_exceeded', 'feature' => '官方 API 匯入'])
+                            @endonce
+                        @endif
+
+                        {{-- T472: Admin modal for non-admins --}}
+                        @if(!auth()->user()->roles->contains('name', 'administrator'))
+                            @once
+                                @include('components.permission-modal', ['type' => 'admin', 'feature' => ''])
+                            @endonce
+                        @endif
+
                         {{-- API key modal for users without API key --}}
                         @if(!auth()->user()->youtube_api_key)
                             @once
@@ -151,6 +175,19 @@
     // Convenience function for upgrade modal
     function showUpgradeModal(feature = '') {
         showPermissionModal('upgrade', feature);
+    }
+
+    // T476: Convenience function for quota exceeded modal with quota info
+    function showQuotaExceededModal(used, limit) {
+        window.dispatchEvent(new CustomEvent('show-quota-exceeded', {
+            detail: { used: used, limit: limit }
+        }));
+        showPermissionModal('quota_exceeded', '官方 API 匯入');
+    }
+
+    // T472: Convenience function for admin modal
+    function showAdminModal(feature = '') {
+        showPermissionModal('admin', feature);
     }
     </script>
 

@@ -16,7 +16,7 @@
                     <i class="fab fa-youtube mr-2"></i>官方API導入
                 </button>
             @else
-                @if(auth()->user()->roles->contains('name', 'premium_Member') || auth()->user()->roles->contains('name', 'administrator'))
+                @if(auth()->user()->roles->contains('name', 'premium_member') || auth()->user()->roles->contains('name', 'administrator'))
                     @if(auth()->user()->youtube_api_key)
                         <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                                 onclick="window.dispatchEvent(new CustomEvent('open-import-modal'))">
@@ -45,24 +45,54 @@
 
     <!-- Search and Filter Section -->
     <form method="GET" action="{{ route('videos.index') }}" class="bg-white rounded-lg shadow-md p-6 mb-6 space-y-4">
+        {{-- T470: Videos List search permission check for visitors --}}
+        @php
+            $canSearchVideos = auth()->check(); // All authenticated users can search videos
+        @endphp
+
+        @guest
+            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-blue-900">搜尋功能需要登入會員</h3>
+                        <p class="text-sm text-blue-700 mt-1">登入會員即可使用影片搜尋與篩選功能。</p>
+                    </div>
+                </div>
+            </div>
+        @endguest
+
         <!-- Search Fields Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Search Videos -->
             <div>
-                <label for="search" class="block text-sm font-medium text-gray-700">Search Videos</label>
+                <label for="search" class="block text-sm font-medium text-gray-700">
+                    Search Videos
+                    @guest
+                        <span class="ml-2 text-xs text-gray-500">(需登入)</span>
+                    @endguest
+                </label>
                 <input
                     type="text"
                     id="search"
                     name="search"
                     value="{{ request('search', '') }}"
                     placeholder="Search by video title..."
-                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 {{ !$canSearchVideos ? 'bg-gray-100 cursor-not-allowed' : '' }}"
+                    {{ !$canSearchVideos ? 'disabled' : '' }}
                 >
             </div>
 
             <!-- Search Channel -->
             <div>
-                <label for="search_channel" class="block text-sm font-medium text-gray-700">Search Channel</label>
+                <label for="search_channel" class="block text-sm font-medium text-gray-700">
+                    Search Channel
+                    @guest
+                        <span class="ml-2 text-xs text-gray-500">(需登入)</span>
+                    @endguest
+                </label>
                 <div class="mt-1 flex gap-2">
                     <input
                         type="text"
@@ -70,13 +100,15 @@
                         name="search_channel"
                         value="{{ request('search_channel', '') }}"
                         placeholder="Search by channel name..."
-                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 {{ !$canSearchVideos ? 'bg-gray-100 cursor-not-allowed' : '' }}"
+                        {{ !$canSearchVideos ? 'disabled' : '' }}
                     >
                     <select
                         id="channel_id"
                         name="channel_id"
                         onchange="selectChannel(this)"
-                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        class="block w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 {{ !$canSearchVideos ? 'bg-gray-100 cursor-not-allowed' : '' }}"
+                        {{ !$canSearchVideos ? 'disabled' : '' }}
                     >
                         <option value="">-- Select Channel --</option>
                         @foreach($channels as $channel)
@@ -99,12 +131,23 @@
 
         <!-- Action Buttons -->
         <div class="flex gap-3">
-            <button
-                type="submit"
-                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-                Apply Filters
-            </button>
+            @if($canSearchVideos)
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Apply Filters
+                </button>
+            @else
+                {{-- T470: Show login modal when visitor clicks Apply Filters --}}
+                <button
+                    type="button"
+                    onclick="showPermissionModal('login', '影片搜尋')"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Apply Filters
+                </button>
+            @endif
             <a
                 href="{{ route('videos.index') }}"
                 class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"

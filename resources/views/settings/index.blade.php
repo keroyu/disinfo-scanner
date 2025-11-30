@@ -182,7 +182,7 @@
 
     <!-- YouTube API Key Section (T124) -->
     @if(auth()->user()->roles->contains('name', 'regular_member') ||
-        auth()->user()->roles->contains('name', 'premium_Member') ||
+        auth()->user()->roles->contains('name', 'premium_member') ||
         auth()->user()->roles->contains('name', 'website_editor') ||
         auth()->user()->roles->contains('name', 'administrator'))
     <div class="bg-white shadow rounded-lg mb-6">

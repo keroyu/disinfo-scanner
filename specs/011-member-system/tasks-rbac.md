@@ -24,27 +24,27 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Permission Data Setup
 
-- [X] T401 Verify RoleSeeder creates all 5 roles - already in Core Module T009 ✅
-- [X] T402 Verify PermissionSeeder creates all permissions - already in Core Module T010 ✅
-- [X] T403 Create permission-role mapping seeder in database/seeders/PermissionRoleMappingSeeder.php ✅
-- [X] T404 Map permissions to Visitor role (view Home, Videos List, video analysis) ✅
-- [X] T405 Map permissions to Regular Member role (+ Channels List, Comments List, U-API import, video update with API key) ✅
-- [X] T406 Map permissions to Premium Member role (+ Official API import, search features) ✅
-- [X] T407 Map permissions to Website Editor role (all frontend features) ✅
-- [X] T408 Map permissions to Administrator role (all features) ✅
+- [X] T401 Verify RoleSeeder creates all 5 roles - already in Core Module T009
+- [X] T402 Verify PermissionSeeder creates all permissions - already in Core Module T010
+- [X] T403 Create permission-role mapping seeder in database/seeders/PermissionRoleMappingSeeder.php
+- [X] T404 Map permissions to Visitor role (view Home, Videos List, video analysis)
+- [X] T405 Map permissions to Regular Member role (+ Channels List, Comments List, U-API import, video update with API key)
+- [X] T406 Map permissions to Premium Member role (+ Official API import, search features)
+- [X] T407 Map permissions to Website Editor role (all frontend features)
+- [X] T408 Map permissions to Administrator role (all features)
 
 ### Permission Checking Middleware
 
-- [X] T409 [P] Create CheckUserRole middleware - already in Core Module (verify functionality) ✅
-- [X] T410 [P] [US4] Add permission checking methods to RolePermissionService ✅
-- [X] T411 [P] [US4] Create CheckPermission middleware in app/Http/Middleware/CheckPermission.php ✅
+- [X] T409 [P] Create CheckUserRole middleware - already in Core Module (verify functionality)
+- [X] T410 [P] [US4] Add permission checking methods to RolePermissionService
+- [X] T411 [P] [US4] Create CheckPermission middleware in app/Http/Middleware/CheckPermission.php
 
 ### Gate & Policy Setup
 
-- [X] T412 [US4] Define permission gates in app/Providers/AppServiceProvider.php (Laravel 12 uses AppServiceProvider) ✅
-- [X] T413 [US4] Create gates for page access (view_channels_list, view_comments_list, view_admin_panel) ✅
-- [X] T414 [US4] Create gates for feature access (use_search_videos, use_official_api_import, use_video_update) ✅
-- [X] T415 [US4] Create gates for actions (manage_users, change_password) ✅
+- [X] T412 [US4] Define permission gates in app/Providers/AppServiceProvider.php (Laravel 12 uses AppServiceProvider)
+- [X] T413 [US4] Create gates for page access (view_channels_list, view_comments_list, view_admin_panel)
+- [X] T414 [US4] Create gates for feature access (use_search_videos, use_official_api_import, use_video_update)
+- [X] T415 [US4] Create gates for actions (manage_users, change_password)
 
 **Checkpoint**: Permission system foundation ready
 
@@ -58,43 +58,43 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Contract Tests for Quota
 
-- [X] T416 [P] [US4] Create contract test for check quota endpoint in tests/Contract/ApiQuotaContractTest.php ✅
-- [X] T417 [P] [US4] Create contract test for quota enforcement in tests/Contract/QuotaEnforcementTest.php ✅
+- [X] T416 [P] [US4] Create contract test for check quota endpoint in tests/Contract/ApiQuotaContractTest.php
+- [X] T417 [P] [US4] Create contract test for quota enforcement in tests/Contract/QuotaEnforcementTest.php
 
 ### Feature Tests for Quota
 
-- [X] T418 [P] [US4] Create API quota feature test in tests/Feature/ApiQuotaTest.php ✅
+- [X] T418 [P] [US4] Create API quota feature test in tests/Feature/ApiQuotaTest.php
 
 ### Unit Tests for Quota
 
-- [X] T419 [P] [US4] Create quota calculation unit test in tests/Unit/ApiQuotaCalculationTest.php ✅
-- [X] T420 [P] [US4] Create quota reset unit test in tests/Unit/ApiQuotaResetTest.php ✅
+- [X] T419 [P] [US4] Create quota calculation unit test in tests/Unit/ApiQuotaCalculationTest.php
+- [X] T420 [P] [US4] Create quota reset unit test in tests/Unit/ApiQuotaResetTest.php
 
 ### Quota Service Methods (already in Core Module T021, verify functionality)
 
-- [X] T421 [US4] Verify ApiQuotaService::checkQuota method works correctly ✅
-- [X] T422 [US4] Verify ApiQuotaService::incrementUsage method works correctly ✅
-- [X] T423 [US4] Verify ApiQuotaService::resetMonthlyQuota scheduled task works ✅
+- [X] T421 [US4] Verify ApiQuotaService::checkQuota method works correctly
+- [X] T422 [US4] Verify ApiQuotaService::incrementUsage method works correctly
+- [X] T423 [US4] Verify ApiQuotaService::resetMonthlyQuota scheduled task works
 
 ### Quota Middleware
 
-- [X] T424 [US4] Create CheckApiQuota middleware in app/Http/Middleware/CheckApiQuota.php ✅
-- [X] T425 [US4] Apply quota middleware to Official API import routes ✅
-- [X] T426 [US4] Ensure quota check only applies to Premium Members (not verified Premium Members) ✅
+- [X] T424 [US4] Create CheckApiQuota middleware in app/Http/Middleware/CheckApiQuota.php 
+- [X] T425 [US4] Apply quota middleware to Official API import routes 
+- [X] T426 [US4] Ensure quota check only applies to Premium Members (not verified Premium Members) 
 
 ### Quota Error Handling
 
-- [X] T427 [US4] When quota exceeded, return error with current usage (10/10) ✅
-- [X] T428 [US4] Include suggestion to complete identity verification in error message ✅
-- [X] T429 [US4] Add Traditional Chinese quota exceeded messages in resources/lang/zh_TW/quota.php ✅
+- [X] T427 [US4] When quota exceeded, return error with current usage (10/10) 
+- [X] T428 [US4] Include suggestion to complete identity verification in error message 
+- [X] T429 [US4] Add Traditional Chinese quota exceeded messages in resources/lang/zh_TW/quota.php 
 
 ### Integration Testing
 
-- [X] T430 [US4] Test Premium Member can import 10 videos per month ✅
-- [X] T431 [US4] Test 11th import attempt shows quota exceeded error ✅
-- [X] T432 [US4] Test verified Premium Member has unlimited quota ✅
-- [X] T433 [US4] Test quota resets on 1st of month ✅
-- [X] T434 [US4] Test Regular Member cannot access Official API import ✅
+- [X] T430 [US4] Test Premium Member can import 10 videos per month 
+- [X] T431 [US4] Test 11th import attempt shows quota exceeded error 
+- [X] T432 [US4] Test verified Premium Member has unlimited quota 
+- [X] T433 [US4] Test quota resets on 1st of month 
+- [X] T434 [US4] Test Regular Member cannot access Official API import 
 
 **Checkpoint**: API quota management complete
 
@@ -108,32 +108,32 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Contract Tests for Page Access
 
-- [X] T435 [P] [US4] Create contract test for page permission checks in tests/Contract/PageAccessContractTest.php ✅
+- [X] T435 [P] [US4] Create contract test for page permission checks in tests/Contract/PageAccessContractTest.php
 
 ### Feature Tests for Page Access
 
-- [X] T436 [P] [US4] Create page access feature test in tests/Feature/PageAccessTest.php ✅
+- [X] T436 [P] [US4] Create page access feature test in tests/Feature/PageAccessTest.php 
 
 ### Route Protection
 
-- [X] T437 [US4] Apply auth middleware to Channels List route ✅
-- [X] T438 [US4] Apply auth middleware to Comments List route ✅
-- [X] T439 [US4] Apply admin middleware to admin panel routes (already configured) ✅
-- [X] T440 [US4] Keep Home and Videos List accessible to visitors ✅
+- [X] T437 [US4] Apply auth middleware to Channels List route 
+- [X] T438 [US4] Apply auth middleware to Comments List route 
+- [X] T439 [US4] Apply admin middleware to admin panel routes (already configured) 
+- [X] T440 [US4] Keep Home and Videos List accessible to visitors 
 
 ### Access Denied Handling
 
-- [X] T441 [US4] When visitor accesses protected page, redirect to login ✅
-- [X] T442 [US4] When authenticated user lacks permission, show 403 error page ✅
-- [X] T443 [US4] Add Traditional Chinese 403 error page in resources/views/errors/403.blade.php (already exists) ✅
+- [X] T441 [US4] When visitor accesses protected page, redirect to login 
+- [X] T442 [US4] When authenticated user lacks permission, show 403 error page 
+- [X] T443 [US4] Add Traditional Chinese 403 error page in resources/views/errors/403.blade.php (already exists) 
 
 ### Integration Testing
 
-- [X] T444 [US4] Test visitor can access Home and Videos List ✅
-- [X] T445 [US4] Test visitor redirected to login when accessing Channels List ✅
-- [X] T446 [US4] Test Regular Member can access Channels List and Comments List ✅
-- [X] T447 [US4] Test Regular Member cannot access admin panel ✅
-- [X] T448 [US4] Test Administrator can access all pages ✅
+- [X] T444 [US4] Test visitor can access Home and Videos List 
+- [X] T445 [US4] Test visitor redirected to login when accessing Channels List 
+- [X] T446 [US4] Test Regular Member can access Channels List and Comments List 
+- [X] T447 [US4] Test Regular Member cannot access admin panel 
+- [X] T448 [US4] Test Administrator can access all pages 
 
 **Checkpoint**: Page access control complete
 
@@ -196,38 +196,38 @@ This module implements role-based access control (RBAC) for 5 user types: Visito
 
 ### Modal Integration Points
 
-- [ ] T468 [US4] Integrate permission modal on Comments List link for visitors
-- [ ] T469 [US4] Integrate permission modal on Official API import button for Regular Members
-- [ ] T470 [US4] Integrate permission modal on Videos List search for visitors
-- [ ] T471 [US4] Integrate permission modal on Comments List search for Regular Members
-- [ ] T472 [US4] Integrate permission modal on admin panel access for non-admins
+- [X] T468 [US4] Integrate permission modal on Comments List link for visitors
+- [X] T469 [US4] Integrate permission modal on Official API import button for Regular Members
+- [X] T470 [US4] Integrate permission modal on Videos List search for visitors
+- [X] T471 [US4] Integrate permission modal on Comments List search for Regular Members
+- [X] T472 [US4] Integrate permission modal on admin panel access for non-admins
 
 ### Modal Messages
 
-- [ ] T473 [US4] Set modal message "請登入會員" for visitor access attempts
-- [ ] T474 [US4] Set modal message "需升級為高級會員" for Regular Member paid feature attempts
-- [ ] T475 [US4] Set modal message "需設定 YouTube API 金鑰" for video update without API key
-- [ ] T476 [US4] Set modal message with quota info when quota exceeded
+- [X] T473 [US4] Set modal message "請登入會員" for visitor access attempts
+- [X] T474 [US4] Set modal message "需升級為高級會員" for Regular Member paid feature attempts
+- [X] T475 [US4] Set modal message "需設定 YouTube API 金鑰" for video update without API key
+- [X] T476 [US4] Set modal message with quota info when quota exceeded
 
 ### Upgrade Button Display
 
-- [ ] T477 [US4] Display "Upgrade to Premium Member" button for Regular Members - already in UI Module T134
-- [ ] T478 [US4] Link upgrade button to membership information page
-- [ ] T479 [US4] Hide upgrade button for Premium Members and above
+- [X] T477 [US4] Display "Upgrade to Premium Member" button for Regular Members - already in UI Module T134
+- [X] T478 [US4] Link upgrade button to membership information page
+- [X] T479 [US4] Hide upgrade button for Premium Members and above
 
 ### Quota Counter Display
 
-- [ ] T480 [US4] Display quota counter for Premium Members (X/10 this month) - already in UI Module T135
-- [ ] T481 [US4] Update quota counter after each import
-- [ ] T482 [US4] Show "Unlimited" for verified Premium Members
+- [X] T480 [US4] Display quota counter for Premium Members (X/10 this month) - already in UI Module T135
+- [X] T481 [US4] Update quota counter after each import
+- [X] T482 [US4] Show "Unlimited" for verified Premium Members
 
 ### Integration Testing
 
-- [ ] T483 [US4] Test visitor sees "請登入會員" modal when clicking Comments List
-- [ ] T484 [US4] Test Regular Member sees "需升級為高級會員" modal on Official API import
-- [ ] T485 [US4] Test Premium Member sees quota counter (7/10 remaining)
-- [ ] T486 [US4] Test quota exceeded modal shows correct usage (10/10)
-- [ ] T487 [US4] Test verified Premium Member sees "Unlimited" instead of quota
+- [X] T483 [US4] Test visitor sees "請登入會員" modal when clicking Comments List
+- [X] T484 [US4] Test Regular Member sees "需升級為高級會員" modal on Official API import
+- [X] T485 [US4] Test Premium Member sees quota counter (7/10 remaining)
+- [X] T486 [US4] Test quota exceeded modal shows correct usage (10/10)
+- [X] T487 [US4] Test verified Premium Member sees "Unlimited" instead of quota
 
 **Checkpoint**: Permission modals and UI feedback complete
 
