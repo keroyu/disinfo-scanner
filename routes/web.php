@@ -99,4 +99,9 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
     Route::get('/audit-logs', function () {
         return view('admin.audit.index');
     })->name('admin.audit.index');
+
+    // RBAC Management view (RBAC Module - T401-T415)
+    Route::get('/rbac', function () {
+        return view('admin.rbac.index');
+    })->name('admin.rbac.index');
 });
