@@ -69,7 +69,7 @@
                                     @endphp
                                     <div class="flex items-center gap-2">
                                         <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $iconColor }};"></span>
-                                        <a href="{{ route('videos.index', ['search' => $channel->channel_name]) }}"
+                                        <a href="{{ route('videos.index', ['channel_id' => $channel->channel_id]) }}"
                                            class="text-blue-600 hover:text-blue-800 truncate"
                                            title="View all videos from {{ $channel->channel_name }}">
                                             {{ $channel->channel_name ?: '(未命名)' }}
