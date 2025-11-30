@@ -130,7 +130,7 @@ Route::get('/comments/{commentId}', function (string $commentId) {
     }
 
     return response()->json($response);
-})->where('commentId', '[A-Za-z0-9_-]{1,100}');
+})->where('commentId', '[A-Za-z0-9_.-]{1,100}');
 
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
