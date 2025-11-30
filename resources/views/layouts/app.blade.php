@@ -67,6 +67,13 @@
                                         <i class="fas fa-cog mr-2"></i> 帳號設定
                                     </a>
 
+                                    @if(auth()->user()->roles->contains('name', 'administrator'))
+                                        <a href="{{ route('admin.dashboard') }}"
+                                           class="block px-4 py-2 text-sm text-purple-600 hover:bg-purple-50">
+                                            <i class="fas fa-shield-alt mr-2"></i> 管理後台
+                                        </a>
+                                    @endif
+
                                     @if(auth()->user()->roles->contains('name', 'regular_member'))
                                         <button onclick="showUpgradeModal()"
                                                 class="w-full text-left block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">

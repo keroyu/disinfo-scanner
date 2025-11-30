@@ -20,7 +20,7 @@ class Permission extends Model
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'permission_role')
-            ->withTimestamps();
+            ->withPivot('created_at');
     }
 
     /**

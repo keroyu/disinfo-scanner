@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.email.verified' => \App\Http\Middleware\CheckEmailVerified::class,
             'check.admin' => \App\Http\Middleware\CheckAdminRole::class,
             'check.admin.session' => \App\Http\Middleware\CheckAdminSessionTimeout::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
 
         // Apply CheckDefaultPassword middleware to web group (excluding auth routes)
