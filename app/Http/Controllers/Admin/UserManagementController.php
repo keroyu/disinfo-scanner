@@ -234,7 +234,8 @@ class UserManagementController extends Controller
             ], 400);
         }
 
-        // Mark email as verified
+        // Mark email as verified (update both fields)
+        $user->is_email_verified = true;
         $user->email_verified_at = now();
         $user->save();
 
@@ -253,6 +254,7 @@ class UserManagementController extends Controller
             resourceType: 'user',
             resourceId: $user->id,
             changes: [
+                'is_email_verified' => true,
                 'email_verified_at' => $user->email_verified_at->toIso8601String(),
             ]
         );
