@@ -67,10 +67,13 @@ class CommentPatternService
             ->distinct('author_channel_id')
             ->count('author_channel_id');
 
+        // Get total comments count (filtered by time if applicable)
+        $totalCommentsCount = (clone $query)->count();
+
         // Calculate each pattern
-        $allComments = $this->calculateAllCommentsPattern($videoId, $totalUniqueCommenters);
+        $allComments = $this->calculateAllCommentsPattern($videoId, $totalUniqueCommenters, $totalCommentsCount);
         $topLikedComments = $this->calculateTopLikedPattern($videoId, $totalUniqueCommenters);
-        $repeatCommenters = $this->calculateRepeatCommenters($videoId, $totalUniqueCommenters, $timeRanges);
+        $repeatCommenters = $this->calculateRepeatCommenters($videoId, $totalUniqueCommenters, $totalCommentsCount, $timeRanges);
         $nightTimeCommenters = $this->calculateNightTimeCommenters($videoId, $totalUniqueCommenters, $timeRanges);
         $aggressiveCommenters = $this->placeholderPattern('aggressive');
         $simplifiedChineseCommenters = $this->placeholderPattern('simplified_chinese');
@@ -146,7 +149,7 @@ class CommentPatternService
                 break;
 
             case 'repeat':
-                $repeatAuthorIds = $this->getRepeatAuthorIds($videoId);
+                $repeatAuthorIds = $this->getRepeatAuthorIds($videoId, $timeRanges);
                 $query->whereIn('author_channel_id', $repeatAuthorIds)
                       ->orderBy('published_at', 'DESC');
                 break;
@@ -215,11 +218,12 @@ class CommentPatternService
     /**
      * Calculate "all comments" pattern
      */
-    private function calculateAllCommentsPattern(string $videoId, int $totalUniqueCommenters): array
+    private function calculateAllCommentsPattern(string $videoId, int $totalUniqueCommenters, int $totalCommentsCount): array
     {
         return [
             'count' => $totalUniqueCommenters,
-            'percentage' => 100
+            'percentage' => 100,
+            'total_comments' => $totalCommentsCount
         ];
     }
 
@@ -239,9 +243,10 @@ class CommentPatternService
      *
      * @param string $videoId
      * @param int $totalUniqueCommenters
+     * @param int $totalCommentsCount
      * @param array $timeRanges Array of TimeRange objects (optional)
      */
-    private function calculateRepeatCommenters(string $videoId, int $totalUniqueCommenters, array $timeRanges = []): array
+    private function calculateRepeatCommenters(string $videoId, int $totalUniqueCommenters, int $totalCommentsCount, array $timeRanges = []): array
     {
         $query = Comment::where('video_id', $videoId);
 
@@ -250,12 +255,29 @@ class CommentPatternService
             $query->byTimeRanges($timeRanges);
         }
 
-        $repeatCommentersCount = $query
+        // Get repeat commenter IDs (those with 2+ comments)
+        $repeatCommenterIds = (clone $query)
             ->select('author_channel_id')
             ->groupBy('author_channel_id')
             ->havingRaw('COUNT(*) >= 2')
-            ->get()
-            ->count();
+            ->pluck('author_channel_id')
+            ->toArray();
+
+        $repeatCommentersCount = count($repeatCommenterIds);
+
+        // Count total comments made by repeat commenters
+        $repeatCommentsCount = 0;
+        if ($repeatCommentersCount > 0) {
+            $repeatCommentsQuery = Comment::where('video_id', $videoId)
+                ->whereIn('author_channel_id', $repeatCommenterIds);
+
+            // Apply time filtering if provided
+            if (!empty($timeRanges)) {
+                $repeatCommentsQuery->byTimeRanges($timeRanges);
+            }
+
+            $repeatCommentsCount = $repeatCommentsQuery->count();
+        }
 
         $percentage = $totalUniqueCommenters > 0
             ? round(($repeatCommentersCount / $totalUniqueCommenters) * 100)
@@ -263,7 +285,8 @@ class CommentPatternService
 
         return [
             'count' => $repeatCommentersCount,
-            'percentage' => $percentage
+            'percentage' => $percentage,
+            'total_comments' => $repeatCommentsCount
         ];
     }
 
@@ -305,10 +328,20 @@ class CommentPatternService
 
     /**
      * Get author IDs who are repeat commenters on a video
+     *
+     * @param string $videoId
+     * @param array $timeRanges Array of TimeRange objects (optional)
      */
-    private function getRepeatAuthorIds(string $videoId): array
+    private function getRepeatAuthorIds(string $videoId, array $timeRanges = []): array
     {
-        return Comment::where('video_id', $videoId)
+        $query = Comment::where('video_id', $videoId);
+
+        // Apply time filtering if provided
+        if (!empty($timeRanges)) {
+            $query->byTimeRanges($timeRanges);
+        }
+
+        return $query
             ->select('author_channel_id')
             ->groupBy('author_channel_id')
             ->havingRaw('COUNT(*) >= 2')

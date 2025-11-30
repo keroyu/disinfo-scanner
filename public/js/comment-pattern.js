@@ -61,9 +61,9 @@ class CommentPatternUI {
         if (!container || !this.statistics) return;
 
         const filters = [
-            { key: 'all', label: '所有留言', count: this.statistics.all.count, percentage: this.statistics.all.percentage },
+            { key: 'all', label: '所有留言', count: this.statistics.all.count, percentage: this.statistics.all.percentage, totalComments: this.statistics.all.total_comments },
             { key: 'top_liked', label: '讚數最高的留言', count: this.statistics.top_liked.count, percentage: this.statistics.top_liked.percentage },
-            { key: 'repeat', label: '重複留言者有', count: this.statistics.repeat.count, percentage: this.statistics.repeat.percentage },
+            { key: 'repeat', label: '重複留言者有', count: this.statistics.repeat.count, percentage: this.statistics.repeat.percentage, totalComments: this.statistics.repeat.total_comments },
             { key: 'night_time', label: '夜間高頻留言者有', count: this.statistics.night_time.count, percentage: this.statistics.night_time.percentage },
             // { key: 'aggressive', label: '高攻擊性留言者有', count: this.statistics.aggressive.count, percentage: this.statistics.aggressive.percentage },
             // { key: 'simplified_chinese', label: '簡體中文留言者有', count: this.statistics.simplified_chinese.count, percentage: this.statistics.simplified_chinese.percentage }
@@ -73,6 +73,20 @@ class CommentPatternUI {
             const isActive = filter.key === this.currentPattern;
             const activeClasses = isActive ? 'bg-blue-100 border-blue-500' : 'bg-white hover:bg-gray-50';
 
+            // Build the count display based on filter type
+            let countDisplay = '';
+            if (filter.key === 'all') {
+                // "所有留言" - show total comments
+                countDisplay = `<span class="text-xs text-gray-500">共 ${filter.totalComments?.toLocaleString() || 0} 則留言</span>`;
+            } else if (filter.key === 'repeat') {
+                // "重複留言者" - show count + percentage + total comments by repeat commenters
+                countDisplay = `<span class="font-bold">${filter.count} 個 (${filter.percentage}%)</span>`;
+                countDisplay += `<br><span class="text-xs text-gray-500">共 ${filter.totalComments?.toLocaleString() || 0} 則留言</span>`;
+            } else if (filter.key !== 'top_liked') {
+                // Other patterns - just show count + percentage
+                countDisplay = `<span class="font-bold">${filter.count} 個 (${filter.percentage}%)</span>`;
+            }
+
             return `
                 <button
                     class="pattern-filter-item w-full text-left p-3 border rounded-lg transition-colors ${activeClasses}"
@@ -81,7 +95,7 @@ class CommentPatternUI {
                 >
                     <div class="text-sm font-medium text-gray-700">
                         ${filter.label}
-                        ${(filter.key !== 'all' && filter.key !== 'top_liked') ? `<span class="font-bold">${filter.count} 個 (${filter.percentage}%)</span>` : ''}
+                        ${countDisplay}
                     </div>
                 </button>
             `;
