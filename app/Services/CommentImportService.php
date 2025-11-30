@@ -178,7 +178,7 @@ class CommentImportService
 
             // Fetch ALL comments and replies from YouTube API
             // This happens BEFORE database transaction to maximize failure recovery
-            // For new videos, limit to oldest 1000 comments ordered by time
+            // For new videos, limit to oldest 2500 comments ordered by time
             Log::info('Starting comment fetch for new video', [
                 'trace_id' => $traceId,
                 'video_id' => $videoId,
@@ -192,7 +192,7 @@ class CommentImportService
                         'fetched_count' => $count,
                     ]);
                 },
-                true // isNewVideo = true: limit to 1000 oldest comments
+                true // isNewVideo = true: limit to 2500 oldest comments
             );
 
             // No comments to import
@@ -444,13 +444,13 @@ class CommentImportService
      * Uses firstOrCreate to prevent duplicate inserts during concurrent updates
      *
      * @API: Y
-     * @PURPOSE: Incremental import with 1000-comment limit
+     * @PURPOSE: Incremental import with 2500-comment limit
      * @param string $videoId YouTube video ID
      * @param array $comments Comments data from YouTube API
-     * @param int $limit Maximum comments to import (default 1000)
+     * @param int $limit Maximum comments to import (default 2500)
      * @return int Number of new comments actually imported
      */
-    public function importIncrementalComments(string $videoId, array $comments, int $limit = 1000): int
+    public function importIncrementalComments(string $videoId, array $comments, int $limit = 2500): int
     {
         $imported = 0;
         $skipped = 0;
@@ -570,9 +570,9 @@ class CommentImportService
                 'published_at' => $videoMetadata['published_at'],
             ]);
 
-            // Stage 5: Import comments (limit to 1000 for first import of new videos)
+            // Stage 5: Import comments (limit to 2500 for first import of new videos)
             // This prevents timeout issues for videos with many comments
-            $allComments = $this->youtubeClient->getAllComments($videoId, 1000);
+            $allComments = $this->youtubeClient->getAllComments($videoId, 2500);
             $importedCount = $this->importComments($videoId, $allComments);
 
             // Stage 6: Calculate and update comment count

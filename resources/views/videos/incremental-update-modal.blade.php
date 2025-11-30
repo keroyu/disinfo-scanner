@@ -179,7 +179,7 @@
                 const totalCount = currentCount + newCount;
 
                 let countMessage = `留言總數 ${totalCount}（不含回覆），資料庫已有 ${currentCount} 則；剩下 ${newCount} 則留言`;
-                if (newCount > 1000) {
+                if (newCount > 2500) {
                     countMessage += `，本次實際導入 ${willImport} 則`;
                 } else {
                     countMessage += `，本次將導入 ${willImport} 則`;

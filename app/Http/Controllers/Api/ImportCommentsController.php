@@ -157,10 +157,10 @@ class ImportCommentsController extends Controller
                     'existing_channel_tags' => $existingTags,
                 ];
 
-                // Add warning if comment count exceeds 1000 for first import
-                if ($videoMetadata['comment_count'] > 1000) {
-                    $response['import_limit_warning'] = '新影片首次導入最多只會導入最新的 1000 則留言（從新到舊排序），如留言過多，限於 API 限制，無法獲取最早留言。';
-                    $response['will_import_count'] = 1000;
+                // Add warning if comment count exceeds 2500 for first import
+                if ($videoMetadata['comment_count'] > 2500) {
+                    $response['import_limit_warning'] = '新影片首次導入最多只會導入最新的 2500 則留言（從新到舊排序），如留言過多，限於 API 限制，無法獲取最早留言。';
+                    $response['will_import_count'] = 2500;
                 }
 
                 return response()->json($response, 200);
@@ -190,10 +190,10 @@ class ImportCommentsController extends Controller
                     'available_tags' => $availableTags,
                 ];
 
-                // Add warning if comment count exceeds 1000 for first import
-                if ($videoMetadata['comment_count'] > 1000) {
-                    $response['import_limit_warning'] = '新影片首次導入最多只會導入最新的 1000 則留言（從新到舊排序），如留言過多，限於 API 限制，無法獲取最早留言。';
-                    $response['will_import_count'] = 1000;
+                // Add warning if comment count exceeds 2500 for first import
+                if ($videoMetadata['comment_count'] > 2500) {
+                    $response['import_limit_warning'] = '新影片首次導入最多只會導入最新的 2500 則留言（從新到舊排序），如留言過多，限於 API 限制，無法獲取最早留言。';
+                    $response['will_import_count'] = 2500;
                 }
 
                 return response()->json($response, 200);

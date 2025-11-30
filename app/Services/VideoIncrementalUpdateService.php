@@ -46,12 +46,12 @@ class VideoIncrementalUpdateService
             $videoId,
             $latestCommentTime,
             $earliestCommentTime,
-            1000
+            2500
         );
 
         // 5. Calculate import details
         $newCommentCount = count($newComments);
-        $willImportCount = min($newCommentCount, 1000);
+        $willImportCount = min($newCommentCount, 2500);
 
         // 6. Return preview (first 5 + count)
         // Convert preview comments' published_at to Asia/Taipei timezone
@@ -73,8 +73,8 @@ class VideoIncrementalUpdateService
             'new_comment_count' => $newCommentCount,
             'will_import_count' => $willImportCount,
             'preview_comments' => $previewComments,
-            'has_more' => $newCommentCount > 1000,
-            'import_limit' => 1000,
+            'has_more' => $newCommentCount > 2500,
+            'import_limit' => 2500,
         ];
     }
 
@@ -108,12 +108,12 @@ class VideoIncrementalUpdateService
             $videoId,
             $latestCommentTime,
             $earliestCommentTime,
-            1000
+            2500
         );
         $totalAvailable = count($newComments);
 
-        // 4. Import comments with 1000-limit (idempotent)
-        $importedCount = $this->importService->importIncrementalComments($videoId, $newComments, 1000);
+        // 4. Import comments with 2500-limit (idempotent)
+        $importedCount = $this->importService->importIncrementalComments($videoId, $newComments, 2500);
 
         // 5. Update video.comment_count by counting actual comments in database
         $actualCommentCount = Comment::where('video_id', $videoId)->count();
@@ -131,8 +131,8 @@ class VideoIncrementalUpdateService
         ]);
 
         // 7. Calculate remaining and build response message
-        $remaining = max(0, $totalAvailable - 1000);
-        $hasMore = $totalAvailable > 1000;
+        $remaining = max(0, $totalAvailable - 2500);
+        $hasMore = $totalAvailable > 2500;
 
         $message = $hasMore
             ? "成功導入 {$importedCount} 則留言。還有約 {$remaining} 則留言可用,請再次點擊更新按鈕繼續導入。"

@@ -103,14 +103,14 @@ class YouTubeApiService
      * @param string $videoId The YouTube video ID
      * @param string|null $latestTime Latest comment time in DB (T1)
      * @param string|null $earliestTime Earliest comment time in DB (T2)
-     * @param int $maxResults Maximum number of comments to return (default 1000)
+     * @param int $maxResults Maximum number of comments to return (default 2500)
      * @return array Flattened array of comments outside the range (newest first from API)
      */
     public function fetchCommentsOutsideRange(
         string $videoId,
         ?string $latestTime = null,
         ?string $earliestTime = null,
-        int $maxResults = 1000
+        int $maxResults = 2500
     ): array {
         $this->validateVideoId($videoId);
 
@@ -378,14 +378,14 @@ class YouTubeApiService
         try {
             $allComments = [];
             $nextPageToken = null;
-            $maxCommentsLimit = $isNewVideo ? 1000 : PHP_INT_MAX;
+            $maxCommentsLimit = $isNewVideo ? 2500 : PHP_INT_MAX;
 
             do {
                 $params = [
                     'videoId' => $videoId,
                     'maxResults' => 100,
                     // For new videos: order=time returns NEWEST FIRST (最新→最舊)
-                    // Strategy: Import latest 1000 comments first, use incremental update for older ones later
+                    // Strategy: Import latest 2500 comments first, use incremental update for older ones later
                     'order' => $isNewVideo ? 'time' : 'relevance',
                     'textFormat' => 'plainText',
                 ];
