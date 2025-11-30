@@ -213,6 +213,62 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Manually verify user's email address (admin action)
+     *
+     * @param int $userId
+     * @return JsonResponse
+     */
+    public function verifyEmail(int $userId): JsonResponse
+    {
+        $user = User::find($userId);
+
+        if (!$user) {
+            return response()->json([
+                'message' => '找不到指定的使用者'
+            ], 404);
+        }
+
+        if ($user->is_email_verified) {
+            return response()->json([
+                'message' => '此使用者的電子郵件已驗證'
+            ], 400);
+        }
+
+        // Mark email as verified
+        $user->email_verified_at = now();
+        $user->save();
+
+        // Log the manual verification
+        AuditLog::log(
+            actionType: 'email_manually_verified',
+            description: sprintf(
+                'Admin %s (%s) 手動驗證了使用者 %s (%s) 的電子郵件',
+                auth()->user()->name,
+                auth()->user()->email,
+                $user->name,
+                $user->email
+            ),
+            userId: $user->id,
+            adminId: auth()->id(),
+            resourceType: 'user',
+            resourceId: $user->id,
+            changes: [
+                'email_verified_at' => $user->email_verified_at->toIso8601String(),
+            ]
+        );
+
+        return response()->json([
+            'message' => '電子郵件已手動驗證成功',
+            'data' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'is_email_verified' => $user->is_email_verified,
+                'email_verified_at' => $user->email_verified_at,
+            ],
+        ]);
+    }
+
+    /**
      * T249: List all identity verification requests
      *
      * @param Request $request

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>用戶管理 - DISINFO SCANNER</title>
+    <title>Users Management - DISINFO SCANNER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -24,7 +24,7 @@
                     <!-- Page Title -->
                     <div class="mb-6 flex items-center justify-between">
                         <div>
-                            <h1 class="text-3xl font-bold text-gray-900">用戶管理</h1>
+                            <h1 class="text-3xl font-bold text-gray-900">Users Management</h1>
                             <p class="mt-1 text-sm text-gray-600">管理所有系統用戶與權限</p>
                         </div>
                     </div>
@@ -145,9 +145,7 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a :href="`/admin/users/${user.id}/edit`"
-                                                   class="text-blue-600 hover:text-blue-900 mr-3">查看</a>
-                                                <button @click="editUserRole(user)"
-                                                        class="text-indigo-600 hover:text-indigo-900">編輯角色</button>
+                                                   class="text-blue-600 hover:text-blue-900">編輯</a>
                                             </td>
                                         </tr>
                                     </template>
@@ -273,10 +271,6 @@
                         this.pagination.current_page++;
                         this.fetchUsers();
                     }
-                },
-
-                editUserRole(user) {
-                    window.location.href = `/admin/users/${user.id}/edit`;
                 },
 
                 getRoleBadgeClass(roleName) {

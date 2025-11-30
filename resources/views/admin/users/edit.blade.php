@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>編輯用戶 - DISINFO SCANNER</title>
+    <title>Edit User - DISINFO SCANNER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -44,7 +44,7 @@
                     <div x-show="!loading">
                         <!-- Page Title -->
                         <div class="mb-6">
-                            <h1 class="text-3xl font-bold text-gray-900">編輯用戶</h1>
+                            <h1 class="text-3xl font-bold text-gray-900">Edit User</h1>
                             <p class="mt-1 text-sm text-gray-600" x-text="user.email"></p>
                         </div>
 
@@ -62,17 +62,26 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">電子郵件驗證</label>
-                                    <span x-show="user.is_email_verified"
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                        </svg>
-                                        已驗證
-                                    </span>
-                                    <span x-show="!user.is_email_verified"
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                                        未驗證
-                                    </span>
+                                    <div class="flex items-center space-x-2">
+                                        <span x-show="user.is_email_verified"
+                                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                            已驗證
+                                        </span>
+                                        <span x-show="!user.is_email_verified"
+                                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                            未驗證
+                                        </span>
+                                        <button x-show="!user.is_email_verified"
+                                                @click="manuallyVerifyEmail"
+                                                :disabled="verifyingEmail"
+                                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <span x-show="!verifyingEmail">手動通過驗證</span>
+                                            <span x-show="verifyingEmail">處理中...</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">註冊時間</label>
@@ -183,6 +192,7 @@
                 user: {},
                 loading: true,
                 saving: false,
+                verifyingEmail: false,
                 isSelfEdit: false,
                 selectedRoleId: null,
                 availableRoles: [],
@@ -295,6 +305,36 @@
                         alert('更新角色時發生錯誤');
                     } finally {
                         this.saving = false;
+                    }
+                },
+
+                async manuallyVerifyEmail() {
+                    if (!confirm('確定要手動通過此使用者的電子郵件驗證嗎？')) {
+                        return;
+                    }
+
+                    this.verifyingEmail = true;
+                    try {
+                        const response = await fetch(`/api/admin/users/${this.user.id}/verify-email`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                            }
+                        });
+
+                        if (response.ok) {
+                            alert('電子郵件已手動驗證成功！');
+                            await this.fetchUser(this.user.id);
+                        } else {
+                            const error = await response.json();
+                            alert(error.message || '驗證失敗');
+                        }
+                    } catch (error) {
+                        console.error('Failed to verify email:', error);
+                        alert('驗證電子郵件時發生錯誤');
+                    } finally {
+                        this.verifyingEmail = false;
                     }
                 },
 
