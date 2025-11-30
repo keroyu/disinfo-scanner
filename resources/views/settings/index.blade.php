@@ -26,6 +26,23 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="mb-6 rounded-md bg-red-50 p-4" role="alert">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-red-800">
+                        {{ session('error') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Account Information Card -->
     <div class="bg-white shadow rounded-lg mb-6">
         <div class="px-6 py-4 border-b border-gray-200">
@@ -289,6 +306,154 @@
             @endif
         </div>
     </div>
+    @endif
+
+    <!-- Identity Verification Section (T490, T491, T500) -->
+    @if(auth()->user()->hasRole('premium_member'))
+        @php
+            $verification = auth()->user()->identityVerification;
+            $isVerified = $verification && $verification->isApproved();
+        @endphp
+
+        @if(!$isVerified)
+        <!-- T490: Premium Members see identity verification submission section -->
+        <!-- T491: Hide identity verification section for verified Premium Members -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">身分驗證</h2>
+                <p class="mt-1 text-sm text-gray-500">完成身分驗證後，可獲得無限制 API 匯入配額</p>
+            </div>
+            <div class="px-6 py-4">
+                @if($verification && $verification->isPending())
+                    <!-- T500: Show verification status - pending -->
+                    <div class="rounded-md bg-yellow-50 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-yellow-800">審核中</h3>
+                                <div class="mt-2 text-sm text-yellow-700">
+                                    <p>您的身分驗證申請已送出，目前正在等待管理員審核。</p>
+                                    <p class="mt-1">驗證方式：{{ __('verification.methods.' . $verification->verification_method) }}</p>
+                                    <p class="mt-1">提交時間：{{ $verification->submitted_at->timezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @elseif($verification && $verification->isRejected())
+                    <!-- T500: Show verification status - rejected -->
+                    <div class="rounded-md bg-red-50 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">驗證未通過</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <p>您的身分驗證申請未通過審核。</p>
+                                    @if($verification->notes)
+                                        <p class="mt-1">原因：{{ $verification->notes }}</p>
+                                    @endif
+                                    <p class="mt-1">您可以重新提交驗證申請。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if(!$verification || ($verification && $verification->isRejected()))
+                    <!-- T497: Add identity verification submission form to settings -->
+                    <form action="{{ route('settings.verification') }}" method="POST" class="space-y-4">
+                        @csrf
+
+                        <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3 text-sm text-blue-700">
+                                    <p>完成身分驗證後，您將獲得無限制的官方 API 匯入配額，不再受每月 10 部影片的限制。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="verification_method" class="block text-sm font-medium text-gray-700 mb-1">
+                                驗證方式 <span class="text-red-500">*</span>
+                            </label>
+                            <select name="verification_method" id="verification_method" required
+                                    aria-label="驗證方式"
+                                    aria-required="true"
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('verification_method') border-red-500 @enderror">
+                                <option value="">請選擇驗證方式</option>
+                                <option value="government_id" {{ old('verification_method') === 'government_id' ? 'selected' : '' }}>政府核發證件</option>
+                                <option value="social_media" {{ old('verification_method') === 'social_media' ? 'selected' : '' }}>社群媒體帳號</option>
+                                <option value="organization" {{ old('verification_method') === 'organization' ? 'selected' : '' }}>組織/機構證明</option>
+                            </select>
+                            @error('verification_method')
+                                <p class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="verification_notes" class="block text-sm font-medium text-gray-700 mb-1">
+                                備註（選填）
+                            </label>
+                            <textarea name="verification_notes" id="verification_notes" rows="3"
+                                      aria-label="備註"
+                                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('verification_notes') border-red-500 @enderror"
+                                      placeholder="請提供任何有助於驗證的補充資訊">{{ old('verification_notes') }}</textarea>
+                            @error('verification_notes')
+                                <p class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1 text-xs text-gray-500">最多 500 個字元</p>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit"
+                                    aria-label="提交身分驗證申請"
+                                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                提交驗證申請
+                            </button>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        </div>
+        @else
+        <!-- T491: Show verified status badge for verified Premium Members -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">身分驗證</h2>
+            </div>
+            <div class="px-6 py-4">
+                <!-- T500: Show verification status - approved -->
+                <div class="rounded-md bg-green-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-green-800">身分驗證已通過</h3>
+                            <div class="mt-2 text-sm text-green-700">
+                                <p>您的身分已經驗證通過，您擁有無限制的官方 API 匯入配額。</p>
+                                <p class="mt-1">驗證通過時間：{{ $verification->reviewed_at->timezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
     @endif
 
     <!-- Account Actions -->

@@ -61,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/password', [\App\Http\Controllers\UserSettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/api-key', [\App\Http\Controllers\UserSettingsController::class, 'updateApiKey'])->name('settings.api-key');
     Route::post('/settings/api-key/remove', [\App\Http\Controllers\UserSettingsController::class, 'removeApiKey'])->name('settings.api-key.remove');
+    // T497: Identity verification submission route
+    Route::post('/settings/verification', [\App\Http\Controllers\UserSettingsController::class, 'submitVerification'])->name('settings.verification');
 });
 
 // Video Analysis page (008-video-comment-density)
