@@ -30,7 +30,7 @@ class LoginController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|string',
-            'remember' => 'sometimes|boolean',
+            'remember' => 'nullable',
         ], [
             'email.required' => '請輸入電子郵件',
             'email.email' => '請輸入有效的電子郵件格式',
@@ -54,7 +54,7 @@ class LoginController extends Controller
 
         $email = $request->input('email');
         $password = $request->input('password');
-        $remember = $request->input('remember', false);
+        $remember = $request->boolean('remember');
 
         // Attempt login
         $result = $this->authService->login($email, $password, $remember);
