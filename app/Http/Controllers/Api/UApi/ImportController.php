@@ -51,8 +51,8 @@ class ImportController extends Controller
             ], match (true) {
                 str_contains($e->getMessage(), '請輸入') => 400,
                 str_contains($e->getMessage(), '網址') => 400,
-                str_contains($e->getMessage(), '無法') => 502,
-                default => 500,
+                str_contains($e->getMessage(), '無法') => 422,
+                default => 422,
             });
         }
     }
