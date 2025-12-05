@@ -212,7 +212,9 @@
 
                 async fetchCurrentUser() {
                     try {
-                        const response = await fetch('/api/auth/me');
+                        const response = await fetch('/api/auth/me', {
+                            headers: { 'Accept': 'application/json' }
+                        });
                         if (response.ok) {
                             const result = await response.json();
                             console.log('Current user response:', result);
@@ -256,7 +258,9 @@
 
                 async fetchRoles() {
                     try {
-                        const response = await fetch('/api/admin/users');
+                        const response = await fetch('/api/admin/users', {
+                            headers: { 'Accept': 'application/json' }
+                        });
                         if (response.ok) {
                             const data = await response.json();
                             // Extract unique roles from users

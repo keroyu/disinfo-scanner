@@ -234,7 +234,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load available tags
     async function loadTags() {
         try {
-            const response = await fetch('/api/uapi/tags');
+            const response = await fetch('/api/uapi/tags', {
+                headers: { 'Accept': 'application/json' }
+            });
             const data = await response.json();
 
             if (data.success) {
@@ -329,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
                 },
                 body: JSON.stringify({ url })
@@ -369,6 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
                 },
                 body: JSON.stringify({
@@ -400,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
                 },
                 body: JSON.stringify({

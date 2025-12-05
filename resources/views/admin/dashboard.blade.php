@@ -204,7 +204,9 @@
                 async fetchStats() {
                     try {
                         // Fetch statistics from API
-                        const response = await fetch('/api/admin/users');
+                        const response = await fetch('/api/admin/users', {
+                            headers: { 'Accept': 'application/json' }
+                        });
                         if (response.ok) {
                             const data = await response.json();
                             this.totalUsers = data.total || 0;

@@ -322,7 +322,8 @@
                     this.exporting = true;
                     try {
                         const response = await fetch('/api/admin/reports/users/export', {
-                            method: 'GET'
+                            method: 'GET',
+                            headers: { 'Accept': 'application/json' }
                         });
                         if (response.ok) {
                             const blob = await response.blob();
