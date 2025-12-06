@@ -102,8 +102,8 @@ class PasswordResetController extends Controller
             // Create password reset token
             $token = Password::broker()->createToken($user);
 
-            // Send email
-            Mail::to($user->email)->send(new PasswordResetEmail($user->email, $token));
+            // Send email asynchronously to prevent timeout
+            Mail::to($user->email)->queue(new PasswordResetEmail($user->email, $token));
 
             Log::info('Password reset link sent', [
                 'user_id' => $user->id,
