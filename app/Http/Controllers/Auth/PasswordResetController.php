@@ -49,12 +49,16 @@ class PasswordResetController extends Controller
     /**
      * Show password reset form with token
      *
+     * @param Request $request
      * @param string $token
      * @return \Illuminate\View\View
      */
-    public function showResetForm(string $token)
+    public function showResetForm(Request $request, string $token)
     {
-        return view('auth.password-reset', ['token' => $token]);
+        return view('auth.password-reset', [
+            'token' => $token,
+            'email' => $request->query('email'),
+        ]);
     }
 
     /**
