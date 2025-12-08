@@ -47,3 +47,4 @@ storage/*.key
 # Universal
 Thumbs.db
 *.swp
+specs/
