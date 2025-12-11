@@ -36,7 +36,7 @@
             </a>
         </div>
         <p class="text-sm text-gray-500 mt-1">頻道: {{ $video->channel->channel_name ?? '未知' }}</p>
-        <p class="text-sm text-gray-500">發布時間: {{ $video->published_at->setTimezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)</p>
+        <p class="text-sm text-gray-500">發布時間: {{ $video->published_at ? $video->published_at->setTimezone('Asia/Taipei')->format('Y-m-d H:i') . ' (GMT+8)' : '未知' }}</p>
     </div>
 
     <!-- Comments Pattern Section -->

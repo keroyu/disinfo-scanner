@@ -243,6 +243,14 @@ class UrtubeApiImportService
                     $videoData['published_at'] = \Carbon\Carbon::parse($pendingImport['published_at'])
                         ->setTimezone('UTC')
                         ->toDateTimeString();
+                } else {
+                    // Fallback: use earliest comment time as video publish date
+                    $earliestCommentTime = collect($models->comments)
+                        ->filter(fn($c) => $c->published_at !== null)
+                        ->min('published_at');
+                    if ($earliestCommentTime) {
+                        $videoData['published_at'] = $earliestCommentTime;
+                    }
                 }
                 $videoCreated = false;
                 $video = Video::updateOrCreate(
@@ -376,6 +384,14 @@ class UrtubeApiImportService
                 $videoData['published_at'] = \Carbon\Carbon::parse($pendingImport['published_at'])
                     ->setTimezone('UTC')
                     ->toDateTimeString();
+            } else {
+                // Fallback: use earliest comment time as video publish date
+                $earliestCommentTime = collect($models->comments)
+                    ->filter(fn($c) => $c->published_at !== null)
+                    ->min('published_at');
+                if ($earliestCommentTime) {
+                    $videoData['published_at'] = $earliestCommentTime;
+                }
             }
             $videoCreated = false;
             $video = Video::updateOrCreate(

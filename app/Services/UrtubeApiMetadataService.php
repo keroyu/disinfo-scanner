@@ -29,25 +29,31 @@ class UrtubeApiMetadataService
     }
 
     /**
-     * Scrape video title, channel name, and published date from YouTube
-     * Uses oEmbed API first (reliable), falls back to page scraping
+     * Scrape video title, channel name from YouTube
+     * Uses oEmbed API (reliable on cloud servers), falls back to page scraping
+     * Note: publish date is derived from earliest comment time during import
      *
      * @param string $videoId YouTube video ID
      * @return array {
      *     'videoTitle' => string|null,
      *     'channelName' => string|null,
-     *     'publishedAt' => string|null (ISO 8601 date),
+     *     'publishedAt' => string|null (always null - derived from comments),
      *     'scrapingStatus' => 'success'|'partial'|'failed'
      * }
      */
     public function scrapeMetadata(string $videoId): array
     {
-        // Try oEmbed API first (most reliable, works on cloud servers)
+        // Try oEmbed API first for title and channel (most reliable, works on cloud servers)
         $oembedResult = $this->fetchFromOembed($videoId);
 
         if ($oembedResult['videoTitle'] && $oembedResult['channelName']) {
             Log::debug('Metadata fetched via oEmbed API', ['video_id' => $videoId]);
-            return $oembedResult;
+            return [
+                'videoTitle' => $oembedResult['videoTitle'],
+                'channelName' => $oembedResult['channelName'],
+                'publishedAt' => null, // Will be derived from earliest comment time
+                'scrapingStatus' => 'success',
+            ];
         }
 
         // Fallback to page scraping if oEmbed fails
