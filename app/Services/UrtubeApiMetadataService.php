@@ -17,13 +17,20 @@ class UrtubeApiMetadataService
         $this->client = new Client([
             'timeout' => $this->timeout,
             'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                // More complete User-Agent to avoid bot detection
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language' => 'en-US,en;q=0.5',
+                'Accept-Encoding' => 'gzip, deflate',
+                'Connection' => 'keep-alive',
+                'Upgrade-Insecure-Requests' => '1',
             ]
         ]);
     }
 
     /**
-     * Scrape video title, channel name, and published date from YouTube page
+     * Scrape video title, channel name, and published date from YouTube
+     * Uses oEmbed API first (reliable), falls back to page scraping
      *
      * @param string $videoId YouTube video ID
      * @return array {
@@ -34,6 +41,66 @@ class UrtubeApiMetadataService
      * }
      */
     public function scrapeMetadata(string $videoId): array
+    {
+        // Try oEmbed API first (most reliable, works on cloud servers)
+        $oembedResult = $this->fetchFromOembed($videoId);
+
+        if ($oembedResult['videoTitle'] && $oembedResult['channelName']) {
+            Log::debug('Metadata fetched via oEmbed API', ['video_id' => $videoId]);
+            return $oembedResult;
+        }
+
+        // Fallback to page scraping if oEmbed fails
+        Log::debug('oEmbed failed, trying page scraping', ['video_id' => $videoId]);
+        return $this->scrapeFromPage($videoId);
+    }
+
+    /**
+     * Fetch metadata from YouTube oEmbed API
+     * This is more reliable than page scraping, especially on cloud servers
+     */
+    protected function fetchFromOembed(string $videoId): array
+    {
+        $oembedUrl = "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={$videoId}&format=json";
+
+        try {
+            $response = $this->client->get($oembedUrl);
+            $data = json_decode((string) $response->getBody(), true);
+
+            if ($data && isset($data['title']) && isset($data['author_name'])) {
+                return [
+                    'videoTitle' => $data['title'],
+                    'channelName' => $data['author_name'],
+                    'publishedAt' => null, // oEmbed doesn't provide publish date
+                    'scrapingStatus' => 'success',
+                ];
+            }
+
+            return [
+                'videoTitle' => $data['title'] ?? null,
+                'channelName' => $data['author_name'] ?? null,
+                'publishedAt' => null,
+                'scrapingStatus' => ($data['title'] ?? null) || ($data['author_name'] ?? null) ? 'partial' : 'failed',
+            ];
+        } catch (GuzzleException $e) {
+            Log::debug('oEmbed API request failed', [
+                'video_id' => $videoId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'videoTitle' => null,
+                'channelName' => null,
+                'publishedAt' => null,
+                'scrapingStatus' => 'failed',
+            ];
+        }
+    }
+
+    /**
+     * Scrape metadata from YouTube page (fallback method)
+     */
+    protected function scrapeFromPage(string $videoId): array
     {
         $watchUrl = "https://www.youtube.com/watch?v={$videoId}";
 
