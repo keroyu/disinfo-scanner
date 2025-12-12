@@ -13,6 +13,7 @@ Auto-generated from all feature plans. Last updated: 2025-11-18
 - MySQL/MariaDB (existing database with users, password_reset_tokens, sessions tables already present) (011-member-system)
 - PHP 8.2 with Laravel Framework 12.38.1 + Laravel Framework (existing), Symfony RateLimiter (Laravel built-in) (011-member-system)
 - MySQL/MariaDB (existing database) - add `csv_export_logs` table for rate limiting tracking (011-member-system)
+- PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN) (012-admin-video-management)
 
 - PHP 8.2 with Laravel Framework 12.38.1 (007-video-incremental-update)
 
@@ -32,6 +33,7 @@ tests/
 PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
 
 ## Recent Changes
+- 012-admin-video-management: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN)
 - 011-member-system: Added PHP 8.2 with Laravel Framework 12.38.1 + Laravel Framework (existing), Symfony RateLimiter (Laravel built-in)
 - 011-member-system: **✅ COMPLETE & PRODUCTION-READY** (2025-11-23)
   - ✅ **Core Module**: Complete authentication backend (66/66 tasks)
@@ -71,7 +73,6 @@ PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
     - Removed incorrect HTTP method overrides (@method PUT/DELETE)
     - Fixed logout to redirect instead of returning JSON
   - **Status**: ✅ Admin Module **DOCUMENTATION COMPLETE** - Manual testing recommended before full production
-- 010-time-based-comment-filter: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Chart.js 4.4.0 (existing), Tailwind CSS (via CDN)
 
 
 <!-- MANUAL ADDITIONS START -->
