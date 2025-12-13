@@ -26,10 +26,10 @@
 
         <div>
             <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                更改預設密碼
+                設定您的密碼
             </h2>
             <p class="mt-2 text-center text-sm text-gray-600">
-                設定一個安全的新密碼以保護您的帳號
+                請設定一個安全的密碼以保護您的帳號
             </p>
         </div>
 
@@ -62,26 +62,10 @@
 
             <div class="rounded-md shadow-sm space-y-4">
                 <div>
-                    <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">
-                        目前密碼 (預設密碼) <span class="text-red-500">*</span>
-                    </label>
-                    <input id="current_password" name="current_password" type="password" required autofocus
-                           aria-label="目前密碼"
-                           aria-required="true"
-                           aria-invalid="{{ $errors->has('current_password') ? 'true' : 'false' }}"
-                           @error('current_password') aria-describedby="current-password-error" @enderror
-                           class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('current_password') border-red-500 @enderror"
-                           placeholder="請輸入您目前的密碼">
-                    @error('current_password')
-                        <p id="current-password-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
                         新密碼 <span class="text-red-500">*</span>
                     </label>
-                    <input id="password" name="password" type="password" required
+                    <input id="password" name="password" type="password" required autofocus
                            aria-label="新密碼"
                            aria-required="true"
                            aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
@@ -143,13 +127,13 @@
                             <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                         </svg>
                     </span>
-                    更改密碼並繼續
+                    設定密碼並繼續
                 </button>
                 <p id="submit-feedback" class="mt-2 text-sm text-center text-gray-600 hidden"></p>
             </div>
 
             <div class="text-sm text-center text-gray-600">
-                <p>⚠️ 變更密碼後，您無法使用舊密碼登入</p>
+                <p>⚠️ 設定密碼後，您將無法使用預設密碼登入</p>
             </div>
         </form>
     </div>
@@ -250,14 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateSubmitButton() {
-        const currentPassword = document.getElementById('current_password').value;
-
-        if (!currentPassword) {
-            submitButton.disabled = true;
-            submitFeedback.textContent = '請輸入目前密碼';
-            submitFeedback.classList.remove('hidden', 'text-green-600');
-            submitFeedback.classList.add('text-gray-600');
-        } else if (!allRequirementsMet) {
+        if (!allRequirementsMet) {
             submitButton.disabled = true;
             submitFeedback.textContent = '請確保新密碼符合所有要求';
             submitFeedback.classList.remove('hidden', 'text-green-600');
@@ -278,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners
     passwordInput.addEventListener('input', validatePassword);
     confirmationInput.addEventListener('input', validateConfirmation);
-    document.getElementById('current_password').addEventListener('input', updateSubmitButton);
 
     // Initial validation
     updateSubmitButton();

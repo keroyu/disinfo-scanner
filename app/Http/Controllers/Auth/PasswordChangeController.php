@@ -59,14 +59,16 @@ class PasswordChangeController extends Controller
             $user = Auth::user();
 
             // Support both field naming conventions
-            $currentPassword = $request->input('current_password');
             $newPassword = $request->input('new_password') ?? $request->input('password');
             $newPasswordConfirmation = $request->input('new_password_confirmation') ?? $request->input('password_confirmation');
 
+            // For mandatory password change (first login), don't require current password
+            // For settings page password change, require current password
+            $isMandatoryChange = $user->must_change_password;
+
             // Validate inputs
-            if (!$currentPassword || !$newPassword || !$newPasswordConfirmation) {
+            if (!$newPassword || !$newPasswordConfirmation) {
                 $errors = [];
-                if (!$currentPassword) $errors['current_password'] = ['請輸入目前密碼'];
                 if (!$newPassword) $errors['password'] = ['請輸入新密碼'];
                 if (!$newPasswordConfirmation) $errors['password_confirmation'] = ['請確認您的新密碼'];
 
@@ -92,16 +94,29 @@ class PasswordChangeController extends Controller
                 return redirect()->back()->withErrors(['password_confirmation' => '新密碼與確認密碼不符'])->withInput();
             }
 
-            // Verify current password
-            if (!$this->passwordService->verifyPassword($currentPassword, $user->password)) {
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => '當前密碼不正確',
-                        'errors' => ['current_password' => ['當前密碼不正確']]
-                    ], 422);
+            // Verify current password (only required when NOT mandatory change)
+            if (!$isMandatoryChange) {
+                $currentPassword = $request->input('current_password');
+                if (!$currentPassword) {
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => '請輸入目前密碼',
+                            'errors' => ['current_password' => ['請輸入目前密碼']]
+                        ], 422);
+                    }
+                    return redirect()->back()->withErrors(['current_password' => '請輸入目前密碼'])->withInput();
                 }
-                return redirect()->back()->withErrors(['current_password' => '當前密碼不正確'])->withInput();
+                if (!$this->passwordService->verifyPassword($currentPassword, $user->password)) {
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => '當前密碼不正確',
+                            'errors' => ['current_password' => ['當前密碼不正確']]
+                        ], 422);
+                    }
+                    return redirect()->back()->withErrors(['current_password' => '當前密碼不正確'])->withInput();
+                }
             }
 
             // Validate new password strength

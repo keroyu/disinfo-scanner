@@ -79,35 +79,6 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-                        密碼 <span class="text-red-500">*</span>
-                    </label>
-                    <input id="password" name="password" type="password" autocomplete="new-password" required
-                           aria-label="密碼"
-                           aria-required="true"
-                           aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
-                           aria-describedby="password-requirements @error('password') password-error @enderror"
-                           class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('password') border-red-500 @enderror"
-                           placeholder="至少8個字元，包含大小寫字母、數字和特殊符號">
-                    <p id="password-requirements" class="mt-1 text-xs text-gray-500">
-                        密碼需包含：至少8個字元、1個大寫字母、1個小寫字母、1個數字、1個特殊符號
-                    </p>
-                    @error('password')
-                        <p id="password-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">
-                        確認密碼 <span class="text-red-500">*</span>
-                    </label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required
-                           aria-label="確認密碼"
-                           aria-required="true"
-                           class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                           placeholder="請再次輸入密碼">
-                </div>
             </div>
 
             <div class="flex items-center">
@@ -139,6 +110,9 @@
             <div class="text-sm text-center text-gray-600">
                 <p>註冊後，系統將發送驗證郵件至您的信箱</p>
                 <p class="mt-1">請於24小時內完成驗證</p>
+                <p class="mt-2 text-yellow-700 bg-yellow-50 p-2 rounded">
+                    預設密碼為 <strong>123456</strong>，首次登入後需立即設定新密碼
+                </p>
             </div>
         </form>
     </div>
