@@ -34,9 +34,9 @@ class CheckDefaultPassword
         // Skip check for password change routes and logout to avoid redirect loop
         $allowedRoutes = [
             'auth/mandatory-password-change',
+            'auth/logout',  // Web logout route
             'api/auth/password/change',
             'api/auth/logout',
-            'logout',  // Web logout route
         ];
 
         foreach ($allowedRoutes as $route) {
