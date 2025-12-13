@@ -50,9 +50,45 @@
         </div>
         <div class="px-6 py-4">
             <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                <div>
+                <div x-data="{ editing: false, name: '{{ auth()->user()->name }}', saving: false }">
                     <dt class="text-sm font-medium text-gray-500">姓名</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ auth()->user()->name }}</dd>
+                    <dd class="mt-1">
+                        <template x-if="!editing">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-900" x-text="name"></span>
+                                <button @click="editing = true" type="button" class="text-blue-600 hover:text-blue-800 text-xs">編輯</button>
+                            </div>
+                        </template>
+                        <template x-if="editing">
+                            <form @submit.prevent="
+                                saving = true;
+                                fetch('{{ route('settings.name') }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({ name: name })
+                                })
+                                .then(r => r.json())
+                                .then(data => {
+                                    saving = false;
+                                    if (data.success) {
+                                        editing = false;
+                                    } else {
+                                        alert(data.message || '更新失敗');
+                                    }
+                                })
+                                .catch(() => { saving = false; alert('更新失敗'); });
+                            " class="flex items-center gap-2">
+                                <input type="text" x-model="name" required maxlength="255"
+                                       class="text-sm px-2 py-1 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 w-40">
+                                <button type="submit" :disabled="saving" class="text-green-600 hover:text-green-800 text-xs" x-text="saving ? '...' : '儲存'"></button>
+                                <button type="button" @click="editing = false; name = '{{ auth()->user()->name }}'" class="text-gray-500 hover:text-gray-700 text-xs">取消</button>
+                            </form>
+                        </template>
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">電子郵件</dt>

@@ -59,6 +59,7 @@ Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->
 // User settings page
 Route::middleware('auth')->group(function () {
     Route::get('/settings', [\App\Http\Controllers\UserSettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/name', [\App\Http\Controllers\UserSettingsController::class, 'updateName'])->name('settings.name');
     Route::post('/settings/password', [\App\Http\Controllers\UserSettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/api-key', [\App\Http\Controllers\UserSettingsController::class, 'updateApiKey'])->name('settings.api-key');
     Route::post('/settings/api-key/remove', [\App\Http\Controllers\UserSettingsController::class, 'removeApiKey'])->name('settings.api-key.remove');

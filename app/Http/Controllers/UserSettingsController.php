@@ -18,6 +18,28 @@ class UserSettingsController extends Controller
     }
 
     /**
+     * Update the user's display name.
+     */
+    public function updateName(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ], [
+            'name.required' => '姓名為必填欄位',
+            'name.max' => '姓名長度不得超過 255 個字元',
+        ]);
+
+        $request->user()->update(['name' => $validated['name']]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'name' => $validated['name']]);
+        }
+
+        return redirect()->route('settings.index')
+            ->with('success', '✓ 姓名已成功更新');
+    }
+
+    /**
      * Update the user's password from settings page.
      */
     public function updatePassword(Request $request)
