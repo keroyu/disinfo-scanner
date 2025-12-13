@@ -26,9 +26,10 @@ class AuthenticationService
      * Register a new user.
      *
      * @param string $email
+     * @param string|null $name
      * @return array ['success' => bool, 'message' => string, 'user' => ?User]
      */
-    public function register(string $email): array
+    public function register(string $email, ?string $name = null): array
     {
         // Check if email already exists
         if (User::where('email', $email)->exists()) {
@@ -41,7 +42,7 @@ class AuthenticationService
 
         // Create user with default password
         $user = User::create([
-            'name' => $email, // Use email as name initially
+            'name' => $name ?? $email, // Use provided name, fallback to email
             'email' => $email,
             'password' => $this->passwordService->getDefaultPasswordHash(),
             'has_default_password' => true,

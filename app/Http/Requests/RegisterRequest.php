@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\ValidationException;
 
 class RegisterRequest extends FormRequest
 {
@@ -20,10 +21,18 @@ class RegisterRequest extends FormRequest
      * Handle a failed validation attempt.
      *
      * @param Validator $validator
-     * @throws HttpResponseException
+     * @throws HttpResponseException|ValidationException
      */
     protected function failedValidation(Validator $validator)
     {
+        // For web requests, use default Laravel behavior (redirect back with errors)
+        if (!$this->expectsJson()) {
+            throw (new ValidationException($validator))
+                ->errorBag($this->errorBag)
+                ->redirectTo($this->getRedirectUrl());
+        }
+
+        // For API requests, return JSON
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
@@ -41,6 +50,7 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
         ];
     }
@@ -53,6 +63,8 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.required' => '姓名為必填欄位',
+            'name.max' => '姓名長度不得超過 255 個字元',
             'email.required' => '電子郵件為必填欄位',
             'email.email' => '請輸入有效的電子郵件格式',
             'email.unique' => '此電子郵件已被註冊',

@@ -17,7 +17,7 @@
             </p>
         </div>
 
-        <form class="mt-8 space-y-6" action="{{ route('register') }}" method="POST">
+        <form class="mt-8 space-y-6" action="{{ route('register.submit') }}" method="POST">
             @csrf
 
             @if ($errors->any())

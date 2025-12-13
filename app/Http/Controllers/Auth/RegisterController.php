@@ -8,6 +8,7 @@ use App\Services\AuthenticationService;
 use App\Services\EmailVerificationService;
 use App\Mail\VerificationEmail;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
 
 class RegisterController extends Controller
@@ -27,15 +28,20 @@ class RegisterController extends Controller
      * Register a new user.
      *
      * @param RegisterRequest $request
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse|RedirectResponse
     {
         $email = $request->input('email');
+        $name = $request->input('name');
 
         // Check rate limit for verification emails
         $rateLimitCheck = $this->emailService->checkRateLimit($email);
         if (!$rateLimitCheck['allowed']) {
+            // For web requests, redirect back with error
+            if (!$request->expectsJson()) {
+                return back()->withErrors(['email' => $rateLimitCheck['message']])->withInput();
+            }
             return response()->json([
                 'success' => false,
                 'message' => $rateLimitCheck['message'],
@@ -43,9 +49,13 @@ class RegisterController extends Controller
         }
 
         // Register user
-        $result = $this->authService->register($email);
+        $result = $this->authService->register($email, $name);
 
         if (!$result['success']) {
+            // For web requests, redirect back with error
+            if (!$request->expectsJson()) {
+                return back()->withErrors(['email' => $result['message']])->withInput();
+            }
             return response()->json([
                 'success' => false,
                 'message' => $result['message'],
@@ -57,6 +67,13 @@ class RegisterController extends Controller
 
         // Send verification email
         Mail::to($email)->queue(new VerificationEmail($token));
+
+        // For web requests, redirect to verify-email page with success message
+        if (!$request->expectsJson()) {
+            return redirect()->route('verification.notice')
+                ->with('status', 'registration-success')
+                ->with('registered_email', $email);
+        }
 
         return response()->json([
             'success' => true,
