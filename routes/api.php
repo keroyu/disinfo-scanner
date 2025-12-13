@@ -176,5 +176,17 @@ Route::prefix('admin')->middleware(['web', 'auth', 'check.admin', 'check.admin.s
     // Audit Logs (Phase 6 - T282, T288, T289)
     Route::get('/audit-logs', [\App\Http\Controllers\Admin\UserManagementController::class, 'auditLogs']);
     Route::get('/audit-logs/export', [\App\Http\Controllers\Admin\UserManagementController::class, 'exportAuditLogs']);
+
+    // Video Management (012-admin-video-management T003)
+    Route::get('/videos', [\App\Http\Controllers\Admin\VideoManagementController::class, 'index']);
+    Route::get('/videos/{videoId}', [\App\Http\Controllers\Admin\VideoManagementController::class, 'show'])
+        ->where('videoId', '[A-Za-z0-9_-]{11}');
+    Route::put('/videos/{videoId}', [\App\Http\Controllers\Admin\VideoManagementController::class, 'update'])
+        ->where('videoId', '[A-Za-z0-9_-]{11}');
+    Route::delete('/videos/{videoId}', [\App\Http\Controllers\Admin\VideoManagementController::class, 'destroy'])
+        ->where('videoId', '[A-Za-z0-9_-]{11}');
+    Route::get('/videos/{videoId}/comment-count', [\App\Http\Controllers\Admin\VideoManagementController::class, 'commentCount'])
+        ->where('videoId', '[A-Za-z0-9_-]{11}');
+    Route::post('/videos/batch-delete', [\App\Http\Controllers\Admin\VideoManagementController::class, 'batchDelete']);
 });
 

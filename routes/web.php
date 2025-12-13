@@ -110,4 +110,9 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
     Route::get('/rbac', function () {
         return view('admin.rbac.index');
     })->name('admin.rbac.index');
+
+    // Video Management views (012-admin-video-management T002)
+    Route::get('/videos', function () {
+        return view('admin.videos.index');
+    })->name('admin.videos.index');
 });

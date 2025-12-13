@@ -43,6 +43,15 @@ class Video extends Model
     }
 
     /**
+     * T006: Scope for admin video list - combines comment stats with channel eager loading
+     * Used by VideoManagementService for list and detail views
+     */
+    public function scopeForAdminList($query)
+    {
+        return $query->withCommentStats()->with('channel');
+    }
+
+    /**
      * Scope to filter videos that have at least one comment
      * Compatible with both MySQL and SQLite
      */
