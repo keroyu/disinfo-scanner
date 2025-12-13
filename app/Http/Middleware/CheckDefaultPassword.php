@@ -31,14 +31,15 @@ class CheckDefaultPassword
 
         $user = Auth::user();
 
-        // Skip check for password change routes to avoid redirect loop
-        $passwordChangeRoutes = [
+        // Skip check for password change routes and logout to avoid redirect loop
+        $allowedRoutes = [
             'auth/mandatory-password-change',
             'api/auth/password/change',
             'api/auth/logout',
+            'logout',  // Web logout route
         ];
 
-        foreach ($passwordChangeRoutes as $route) {
+        foreach ($allowedRoutes as $route) {
             if ($request->is($route)) {
                 return $next($request);
             }

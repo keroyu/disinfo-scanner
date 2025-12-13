@@ -136,6 +136,15 @@
                 <p>⚠️ 設定密碼後，您將無法使用預設密碼登入</p>
             </div>
         </form>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="text-sm text-gray-500 hover:text-gray-700">
+                    登出
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
