@@ -120,6 +120,20 @@ class AuthenticationService
             ];
         }
 
+        // Check if user still has default password (registration not completed)
+        if ($user->has_default_password) {
+            Log::info('SECURITY: Login attempt with default password - registration incomplete', [
+                'user_id' => $user->id,
+                'email' => $email,
+            ]);
+
+            return [
+                'success' => false,
+                'message' => '請先完成電子郵件驗證並設定密碼',
+                'user' => $user,
+            ];
+        }
+
         // Successful login
         Auth::login($user, $remember);
 

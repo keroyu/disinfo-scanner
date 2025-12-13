@@ -21,6 +21,7 @@ Route::prefix('auth')->group(function () {
 
     // Email verification
     Route::get('/verify-email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify');
+    Route::post('/verify-email/verify', [EmailVerificationController::class, 'completeVerification'])->name('verification.complete');
     Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend'])->name('verification.resend');
     Route::post('/verify-email/check-status', [EmailVerificationController::class, 'checkStatus'])->name('verification.check-status');
 

@@ -109,10 +109,7 @@
 
             <div class="text-sm text-center text-gray-600">
                 <p>註冊後，系統將發送驗證郵件至您的信箱</p>
-                <p class="mt-1">請於24小時內完成驗證</p>
-                <p class="mt-2 text-yellow-700 bg-yellow-50 p-2 rounded">
-                    預設密碼為 <strong>123456</strong>，首次登入後需立即設定新密碼
-                </p>
+                <p class="mt-1">請於24小時內點擊驗證連結並設定密碼</p>
             </div>
         </form>
     </div>
