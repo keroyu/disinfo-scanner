@@ -36,10 +36,18 @@
                 @endif
             @endguest
 
-            {{-- U-API Import Button - Available to all authenticated users --}}
-            <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onclick="window.dispatchEvent(new CustomEvent('open-uapi-modal'))">
-                <i class="fas fa-upload mr-2"></i>U-API導入
-            </button>
+            {{-- U-API Import Button - FR-030: Available to Regular Members and above --}}
+            @guest
+                <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        onclick="showPermissionModal('login', 'U-API導入')">
+                    <i class="fas fa-upload mr-2"></i>U-API導入
+                </button>
+            @else
+                <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        onclick="window.dispatchEvent(new CustomEvent('open-uapi-modal'))">
+                    <i class="fas fa-upload mr-2"></i>U-API導入
+                </button>
+            @endguest
         </div>
     </div>
 

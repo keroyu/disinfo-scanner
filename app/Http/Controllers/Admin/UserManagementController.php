@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\ApiQuota;
 use App\Models\AuditLog;
 use App\Models\IdentityVerification;
+use App\Services\IpGeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -80,6 +81,12 @@ class UserManagementController extends Controller
             ], 404);
         }
 
+        // Get IP geolocation data
+        $ipGeoService = app(IpGeolocationService::class);
+        $ipLocation = $user->last_login_ip
+            ? $ipGeoService->getLocation($user->last_login_ip)
+            : null;
+
         // Transform response
         return response()->json([
             'data' => [
@@ -89,6 +96,9 @@ class UserManagementController extends Controller
                 'is_email_verified' => $user->is_email_verified,
                 'has_default_password' => $user->has_default_password,
                 'youtube_api_key' => $user->youtube_api_key ? '已設定' : null,
+                'last_login_ip' => $user->last_login_ip,
+                'last_login_ip_country' => $ipLocation['country'] ?? null,
+                'last_login_ip_city' => $ipLocation['city'] ?? null,
                 'roles' => $user->roles->map(function ($role) {
                     return [
                         'id' => $role->id,

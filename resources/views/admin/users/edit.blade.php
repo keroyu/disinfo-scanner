@@ -87,6 +87,20 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">註冊時間</label>
                                     <p class="text-gray-900" x-text="formatDate(user.created_at)"></p>
                                 </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">最後登入 IP</label>
+                                    <div class="flex items-center space-x-2">
+                                        <p class="text-gray-900" x-text="user.last_login_ip || '尚未登入'"></p>
+                                        <template x-if="user.last_login_ip_country">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                                <span x-text="user.last_login_ip_country"></span>
+                                                <template x-if="user.last_login_ip_city">
+                                                    <span x-text="', ' + user.last_login_ip_city"></span>
+                                                </template>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
