@@ -229,10 +229,9 @@
     </div>
 
     <script>
-        // Shared store for selected users
-        window.selectedUsersStore = Alpine.reactive({ users: [] });
-
         document.addEventListener('alpine:init', () => {
+            // Shared store for selected users (must be inside alpine:init)
+            window.selectedUsersStore = Alpine.reactive({ users: [] });
             // CSV Export Component
             Alpine.data('csvExport', () => ({
                 get selectedUsers() {
