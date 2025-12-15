@@ -27,6 +27,18 @@
                             <h1 class="text-3xl font-bold text-gray-900">Users Management</h1>
                             <p class="mt-1 text-sm text-gray-600">管理所有系統用戶與權限</p>
                         </div>
+                        <div x-data="csvExport">
+                            <button @click="exportCsv"
+                                    :disabled="selectedUsers.length === 0"
+                                    :class="selectedUsers.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export CSV
+                                <span x-show="selectedUsers.length > 0" class="ml-2 bg-green-800 px-2 py-0.5 rounded text-xs" x-text="`(${selectedUsers.length})`"></span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Search and Filter Section (T234) -->
@@ -72,6 +84,12 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        <th class="px-4 py-3 text-left">
+                                            <input type="checkbox"
+                                                   @change="toggleSelectAll($event.target.checked)"
+                                                   :checked="isAllSelected"
+                                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                        </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用戶</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電子郵件</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">所在地</th>
@@ -84,7 +102,7 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <template x-if="loading">
                                         <tr>
-                                            <td colspan="7" class="px-6 py-12 text-center">
+                                            <td colspan="8" class="px-6 py-12 text-center">
                                                 <div class="flex justify-center items-center">
                                                     <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -98,7 +116,7 @@
 
                                     <template x-if="!loading && users.length === 0">
                                         <tr>
-                                            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                                                 <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                                 </svg>
@@ -108,7 +126,13 @@
                                     </template>
 
                                     <template x-for="user in users" :key="user.id">
-                                        <tr class="hover:bg-gray-50">
+                                        <tr class="hover:bg-gray-50" :class="isSelected(user.id) ? 'bg-blue-50' : ''">
+                                            <td class="px-4 py-4 whitespace-nowrap">
+                                                <input type="checkbox"
+                                                       :checked="isSelected(user.id)"
+                                                       @change="toggleUser(user)"
+                                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
@@ -205,7 +229,41 @@
     </div>
 
     <script>
+        // Shared store for selected users
+        window.selectedUsersStore = Alpine.reactive({ users: [] });
+
         document.addEventListener('alpine:init', () => {
+            // CSV Export Component
+            Alpine.data('csvExport', () => ({
+                get selectedUsers() {
+                    return window.selectedUsersStore.users;
+                },
+
+                exportCsv() {
+                    if (this.selectedUsers.length === 0) return;
+
+                    // Create CSV content
+                    const headers = ['Email'];
+                    const rows = this.selectedUsers.map(user => [user.email]);
+
+                    let csvContent = headers.join(',') + '\n';
+                    rows.forEach(row => {
+                        csvContent += row.map(field => `"${(field || '').replace(/"/g, '""')}"`).join(',') + '\n';
+                    });
+
+                    // Download CSV
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `users_export_${new Date().toISOString().slice(0,10)}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }));
+
             // User Filters Component
             Alpine.data('userFilters', () => ({
                 search: '',
@@ -237,6 +295,45 @@
                 filters: {
                     search: '',
                     role: ''
+                },
+
+                get selectedUsers() {
+                    return window.selectedUsersStore.users;
+                },
+
+                set selectedUsers(value) {
+                    window.selectedUsersStore.users = value;
+                },
+
+                get isAllSelected() {
+                    return this.users.length > 0 && this.users.every(user => this.isSelected(user.id));
+                },
+
+                isSelected(userId) {
+                    return this.selectedUsers.some(u => u.id === userId);
+                },
+
+                toggleUser(user) {
+                    const index = this.selectedUsers.findIndex(u => u.id === user.id);
+                    if (index === -1) {
+                        this.selectedUsers = [...this.selectedUsers, { id: user.id, email: user.email }];
+                    } else {
+                        this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
+                    }
+                },
+
+                toggleSelectAll(checked) {
+                    if (checked) {
+                        // Add all current page users that aren't already selected
+                        const newSelections = this.users
+                            .filter(user => !this.isSelected(user.id))
+                            .map(user => ({ id: user.id, email: user.email }));
+                        this.selectedUsers = [...this.selectedUsers, ...newSelections];
+                    } else {
+                        // Remove all current page users from selection
+                        const currentPageIds = this.users.map(u => u.id);
+                        this.selectedUsers = this.selectedUsers.filter(u => !currentPageIds.includes(u.id));
+                    }
                 },
 
                 init() {
