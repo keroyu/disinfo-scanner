@@ -11,15 +11,18 @@ class AuthenticationService
     protected PasswordService $passwordService;
     protected EmailVerificationService $emailService;
     protected RolePermissionService $roleService;
+    protected IpGeolocationService $ipGeoService;
 
     public function __construct(
         PasswordService $passwordService,
         EmailVerificationService $emailService,
-        RolePermissionService $roleService
+        RolePermissionService $roleService,
+        IpGeolocationService $ipGeoService
     ) {
         $this->passwordService = $passwordService;
         $this->emailService = $emailService;
         $this->roleService = $roleService;
+        $this->ipGeoService = $ipGeoService;
     }
 
     /**
@@ -137,8 +140,21 @@ class AuthenticationService
         // Successful login
         Auth::login($user, $remember);
 
-        // Update last login IP
-        $user->last_login_ip = request()->ip();
+        // Update last login IP and location (city from IP geolocation)
+        $ip = request()->ip();
+        $user->last_login_ip = $ip;
+
+        // Auto-update location from IP geolocation
+        $ipLocation = $this->ipGeoService->getLocation($ip);
+        if (!empty($ipLocation['city'])) {
+            $locationParts = [];
+            if (!empty($ipLocation['country'])) {
+                $locationParts[] = $ipLocation['country'];
+            }
+            $locationParts[] = $ipLocation['city'];
+            $user->location = implode(', ', $locationParts);
+        }
+
         $user->save();
 
         Log::info('SECURITY: User logged in', [
