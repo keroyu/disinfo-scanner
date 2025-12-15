@@ -68,11 +68,11 @@
                                         @change="fetchUsers"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">所有角色</option>
-                                    <option value="1">訪客</option>
-                                    <option value="2">一般會員</option>
-                                    <option value="3">高級會員</option>
-                                    <option value="4">網站編輯</option>
-                                    <option value="5">管理員</option>
+                                    <option value="visitor">訪客</option>
+                                    <option value="regular_member">一般會員</option>
+                                    <option value="premium_member">高級會員</option>
+                                    <option value="website_editor">網站編輯</option>
+                                    <option value="administrator">管理員</option>
                                 </select>
                             </div>
                         </div>
@@ -360,13 +360,14 @@
                         if (response.ok) {
                             const data = await response.json();
                             this.users = data.data;
+                            const meta = data.meta;
                             this.pagination = {
-                                current_page: data.current_page,
-                                last_page: data.last_page,
-                                per_page: data.per_page,
-                                total: data.total,
-                                from: data.from,
-                                to: data.to
+                                current_page: meta.current_page,
+                                last_page: meta.last_page,
+                                per_page: meta.per_page,
+                                total: meta.total,
+                                from: ((meta.current_page - 1) * meta.per_page) + 1,
+                                to: Math.min(meta.current_page * meta.per_page, meta.total)
                             };
                         }
                     } catch (error) {
