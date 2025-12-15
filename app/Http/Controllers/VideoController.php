@@ -63,8 +63,8 @@ class VideoController extends Controller
         $direction = $request->input('direction', 'desc');
         $query->sortByColumn($sort, $direction);
 
-        // Paginate results - 500 videos per page
-        $videos = $query->paginate(500);
+        // Paginate results - 100 videos per page
+        $videos = $query->paginate(100);
 
         // Get all channels for the dropdown
         $channels = \App\Models\Channel::orderBy('channel_name', 'asc')->get();

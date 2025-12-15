@@ -87,8 +87,8 @@ class CommentController extends Controller
             $query->sortByDate($direction);
         }
 
-        // Paginate results - 500 comments per page
-        $comments = $query->paginate(500);
+        // Paginate results - 100 comments per page
+        $comments = $query->paginate(100);
 
         // Get all channels for the dropdown
         $channels = Channel::orderBy('channel_name')->get();

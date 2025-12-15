@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">已匯入頻道列表</h1>
-        <p class="text-gray-600">共 {{ count($channels) }} 個頻道</p>
+        <p class="text-gray-600">共 {{ $channels->total() }} 個頻道</p>
     </div>
 
     @if($channels->isEmpty())
@@ -129,6 +129,16 @@
             </div>
         </div>
 
+        <!-- Pagination -->
+        <div class="mt-6 flex justify-between items-center">
+            <div class="text-gray-600 text-sm">
+                顯示第 {{ $channels->firstItem() ?? 0 }} 至 {{ $channels->lastItem() ?? 0 }} 筆，共 {{ $channels->total() }} 個頻道
+            </div>
+            <div class="pagination-container">
+                {{ $channels->links() }}
+            </div>
+        </div>
+
         <!-- Info Footer -->
         <div class="mt-6 text-center">
             <a href="/" class="text-blue-600 hover:text-blue-700">← 返回匯入</a>
@@ -137,3 +147,35 @@
 </div>
 
 @endsection
+
+@push('styles')
+<style>
+.pagination-container nav {
+    display: flex;
+    gap: 0.25rem;
+}
+.pagination-container nav span,
+.pagination-container nav a {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #374151;
+}
+.pagination-container nav span[aria-current="page"] {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+.pagination-container nav a:hover {
+    background-color: #f3f4f6;
+}
+.pagination-container nav span[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+@endpush
