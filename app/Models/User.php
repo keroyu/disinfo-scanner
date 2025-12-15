@@ -26,6 +26,7 @@ class User extends Authenticatable
         'last_password_change_at',
         'youtube_api_key',
         'last_login_ip',
+        'location',
     ];
 
     /**

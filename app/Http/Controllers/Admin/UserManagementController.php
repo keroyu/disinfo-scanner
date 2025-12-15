@@ -26,7 +26,7 @@ class UserManagementController extends Controller
     public function index(Request $request): JsonResponse
     {
         // Get query parameters
-        $perPage = $request->input('per_page', 15);
+        $perPage = $request->input('per_page', 50);
         $search = $request->input('search');
         $roleFilter = $request->input('role');
 

@@ -74,6 +74,7 @@
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用戶</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電子郵件</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">所在地</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">註冊時間</th>
@@ -83,7 +84,7 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <template x-if="loading">
                                         <tr>
-                                            <td colspan="6" class="px-6 py-12 text-center">
+                                            <td colspan="7" class="px-6 py-12 text-center">
                                                 <div class="flex justify-center items-center">
                                                     <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -97,7 +98,7 @@
 
                                     <template x-if="!loading && users.length === 0">
                                         <tr>
-                                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                                 <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                                 </svg>
@@ -120,6 +121,9 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900" x-text="user.email"></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900" x-text="user.location || '-'"></div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span :class="getRoleBadgeClass(user.roles[0]?.name)"
@@ -161,18 +165,35 @@
                                     <span class="font-medium" x-text="pagination.to"></span> 筆，共
                                     <span class="font-medium" x-text="pagination.total"></span> 筆結果
                                 </div>
-                                <div class="flex space-x-2">
+                                <div class="flex items-center space-x-1">
+                                    <!-- Previous Button -->
                                     <button @click="previousPage"
                                             :disabled="pagination.current_page === 1"
                                             :class="pagination.current_page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'"
-                                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white">
-                                        上一頁
+                                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white">
+                                        &laquo;
                                     </button>
+
+                                    <!-- Page Numbers -->
+                                    <template x-for="page in getPageNumbers()" :key="page">
+                                        <button @click="page !== '...' && goToPage(page)"
+                                                :disabled="page === '...'"
+                                                :class="{
+                                                    'bg-blue-600 text-white border-blue-600': page === pagination.current_page,
+                                                    'bg-white text-gray-700 border-gray-300 hover:bg-gray-200': page !== pagination.current_page && page !== '...',
+                                                    'cursor-default': page === '...'
+                                                }"
+                                                class="px-3 py-2 border rounded-lg text-sm font-medium min-w-[40px]"
+                                                x-text="page">
+                                        </button>
+                                    </template>
+
+                                    <!-- Next Button -->
                                     <button @click="nextPage"
                                             :disabled="pagination.current_page === pagination.last_page"
                                             :class="pagination.current_page === pagination.last_page ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'"
-                                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white">
-                                        下一頁
+                                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white">
+                                        &raquo;
                                     </button>
                                 </div>
                             </div>
@@ -208,7 +229,7 @@
                 pagination: {
                     current_page: 1,
                     last_page: 1,
-                    per_page: 15,
+                    per_page: 50,
                     total: 0,
                     from: 0,
                     to: 0
@@ -271,6 +292,50 @@
                         this.pagination.current_page++;
                         this.fetchUsers();
                     }
+                },
+
+                goToPage(page) {
+                    if (page >= 1 && page <= this.pagination.last_page) {
+                        this.pagination.current_page = page;
+                        this.fetchUsers();
+                    }
+                },
+
+                getPageNumbers() {
+                    const current = this.pagination.current_page;
+                    const last = this.pagination.last_page;
+                    const pages = [];
+
+                    if (last <= 7) {
+                        // Show all pages if total <= 7
+                        for (let i = 1; i <= last; i++) {
+                            pages.push(i);
+                        }
+                    } else {
+                        // Always show first page
+                        pages.push(1);
+
+                        if (current > 3) {
+                            pages.push('...');
+                        }
+
+                        // Show pages around current
+                        const start = Math.max(2, current - 1);
+                        const end = Math.min(last - 1, current + 1);
+
+                        for (let i = start; i <= end; i++) {
+                            pages.push(i);
+                        }
+
+                        if (current < last - 2) {
+                            pages.push('...');
+                        }
+
+                        // Always show last page
+                        pages.push(last);
+                    }
+
+                    return pages;
                 },
 
                 getRoleBadgeClass(roleName) {
