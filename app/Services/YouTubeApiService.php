@@ -11,27 +11,21 @@ use Illuminate\Support\Facades\Log;
 
 class YouTubeApiService
 {
-    private YouTube $youtube;
+    private ?YouTube $youtube = null;
 
-    /**
-     * Create a new YouTubeApiService instance
-     *
-     * @param string|null $apiKey Optional user-specific API key. Falls back to system config if not provided.
-     */
-    public function __construct(?string $apiKey = null)
+    private function getYoutube(): YouTube
     {
-        // Use provided API key or fall back to system config
-        $apiKey = $apiKey ?? config('services.youtube.api_key');
-
-        if (!$apiKey) {
-            throw new AuthenticationException('YouTube API key not configured');
+        if ($this->youtube === null) {
+            $apiKey = auth()->user()?->youtube_api_key ?? config('services.youtube.api_key');
+            if (!$apiKey) {
+                throw new AuthenticationException('YouTube API key not configured');
+            }
+            $client = new Client();
+            $client->setApplicationName('DISINFO_SCANNER');
+            $client->setDeveloperKey($apiKey);
+            $this->youtube = new YouTube($client);
         }
-
-        $client = new Client();
-        $client->setApplicationName('DISINFO_SCANNER');
-        $client->setDeveloperKey($apiKey);
-
-        $this->youtube = new YouTube($client);
+        return $this->youtube;
     }
 
     /**
@@ -43,7 +37,7 @@ class YouTubeApiService
         $this->validateVideoId($videoId);
 
         try {
-            $response = $this->youtube->videos->listVideos('snippet', [
+            $response = $this->getYoutube()->videos->listVideos('snippet', [
                 'id' => $videoId,
             ]);
 
@@ -78,7 +72,7 @@ class YouTubeApiService
         $this->validateVideoId($videoId);
 
         try {
-            $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', [
+            $response = $this->getYoutube()->commentThreads->listCommentThreads('snippet,replies', [
                 'videoId' => $videoId,
                 'maxResults' => 5,
                 'order' => 'time',
@@ -146,7 +140,7 @@ class YouTubeApiService
                     $params['pageToken'] = $nextPageToken;
                 }
 
-                $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
+                $response = $this->getYoutube()->commentThreads->listCommentThreads('snippet,replies', $params);
 
                 // Process each comment thread (including recursive replies)
                 foreach ($response->getItems() as $thread) {
@@ -279,7 +273,7 @@ class YouTubeApiService
                     $params['pageToken'] = $nextPageToken;
                 }
 
-                $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
+                $response = $this->getYoutube()->commentThreads->listCommentThreads('snippet,replies', $params);
 
                 // Process each comment thread (including recursive replies)
                 foreach ($response->getItems() as $thread) {
@@ -394,7 +388,7 @@ class YouTubeApiService
                     $params['pageToken'] = $nextPageToken;
                 }
 
-                $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
+                $response = $this->getYoutube()->commentThreads->listCommentThreads('snippet,replies', $params);
 
                 foreach ($response->getItems() as $thread) {
                     // Stop if we've reached the limit for new videos
@@ -490,7 +484,7 @@ class YouTubeApiService
                     $params['pageToken'] = $nextPageToken;
                 }
 
-                $response = $this->youtube->comments->listComments('snippet', $params);
+                $response = $this->getYoutube()->comments->listComments('snippet', $params);
 
                 foreach ($response->getItems() as $comment) {
                     $commentData = $this->parseCommentData($comment, $parentCommentId);

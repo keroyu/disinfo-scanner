@@ -9,14 +9,21 @@ use Carbon\Carbon;
 
 class YoutubeApiClient
 {
-    private YouTubeService $youtube;
+    private ?YouTubeService $youtube = null;
     private const MAX_RESULTS_PER_PAGE = 100;
 
-    public function __construct()
+    private function getYoutube(): YouTubeService
     {
-        $client = new GoogleClient();
-        $client->setDeveloperKey(config('services.youtube.api_key'));
-        $this->youtube = new YouTubeService($client);
+        if ($this->youtube === null) {
+            $apiKey = auth()->user()?->youtube_api_key ?? config('services.youtube.api_key');
+            if (empty($apiKey)) {
+                throw new \RuntimeException('YouTube API key not configured');
+            }
+            $client = new GoogleClient();
+            $client->setDeveloperKey($apiKey);
+            $this->youtube = new YouTubeService($client);
+        }
+        return $this->youtube;
     }
 
     /**
@@ -49,7 +56,7 @@ class YoutubeApiClient
     public function getVideoMetadata(string $videoId): ?array
     {
         try {
-            $response = $this->youtube->videos->listVideos('snippet,statistics', [
+            $response = $this->getYoutube()->videos->listVideos('snippet,statistics', [
                 'id' => $videoId,
             ]);
 
@@ -86,7 +93,7 @@ class YoutubeApiClient
     public function getChannelMetadata(string $channelId): ?array
     {
         try {
-            $response = $this->youtube->channels->listChannels('snippet', [
+            $response = $this->getYoutube()->channels->listChannels('snippet', [
                 'id' => $channelId,
             ]);
 
@@ -119,7 +126,7 @@ class YoutubeApiClient
         try {
             // Fetch more comments to find the oldest ones
             // We fetch 100 comments and sort them to get the oldest 5
-            $response = $this->youtube->commentThreads->listCommentThreads('snippet', [
+            $response = $this->getYoutube()->commentThreads->listCommentThreads('snippet', [
                 'videoId' => $videoId,
                 'maxResults' => 100,
                 'order' => 'time', // Latest first from YouTube API
@@ -183,7 +190,7 @@ class YoutubeApiClient
                     $params['pageToken'] = $pageToken;
                 }
 
-                $response = $this->youtube->commentThreads->listCommentThreads('snippet,replies', $params);
+                $response = $this->getYoutube()->commentThreads->listCommentThreads('snippet,replies', $params);
 
                 foreach ($response->getItems() as $commentThread) {
                     // Check if we've reached the limit before processing more comments
@@ -277,7 +284,7 @@ class YoutubeApiClient
     public function getCommentReplies(string $parentId, ?int $limit = null): array
     {
         try {
-            $response = $this->youtube->comments->listComments('snippet', [
+            $response = $this->getYoutube()->comments->listComments('snippet', [
                 'parentId' => $parentId,
                 'maxResults' => 100,
                 'textFormat' => 'plainText',
