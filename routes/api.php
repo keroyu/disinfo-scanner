@@ -157,11 +157,6 @@ Route::prefix('admin')->middleware(['web', 'auth', 'check.admin', 'check.admin.s
     Route::put('/users/{userId}/role', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateRole']);
     Route::post('/users/{userId}/verify-email', [\App\Http\Controllers\Admin\UserManagementController::class, 'verifyEmail']);
 
-    // Identity Verification Management (Phase 4)
-    Route::get('/verifications', [\App\Http\Controllers\Admin\UserManagementController::class, 'listVerificationRequests']);
-    Route::get('/verifications/{verificationId}', [\App\Http\Controllers\Admin\UserManagementController::class, 'showVerificationRequest']);
-    Route::post('/verifications/{verificationId}/review', [\App\Http\Controllers\Admin\UserManagementController::class, 'reviewVerificationRequest']);
-
     // Analytics & Reporting (Phase 5)
     Route::get('/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getAnalytics']);
     Route::get('/reports/users/export', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportUserList']);

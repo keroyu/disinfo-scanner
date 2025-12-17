@@ -27,6 +27,8 @@ class User extends Authenticatable
         'youtube_api_key',
         'last_login_ip',
         'location',
+        'points',
+        'premium_expires_at',
     ];
 
     /**
@@ -53,6 +55,8 @@ class User extends Authenticatable
             'is_email_verified' => 'boolean',
             'has_default_password' => 'boolean',
             'last_password_change_at' => 'datetime',
+            'points' => 'integer',
+            'premium_expires_at' => 'datetime',
         ];
     }
 
@@ -66,9 +70,13 @@ class User extends Authenticatable
             ->withPivot('assigned_at', 'assigned_by');
     }
 
-    public function identityVerification()
+    /**
+     * Get point logs for this user.
+     * T007: Point logs relationship
+     */
+    public function pointLogs()
     {
-        return $this->hasOne(IdentityVerification::class);
+        return $this->hasMany(PointLog::class)->orderByDesc('created_at');
     }
 
     /**
@@ -91,6 +99,28 @@ class User extends Authenticatable
     public function setMustChangePasswordAttribute(bool $value): void
     {
         $this->has_default_password = $value;
+    }
+
+    /**
+     * Points System Methods
+     */
+
+    /**
+     * Check if user is currently a premium member (not expired).
+     * T005: isPremium() method
+     */
+    public function isPremium(): bool
+    {
+        return $this->premium_expires_at && $this->premium_expires_at->isFuture();
+    }
+
+    /**
+     * Check if user can redeem points (is premium and has enough points).
+     * T006: canRedeemPoints() method
+     */
+    public function canRedeemPoints(int $requiredPoints = 10): bool
+    {
+        return $this->isPremium() && $this->points >= $requiredPoints;
     }
 
     /**

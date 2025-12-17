@@ -151,23 +151,6 @@
                             </form>
                         </div>
 
-                        <!-- Identity Verification Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6" x-show="user.identity_verification?.verification_status">
-                            <h2 class="text-lg font-semibold text-gray-900 mb-4">身份驗證</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">驗證方式</label>
-                                    <p class="text-gray-900" x-text="user.identity_verification?.verification_method || 'N/A'"></p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">驗證狀態</label>
-                                    <span :class="getVerificationBadgeClass(user.identity_verification?.verification_status)"
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                          x-text="getVerificationStatus(user.identity_verification?.verification_status)">
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </main>
@@ -347,24 +330,6 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                },
-
-                getVerificationBadgeClass(status) {
-                    const classes = {
-                        'pending': 'bg-yellow-100 text-yellow-700',
-                        'approved': 'bg-green-100 text-green-700',
-                        'rejected': 'bg-red-100 text-red-700'
-                    };
-                    return classes[status] || 'bg-gray-100 text-gray-700';
-                },
-
-                getVerificationStatus(status) {
-                    const statuses = {
-                        'pending': '待審核',
-                        'approved': '已通過',
-                        'rejected': '已拒絕'
-                    };
-                    return statuses[status] || 'N/A';
                 }
             }));
         });

@@ -37,7 +37,6 @@
                                 <select x-model="filters.actionType" @change="applyFilters" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                                     <option value="">全部</option>
                                     <option value="user_role_changed">角色變更</option>
-                                    <option value="identity_verification_reviewed">身份驗證審核</option>
                                     <option value="admin_login_success">管理員登入成功</option>
                                     <option value="admin_login_failed">管理員登入失敗</option>
                                 </select>
@@ -241,7 +240,6 @@
                 getActionTypeLabel(actionType) {
                     const labels = {
                         'user_role_changed': '角色變更',
-                        'identity_verification_reviewed': '身份驗證審核',
                         'admin_login_success': '登入成功',
                         'admin_login_failed': '登入失敗',
                     };
@@ -251,7 +249,6 @@
                 getActionTypeClass(actionType) {
                     const classes = {
                         'user_role_changed': 'bg-blue-100 text-blue-800',
-                        'identity_verification_reviewed': 'bg-purple-100 text-purple-800',
                         'admin_login_success': 'bg-green-100 text-green-800',
                         'admin_login_failed': 'bg-red-100 text-red-800',
                     };

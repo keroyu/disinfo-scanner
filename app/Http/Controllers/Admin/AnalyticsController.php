@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\IdentityVerification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -31,7 +30,6 @@ class AnalyticsController extends Controller
         // T272-T275: Statistics
         $stats = [
             'totalUsers' => User::count(),
-            'verifiedUsers' => IdentityVerification::where('verification_status', 'approved')->count(),
             'premiumMembers' => User::whereHas('roles', function ($q) {
                 $q->where('name', 'premium_member');
             })->count(),
@@ -102,16 +100,13 @@ class AnalyticsController extends Controller
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Headers
-            fputcsv($handle, ['ID', '姓名', '電子郵件', '角色', '註冊日期', '驗證狀態']);
+            fputcsv($handle, ['ID', '姓名', '電子郵件', '角色', '註冊日期']);
 
             // Fetch users in chunks to avoid memory issues
-            User::with(['roles', 'identityVerification'])
+            User::with(['roles'])
                 ->chunk(1000, function ($users) use ($handle) {
                     foreach ($users as $user) {
                         $roles = $user->roles->pluck('name')->implode(', ');
-                        $verificationStatus = $user->identityVerification
-                            ? $user->identityVerification->verification_status
-                            : '未提交';
 
                         fputcsv($handle, [
                             $user->id,
@@ -119,7 +114,6 @@ class AnalyticsController extends Controller
                             $user->email,
                             $roles,
                             $user->created_at->format('Y-m-d H:i:s'),
-                            $verificationStatus,
                         ]);
                     }
                 });

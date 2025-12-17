@@ -7,7 +7,6 @@ use App\Http\Controllers\Traits\EscapesLikeQueries;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AuditLog;
-use App\Models\IdentityVerification;
 use App\Services\IpGeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -64,7 +63,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * T218: Get user details including roles, API quota, and identity verification
+     * T218: Get user details including roles
      *
      * @param int $userId
      * @return JsonResponse
@@ -72,7 +71,7 @@ class UserManagementController extends Controller
     public function show(int $userId): JsonResponse
     {
         // Find user with relationships
-        $user = User::with(['roles', 'identityVerification'])->find($userId);
+        $user = User::with(['roles'])->find($userId);
 
         if (!$user) {
             return response()->json([
@@ -105,11 +104,6 @@ class UserManagementController extends Controller
                         'display_name' => $role->display_name,
                     ];
                 }),
-                'identity_verification' => $user->identityVerification ? [
-                    'verification_status' => $user->identityVerification->verification_status,
-                    'verification_method' => $user->identityVerification->verification_method,
-                    'submitted_at' => $user->identityVerification->submitted_at,
-                ] : null,
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
             ],
@@ -258,128 +252,6 @@ class UserManagementController extends Controller
                 'email' => $user->email,
                 'is_email_verified' => $user->is_email_verified,
                 'email_verified_at' => $user->email_verified_at,
-            ],
-        ]);
-    }
-
-    /**
-     * T249: List all identity verification requests
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function listVerificationRequests(Request $request): JsonResponse
-    {
-        $status = $request->input('status', 'pending');
-        $perPage = $request->input('per_page', 15);
-
-        $verifications = IdentityVerification::with('user')
-            ->where('verification_status', $status)
-            ->orderBy('submitted_at', 'desc')
-            ->paginate($perPage);
-
-        return response()->json([
-            'data' => $verifications->items(),
-            'meta' => [
-                'current_page' => $verifications->currentPage(),
-                'last_page' => $verifications->lastPage(),
-                'per_page' => $verifications->perPage(),
-                'total' => $verifications->total(),
-            ],
-        ]);
-    }
-
-    /**
-     * T250: Show single verification request details
-     *
-     * @param int $verificationId
-     * @return JsonResponse
-     */
-    public function showVerificationRequest(int $verificationId): JsonResponse
-    {
-        $verification = IdentityVerification::with('user')->find($verificationId);
-
-        if (!$verification) {
-            return response()->json([
-                'message' => '找不到指定的驗證申請'
-            ], 404);
-        }
-
-        return response()->json([
-            'data' => $verification,
-        ]);
-    }
-
-    /**
-     * T251: Review identity verification request (approve/reject)
-     *
-     * @param Request $request
-     * @param int $verificationId
-     * @return JsonResponse
-     */
-    public function reviewVerificationRequest(Request $request, int $verificationId): JsonResponse
-    {
-        $request->validate([
-            'action' => 'required|in:approve,reject',
-            'notes' => 'nullable|string',
-        ]);
-
-        $verification = IdentityVerification::with('user')->find($verificationId);
-
-        if (!$verification) {
-            return response()->json([
-                'message' => '找不到指定的驗證申請'
-            ], 404);
-        }
-
-        if ($verification->verification_status !== 'pending') {
-            return response()->json([
-                'message' => '此驗證申請已被審核過'
-            ], 400);
-        }
-
-        $action = $request->input('action');
-        $notes = $request->input('notes');
-
-        // Update verification status
-        $verification->verification_status = $action === 'approve' ? 'approved' : 'rejected';
-        $verification->reviewed_at = now();
-        $verification->notes = $notes;
-        $verification->save();
-
-        // T280: Log identity verification review
-        AuditLog::log(
-            actionType: 'identity_verification_reviewed',
-            description: sprintf(
-                'Admin %s (%s) %s了使用者 %s (%s) 的身份驗證申請。備註: %s',
-                auth()->user()->name,
-                auth()->user()->email,
-                $action === 'approve' ? '批准' : '拒絕',
-                $verification->user->name,
-                $verification->user->email,
-                $notes ?? '無'
-            ),
-            userId: $verification->user_id,
-            adminId: auth()->id(),
-            resourceType: 'identity_verification',
-            resourceId: $verification->id,
-            changes: [
-                'action' => $action,
-                'old_status' => 'pending',
-                'new_status' => $verification->verification_status,
-                'notes' => $notes,
-            ]
-        );
-
-        return response()->json([
-            'message' => $action === 'approve' ? '身份驗證已批准' : '身份驗證已拒絕',
-            'verification' => [
-                'id' => $verification->id,
-                'user_id' => $verification->user_id,
-                'verification_method' => $verification->verification_method,
-                'verification_status' => $verification->verification_status,
-                'reviewed_at' => $verification->reviewed_at,
-                'notes' => $verification->notes,
             ],
         ]);
     }

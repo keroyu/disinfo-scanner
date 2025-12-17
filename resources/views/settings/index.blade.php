@@ -344,152 +344,243 @@
     </div>
     @endif
 
-    <!-- Identity Verification Section (T490, T491, T500) -->
-    @if(auth()->user()->hasRole('premium_member'))
-        @php
-            $verification = auth()->user()->identityVerification;
-            $isVerified = $verification && $verification->isApproved();
-        @endphp
-
-        @if(!$isVerified)
-        <!-- T490: Premium Members see identity verification submission section -->
-        <!-- T491: Hide identity verification section for verified Premium Members -->
-        <div class="bg-white shadow rounded-lg mb-6">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">身分驗證</h2>
-                <p class="mt-1 text-sm text-gray-500">完成身分驗證後，可獲得無限制 API 匯入配額</p>
-            </div>
-            <div class="px-6 py-4">
-                @if($verification && $verification->isPending())
-                    <!-- T500: Show verification status - pending -->
-                    <div class="rounded-md bg-yellow-50 p-4 mb-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-yellow-800">審核中</h3>
-                                <div class="mt-2 text-sm text-yellow-700">
-                                    <p>您的身分驗證申請已送出，目前正在等待管理員審核。</p>
-                                    <p class="mt-1">驗證方式：{{ __('verification.methods.' . $verification->verification_method) }}</p>
-                                    <p class="mt-1">提交時間：{{ $verification->submitted_at->timezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @elseif($verification && $verification->isRejected())
-                    <!-- T500: Show verification status - rejected -->
-                    <div class="rounded-md bg-red-50 p-4 mb-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-red-800">驗證未通過</h3>
-                                <div class="mt-2 text-sm text-red-700">
-                                    <p>您的身分驗證申請未通過審核。</p>
-                                    @if($verification->notes)
-                                        <p class="mt-1">原因：{{ $verification->notes }}</p>
-                                    @endif
-                                    <p class="mt-1">您可以重新提交驗證申請。</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                @if(!$verification || ($verification && $verification->isRejected()))
-                    <!-- T497: Add identity verification submission form to settings -->
-                    <form action="{{ route('settings.verification') }}" method="POST" class="space-y-4">
-                        @csrf
-
-                        <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3 text-sm text-blue-700">
-                                    <p>完成身分驗證後，您將獲得無限制的官方 API 匯入配額，不再受每月 10 部影片的限制。</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="verification_method" class="block text-sm font-medium text-gray-700 mb-1">
-                                驗證方式 <span class="text-red-500">*</span>
-                            </label>
-                            <select name="verification_method" id="verification_method" required
-                                    aria-label="驗證方式"
-                                    aria-required="true"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('verification_method') border-red-500 @enderror">
-                                <option value="">請選擇驗證方式</option>
-                                <option value="government_id" {{ old('verification_method') === 'government_id' ? 'selected' : '' }}>政府核發證件</option>
-                                <option value="social_media" {{ old('verification_method') === 'social_media' ? 'selected' : '' }}>社群媒體帳號</option>
-                                <option value="organization" {{ old('verification_method') === 'organization' ? 'selected' : '' }}>組織/機構證明</option>
-                            </select>
-                            @error('verification_method')
-                                <p class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="verification_notes" class="block text-sm font-medium text-gray-700 mb-1">
-                                備註（選填）
-                            </label>
-                            <textarea name="verification_notes" id="verification_notes" rows="3"
-                                      aria-label="備註"
-                                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('verification_notes') border-red-500 @enderror"
-                                      placeholder="請提供任何有助於驗證的補充資訊">{{ old('verification_notes') }}</textarea>
-                            @error('verification_notes')
-                                <p class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
-                            @enderror
-                            <p class="mt-1 text-xs text-gray-500">最多 500 個字元</p>
-                        </div>
-
-                        <div class="pt-4">
-                            <button type="submit"
-                                    aria-label="提交身分驗證申請"
-                                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                提交驗證申請
-                            </button>
-                        </div>
-                    </form>
-                @endif
-            </div>
+    <!-- Points System Section (T012-T015: Premium users only) -->
+    @if(auth()->user()->isPremium())
+    <div class="bg-white shadow rounded-lg mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">積分系統</h2>
+            <p class="mt-1 text-sm text-gray-500">透過回報貼文累積積分，可兌換高級會員期限延長</p>
         </div>
-        @else
-        <!-- T491: Show verified status badge for verified Premium Members -->
-        <div class="bg-white shadow rounded-lg mb-6">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">身分驗證</h2>
-            </div>
-            <div class="px-6 py-4">
-                <!-- T500: Show verification status - approved -->
-                <div class="rounded-md bg-green-50 p-4">
+        <div class="px-6 py-4">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                <!-- T013: Display current points balance -->
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">目前積分</dt>
+                    <dd class="mt-1 text-3xl font-bold text-blue-600">{{ auth()->user()->points }}</dd>
+                </div>
+                <!-- T014: Display premium expiration date -->
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">高級會員到期</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ auth()->user()->premium_expires_at->timezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)
+                    </dd>
+                </div>
+            </dl>
+
+            <!-- Redemption Section (T021-T024) -->
+            <div class="mt-6 pt-6 border-t border-gray-200" x-data="{
+                showConfirm: false,
+                showLogs: false,
+                logs: [],
+                loading: false,
+                error: null,
+                async fetchLogs() {
+                    this.loading = true;
+                    this.error = null;
+                    try {
+                        const response = await fetch('{{ route('settings.points.logs') }}', {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.error || '載入失敗');
+                        }
+                        const data = await response.json();
+                        this.logs = data.data;
+                    } catch (e) {
+                        this.error = e.message || '載入積分記錄時發生錯誤';
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }">
+                <h3 class="text-sm font-medium text-gray-900 mb-4">兌換積分</h3>
+
+                <!-- Redemption info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                             </svg>
                         </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-green-800">身分驗證已通過</h3>
-                            <div class="mt-2 text-sm text-green-700">
-                                <p>您的身分已經驗證通過，您擁有無限制的官方 API 匯入配額。</p>
-                                <p class="mt-1">驗證通過時間：{{ $verification->reviewed_at->timezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)</p>
+                        <div class="ml-3 text-sm text-blue-700">
+                            <p>使用 <strong>10 積分</strong> 可兌換 <strong>3 天</strong> 的高級會員期限延長。</p>
+                            <p class="mt-1">積分可透過在 threads-submit 回報貼文獲得（每筆回報 +1 積分）。</p>
+                        </div>
+                    </div>
+                </div>
+
+                @if(auth()->user()->canRedeemPoints(10))
+                    <!-- T021: Redemption button (enabled) -->
+                    <button @click="showConfirm = true"
+                            type="button"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        兌換 10 積分
+                    </button>
+
+                    <!-- T022: Confirmation dialog (Alpine.js) -->
+                    <div x-show="showConfirm" x-cloak
+                         class="fixed inset-0 z-50 overflow-y-auto"
+                         aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                 @click="showConfirm = false"
+                                 aria-hidden="true"></div>
+
+                            <!-- Modal panel -->
+                            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                            <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                                <div class="sm:flex sm:items-start">
+                                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                        <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                            確認兌換積分
+                                        </h3>
+                                        <div class="mt-2">
+                                            <p class="text-sm text-gray-500">
+                                                您確定要使用 <strong class="text-gray-900">10 積分</strong> 兌換 <strong class="text-gray-900">3 天</strong> 的高級會員期限延長嗎？
+                                            </p>
+                                            <p class="text-sm text-gray-500 mt-2">
+                                                兌換後您的積分餘額將變為 <strong class="text-gray-900">{{ auth()->user()->points - 10 }}</strong> 積分。
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                    <form action="{{ route('settings.points.redeem') }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                            確認兌換
+                                        </button>
+                                    </form>
+                                    <button type="button"
+                                            @click="showConfirm = false"
+                                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                            取消
+                                    </button>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                @else
+                    <!-- T023: Disabled button when points < 10 -->
+                    <button type="button"
+                            disabled
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-400 cursor-not-allowed">
+                        兌換 10 積分
+                    </button>
+                    <!-- T024: Insufficient points message -->
+                    <p class="mt-2 text-sm text-red-600">
+                        積分不足，還需要 {{ 10 - auth()->user()->points }} 積分才能兌換。
+                    </p>
+                @endif
+
+                <!-- T031: View point logs button -->
+                <button @click="showLogs = true"
+                        type="button"
+                        class="ml-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    查看記錄
+                </button>
+            </div>
+
+            <!-- T032-T034: Point logs modal (Alpine.js) -->
+            <div x-show="showLogs" x-cloak
+                 x-init="$watch('showLogs', value => { if (value && logs.length === 0) { fetchLogs(); } })"
+                 class="fixed inset-0 z-50 overflow-y-auto"
+                 aria-labelledby="logs-modal-title" role="dialog" aria-modal="true">
+                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <!-- Background overlay -->
+                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                         @click="showLogs = false"
+                         aria-hidden="true"></div>
+
+                    <!-- Modal panel -->
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                    <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="logs-modal-title">
+                                    積分記錄
+                                </h3>
+                                <div class="mt-4">
+                                    <!-- Loading state -->
+                                    <div x-show="loading" class="text-center py-8">
+                                        <svg class="animate-spin h-8 w-8 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <p class="mt-2 text-sm text-gray-500">載入中...</p>
+                                    </div>
+
+                                    <!-- Error state -->
+                                    <div x-show="error && !loading" class="text-center py-8">
+                                        <svg class="h-12 w-12 mx-auto text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <p class="mt-2 text-sm text-red-600" x-text="error"></p>
+                                    </div>
+
+                                    <!-- T034: Empty state -->
+                                    <div x-show="!loading && !error && logs.length === 0" class="text-center py-8">
+                                        <svg class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <p class="mt-2 text-sm text-gray-500">尚無積分記錄</p>
+                                    </div>
+
+                                    <!-- T033: Logs list -->
+                                    <div x-show="!loading && !error && logs.length > 0" class="max-h-96 overflow-y-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時間</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">類型</th>
+                                                    <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">積分</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200">
+                                                <template x-for="log in logs" :key="log.id">
+                                                    <tr>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" x-text="log.created_at_display"></td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" x-text="log.action_display"></td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right"
+                                                            :class="log.amount > 0 ? 'text-green-600' : 'text-red-600'"
+                                                            x-text="(log.amount > 0 ? '+' : '') + log.amount"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                            <button type="button"
+                                    @click="showLogs = false"
+                                    class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm">
+                                關閉
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        @endif
+    </div>
     @endif
 
     <!-- Account Actions -->

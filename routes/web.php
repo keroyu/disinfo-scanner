@@ -63,8 +63,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/password', [\App\Http\Controllers\UserSettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/api-key', [\App\Http\Controllers\UserSettingsController::class, 'updateApiKey'])->name('settings.api-key');
     Route::post('/settings/api-key/remove', [\App\Http\Controllers\UserSettingsController::class, 'removeApiKey'])->name('settings.api-key.remove');
-    // T497: Identity verification submission route
-    Route::post('/settings/verification', [\App\Http\Controllers\UserSettingsController::class, 'submitVerification'])->name('settings.verification');
+    // T020: Point redemption route (013-point-system)
+    Route::post('/settings/points/redeem', [\App\Http\Controllers\UserSettingsController::class, 'redeemPoints'])->name('settings.points.redeem');
+    // T030: Point logs route (013-point-system)
+    Route::get('/settings/points/logs', [\App\Http\Controllers\UserSettingsController::class, 'pointLogs'])->name('settings.points.logs');
 });
 
 // Video Analysis page (008-video-comment-density)
@@ -88,15 +90,6 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
     Route::get('/users/{userId}/edit', function ($userId) {
         return view('admin.users.edit', ['userId' => $userId]);
     })->name('admin.users.edit');
-
-    // Identity verification views (Phase 4)
-    Route::get('/verifications', function () {
-        return view('admin.verifications.index');
-    })->name('admin.verifications.index');
-
-    Route::get('/verifications/{verificationId}/review', function ($verificationId) {
-        return view('admin.verifications.review', ['verificationId' => $verificationId]);
-    })->name('admin.verifications.review');
 
     // Analytics & Reporting views (Phase 5)
     Route::get('/analytics', function () {
