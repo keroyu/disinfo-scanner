@@ -151,32 +151,6 @@
                             </form>
                         </div>
 
-                        <!-- API Quota Card -->
-                        <div class="bg-white rounded-lg shadow-sm p-6 mb-6" x-show="user.api_quota">
-                            <h2 class="text-lg font-semibold text-gray-900 mb-4">API 配額</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">本月使用量</label>
-                                    <p class="text-2xl font-bold text-gray-900" x-text="user.api_quota?.usage_count || 0"></p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">月限額</label>
-                                    <p class="text-2xl font-bold text-gray-900" x-text="user.api_quota?.monthly_limit || 0"></p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">配額狀態</label>
-                                    <span x-show="user.api_quota?.is_unlimited"
-                                          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
-                                        無限制
-                                    </span>
-                                    <span x-show="!user.api_quota?.is_unlimited"
-                                          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
-                                        限制配額
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Identity Verification Card -->
                         <div class="bg-white rounded-lg shadow-sm p-6" x-show="user.identity_verification?.verification_status">
                             <h2 class="text-lg font-semibold text-gray-900 mb-4">身份驗證</h2>

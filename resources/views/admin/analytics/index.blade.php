@@ -110,14 +110,6 @@
                         </div>
                     </div>
 
-                    <!-- API Quota Chart (T267) -->
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4">API 配額使用情況</h2>
-                        <div class="h-64">
-                            <canvas id="apiQuotaChart"></canvas>
-                        </div>
-                    </div>
-
                     <!-- Date Range Filter (T271) & Export Buttons (T268-T270) -->
                     <div class="bg-white rounded-lg shadow-sm p-6">
                         <h2 class="text-lg font-semibold text-gray-900 mb-4">報表匯出</h2>
@@ -187,8 +179,7 @@
                 exporting: false,
                 charts: {
                     registration: null,
-                    userRole: null,
-                    apiQuota: null
+                    userRole: null
                 },
 
                 async init() {
@@ -269,26 +260,6 @@
                         }
                     });
 
-                    // API Quota Chart
-                    const quotaCtx = document.getElementById('apiQuotaChart').getContext('2d');
-                    this.charts.apiQuota = new Chart(quotaCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                                label: 'API 使用量',
-                                data: [],
-                                backgroundColor: 'rgb(249, 115, 22)'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            }
-                        }
-                    });
                 },
 
                 updateCharts(data) {
@@ -304,13 +275,6 @@
                         this.charts.userRole.data.labels = data.usersByRole.labels || [];
                         this.charts.userRole.data.datasets[0].data = data.usersByRole.data || [];
                         this.charts.userRole.update();
-                    }
-
-                    // Update API quota chart
-                    if (data.apiQuotaUsage) {
-                        this.charts.apiQuota.data.labels = data.apiQuotaUsage.labels || [];
-                        this.charts.apiQuota.data.datasets[0].data = data.apiQuotaUsage.data || [];
-                        this.charts.apiQuota.update();
                     }
                 },
 

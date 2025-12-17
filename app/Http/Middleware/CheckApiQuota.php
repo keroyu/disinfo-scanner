@@ -5,27 +5,24 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Services\ApiQuotaService;
 use App\Services\RolePermissionService;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Middleware to check API quota for Official API import operations (T424).
+ * Middleware to check permissions for Official API import operations.
  *
- * This middleware enforces the 10 imports/month limit for Premium Members
- * and allows unlimited access for verified Premium Members and Administrators.
+ * This middleware ensures only Premium Members and above can use Official API import.
+ * Regular Members must upgrade to Premium Member to access this feature.
  *
  * Usage in routes:
  *   Route::post('/import', ...)->middleware('check.api.quota');
  */
 class CheckApiQuota
 {
-    protected ApiQuotaService $quotaService;
     protected RolePermissionService $rolePermissionService;
 
-    public function __construct(ApiQuotaService $quotaService, RolePermissionService $rolePermissionService)
+    public function __construct(RolePermissionService $rolePermissionService)
     {
-        $this->quotaService = $quotaService;
         $this->rolePermissionService = $rolePermissionService;
     }
 
@@ -53,17 +50,22 @@ class CheckApiQuota
             ], 401);
         }
 
-        // Administrators have unlimited access - bypass quota check
+        // Administrators have unlimited access
         if ($this->rolePermissionService->isAdministrator($user)) {
             return $next($request);
         }
 
-        // Website Editors have full frontend access - bypass quota check
+        // Website Editors have full frontend access
         if ($this->rolePermissionService->isWebsiteEditor($user)) {
             return $next($request);
         }
 
-        // Regular Members cannot use Official API import at all
+        // Premium Members can use Official API import (no quota limit)
+        if ($this->rolePermissionService->isPaidMember($user)) {
+            return $next($request);
+        }
+
+        // Regular Members cannot use Official API import
         if ($this->rolePermissionService->isRegularMember($user)) {
             Log::warning('Regular member attempted Official API import', [
                 'user_id' => $user->id,
@@ -81,35 +83,6 @@ class CheckApiQuota
                     ],
                 ],
             ], 403);
-        }
-
-        // Premium Members - check quota (T426: Only applies to non-verified Premium Members)
-        if ($this->rolePermissionService->isPaidMember($user)) {
-            $quotaResult = $this->quotaService->checkQuota($user);
-
-            if (!$quotaResult['allowed']) {
-                Log::info('API quota exceeded for Premium Member', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'usage' => $quotaResult['usage'],
-                ]);
-
-                return response()->json([
-                    'error' => [
-                        'type' => 'QuotaExceeded',
-                        'message' => $quotaResult['message'],
-                        'details' => [
-                            'current_usage' => $quotaResult['usage']['used'],
-                            'limit' => $quotaResult['usage']['limit'],
-                            'remaining' => $quotaResult['usage']['remaining'],
-                            'suggestion' => '請完成身份驗證以獲得無限配額',
-                        ],
-                    ],
-                ], 429);
-            }
-
-            // Quota available - proceed
-            return $next($request);
         }
 
         // Unknown role - deny access

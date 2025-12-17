@@ -66,11 +66,6 @@ class User extends Authenticatable
             ->withPivot('assigned_at', 'assigned_by');
     }
 
-    public function apiQuota()
-    {
-        return $this->hasOne(ApiQuota::class);
-    }
-
     public function identityVerification()
     {
         return $this->hasOne(IdentityVerification::class);

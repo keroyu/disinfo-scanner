@@ -2,7 +2,7 @@
 {{-- Usage: @include('components.permission-modal', ['type' => 'login|upgrade|api_key|admin', 'feature' => '功能名稱']) --}}
 
 @props([
-    'type' => 'login',        // login, upgrade, api_key, admin
+    'type' => 'login',        // login, upgrade, api_key, admin (quota_exceeded removed)
     'feature' => '',           // Feature name for the modal title
     'show' => false            // Whether to show modal immediately
 ])
@@ -113,19 +113,13 @@
                                         <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                         </svg>
-                                        使用 YouTube 官方 API 匯入
+                                        使用 YouTube 官方 API 匯入（無限制）
                                     </li>
                                     <li class="flex items-start">
                                         <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                         </svg>
                                         所有搜尋功能
-                                    </li>
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                        </svg>
-                                        完成身份驗證後享有無限制額度
                                     </li>
                                 </ul>
                             </div>
@@ -207,59 +201,6 @@
                     </button>
                 </div>
 
-            @elseif($type === 'quota_exceeded')
-                {{-- T476: Quota Exceeded Modal with quota info --}}
-                <div x-data="{ quotaUsed: 10, quotaLimit: 10 }"
-                     x-init="
-                        window.addEventListener('show-quota-exceeded', (e) => {
-                            quotaUsed = e.detail.used || 10;
-                            quotaLimit = e.detail.limit || 10;
-                            open = true;
-                        });
-                     ">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100" aria-hidden="true">
-                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="mt-3 text-center sm:mt-5">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
-                            本月配額已用完
-                        </h3>
-                        <div class="mt-2" id="modal-description">
-                            <p class="text-sm text-gray-500">
-                                @if($feature)
-                                    您本月的「{{ $feature }}」配額已用完。
-                                @else
-                                    您本月的 API 配額已用完。
-                                @endif
-                            </p>
-                            <div class="mt-4 p-4 bg-red-50 rounded-lg">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm font-medium text-red-900">本月用量</span>
-                                    <span class="text-sm font-bold text-red-700" x-text="quotaUsed + '/' + quotaLimit"></span>
-                                </div>
-                                <div class="w-full bg-red-200 rounded-full h-2">
-                                    <div class="bg-red-600 h-2 rounded-full" style="width: 100%"></div>
-                                </div>
-                            </div>
-                            <p class="mt-4 text-sm text-gray-600">
-                                完成身份驗證即可獲得無限配額。
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                    <a href="{{ route('settings.index') }}"
-                       class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm">
-                        前往身份驗證
-                    </a>
-                    <button type="button"
-                            @click="open = false"
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:col-start-1 sm:text-sm">
-                        關閉
-                    </button>
-                </div>
             @endif
         </div>
     </div>

@@ -66,10 +66,6 @@ class IdentityVerification extends Model
             'reviewed_by' => $reviewerId,
             'notes' => $notes,
         ]);
-
-        // Grant unlimited API quota
-        $quota = ApiQuota::getOrCreateForUser($this->user_id);
-        $quota->update(['is_unlimited' => true]);
     }
 
     /**
@@ -83,10 +79,6 @@ class IdentityVerification extends Model
             'reviewed_by' => $reviewerId,
             'notes' => $notes,
         ]);
-
-        // Revoke unlimited API quota
-        $quota = ApiQuota::getOrCreateForUser($this->user_id);
-        $quota->update(['is_unlimited' => false]);
     }
 
     /**
@@ -100,9 +92,5 @@ class IdentityVerification extends Model
             'reviewed_by' => null,
             'notes' => $notes,
         ]);
-
-        // Revoke unlimited API quota
-        $quota = ApiQuota::getOrCreateForUser($this->user_id);
-        $quota->update(['is_unlimited' => false]);
     }
 }

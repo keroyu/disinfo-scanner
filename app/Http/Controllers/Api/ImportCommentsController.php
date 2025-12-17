@@ -7,7 +7,6 @@ use App\Services\YoutubeApiClient;
 use App\Services\CommentImportService;
 use App\Services\ChannelTagManager;
 use App\Services\UrtubeApiMetadataService;
-use App\Services\ApiQuotaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -31,20 +30,17 @@ class ImportCommentsController extends Controller
     private CommentImportService $importService;
     private ChannelTagManager $tagManager;
     private UrtubeApiMetadataService $metadataService;
-    private ApiQuotaService $quotaService;
 
     public function __construct(
         YoutubeApiClient $youtubeClient,
         CommentImportService $importService,
         ChannelTagManager $tagManager,
-        UrtubeApiMetadataService $metadataService,
-        ApiQuotaService $quotaService
+        UrtubeApiMetadataService $metadataService
     ) {
         $this->youtubeClient = $youtubeClient;
         $this->importService = $importService;
         $this->tagManager = $tagManager;
         $this->metadataService = $metadataService;
-        $this->quotaService = $quotaService;
     }
 
     /**
@@ -289,16 +285,6 @@ class ImportCommentsController extends Controller
                 $channelTags,
                 $importReplies
             );
-
-            // Increment API quota usage after successful import (Y-API)
-            $user = auth()->user();
-            if ($user) {
-                $this->quotaService->incrementUsage($user);
-                Log::info('Y-API quota incremented after successful import', [
-                    'user_id' => $user->id,
-                    'video_url' => $videoUrl,
-                ]);
-            }
 
             return response()->json($result, 200);
         } catch (\InvalidArgumentException $e) {

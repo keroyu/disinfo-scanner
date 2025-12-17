@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\ApiQuota;
 use App\Models\IdentityVerification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -36,7 +35,6 @@ class AnalyticsController extends Controller
             'premiumMembers' => User::whereHas('roles', function ($q) {
                 $q->where('name', 'premium_member');
             })->count(),
-            'totalApiCalls' => ApiQuota::sum('usage_count'),
         ];
 
         // T265: New registrations over time (last 30 days by default)
@@ -73,24 +71,10 @@ class AnalyticsController extends Controller
             'data' => $usersByRole->pluck('count')->toArray(),
         ];
 
-        // T267: API quota usage
-        $apiQuotaData = ApiQuota::selectRaw('users.name, api_quotas.usage_count')
-            ->join('users', 'api_quotas.user_id', '=', 'users.id')
-            ->where('usage_count', '>', 0)
-            ->orderBy('usage_count', 'desc')
-            ->limit(10)
-            ->get();
-
-        $apiQuotaUsage = [
-            'labels' => $apiQuotaData->pluck('name')->toArray(),
-            'data' => $apiQuotaData->pluck('usage_count')->toArray(),
-        ];
-
         return response()->json([
             'stats' => $stats,
             'registrations' => $registrations,
             'usersByRole' => $usersByRoleData,
-            'apiQuotaUsage' => $apiQuotaUsage,
         ]);
     }
 
@@ -171,16 +155,15 @@ class AnalyticsController extends Controller
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Headers
-            fputcsv($handle, ['用戶 ID', '姓名', '電子郵件', '角色', '最後登入', 'API 使用量']);
+            fputcsv($handle, ['用戶 ID', '姓名', '電子郵件', '角色', '最後登入', '註冊日期']);
 
             // Fetch user activity
-            User::with(['roles', 'apiQuota'])
+            User::with(['roles'])
                 ->when($startDate, fn($q) => $q->where('created_at', '>=', $startDate))
                 ->when($endDate, fn($q) => $q->where('created_at', '<=', $endDate))
                 ->chunk(1000, function ($users) use ($handle) {
                     foreach ($users as $user) {
                         $roles = $user->roles->pluck('name')->implode(', ');
-                        $apiUsage = $user->apiQuota ? $user->apiQuota->usage_count : 0;
 
                         fputcsv($handle, [
                             $user->id,
@@ -188,7 +171,7 @@ class AnalyticsController extends Controller
                             $user->email,
                             $roles,
                             $user->updated_at->format('Y-m-d H:i:s'),
-                            $apiUsage,
+                            $user->created_at->format('Y-m-d H:i:s'),
                         ]);
                     }
                 });
@@ -198,7 +181,8 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Generate API usage report (T269)
+     * Generate API usage report (T269) - Deprecated: Returns empty report
+     * API quota tracking has been removed. This endpoint is kept for backwards compatibility.
      */
     public function generateApiUsageReport(Request $request): StreamedResponse
     {
@@ -207,9 +191,6 @@ class AnalyticsController extends Controller
             abort(403, '無權限訪問此功能');
         }
 
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
-
         $fileName = 'api_usage_' . date('Y-m-d') . '.csv';
 
         $headers = [
@@ -217,32 +198,15 @@ class AnalyticsController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
         ];
 
-        return response()->stream(function () use ($startDate, $endDate) {
+        return response()->stream(function () {
             $handle = fopen('php://output', 'w');
 
             // Add UTF-8 BOM
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Headers
-            fputcsv($handle, ['用戶 ID', '姓名', '電子郵件', '使用量', '月度配額', '無限配額', '當前月份']);
-
-            // Fetch API quota data
-            ApiQuota::with('user')
-                ->chunk(1000, function ($quotas) use ($handle) {
-                    foreach ($quotas as $quota) {
-                        if ($quota->user) {
-                            fputcsv($handle, [
-                                $quota->user->id,
-                                $quota->user->name,
-                                $quota->user->email,
-                                $quota->usage_count,
-                                $quota->monthly_limit,
-                                $quota->is_unlimited ? '是' : '否',
-                                $quota->current_month,
-                            ]);
-                        }
-                    }
-                });
+            fputcsv($handle, ['備註']);
+            fputcsv($handle, ['API 配額追蹤功能已移除。高級會員現在享有無限制的官方 API 匯入功能。']);
 
             fclose($handle);
         }, 200, $headers);

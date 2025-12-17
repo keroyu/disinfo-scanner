@@ -91,23 +91,6 @@
                                         </button>
                                     @endif
 
-                                    @if(auth()->user()->roles->contains('name', 'premium_member'))
-                                        <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
-                                            <i class="fas fa-chart-line mr-1"></i>
-                                            本月 API 用量:
-                                            @php
-                                                $quota = auth()->user()->apiQuota;
-                                            @endphp
-                                            @if($quota && $quota->is_unlimited)
-                                                <span class="text-green-600 font-semibold">無限制</span>
-                                            @elseif($quota)
-                                                <span class="font-semibold">{{ $quota->usage_count }}/{{ $quota->monthly_limit }}</span>
-                                            @else
-                                                <span>0/10</span>
-                                            @endif
-                                        </div>
-                                    @endif
-
                                     <div class="border-t border-gray-100"></div>
 
                                     <form method="POST" action="{{ route('logout') }}">
@@ -126,13 +109,6 @@
                             {{-- Regular members need upgrade modal --}}
                             @once
                                 @include('components.permission-modal', ['type' => 'upgrade', 'feature' => ''])
-                            @endonce
-                        @endif
-
-                        {{-- T476: Quota exceeded modal for Premium Members --}}
-                        @if(auth()->user()->roles->contains('name', 'premium_member'))
-                            @once
-                                @include('components.permission-modal', ['type' => 'quota_exceeded', 'feature' => '官方 API 匯入'])
                             @endonce
                         @endif
 
@@ -175,14 +151,6 @@
     // Convenience function for upgrade modal
     function showUpgradeModal(feature = '') {
         showPermissionModal('upgrade', feature);
-    }
-
-    // T476: Convenience function for quota exceeded modal with quota info
-    function showQuotaExceededModal(used, limit) {
-        window.dispatchEvent(new CustomEvent('show-quota-exceeded', {
-            detail: { used: used, limit: limit }
-        }));
-        showPermissionModal('quota_exceeded', '官方 API 匯入');
     }
 
     // T472: Convenience function for admin modal

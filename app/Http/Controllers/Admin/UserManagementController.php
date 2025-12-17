@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\EscapesLikeQueries;
 use App\Models\User;
 use App\Models\Role;
-use App\Models\ApiQuota;
 use App\Models\AuditLog;
 use App\Models\IdentityVerification;
 use App\Services\IpGeolocationService;
@@ -73,7 +72,7 @@ class UserManagementController extends Controller
     public function show(int $userId): JsonResponse
     {
         // Find user with relationships
-        $user = User::with(['roles', 'apiQuota', 'identityVerification'])->find($userId);
+        $user = User::with(['roles', 'identityVerification'])->find($userId);
 
         if (!$user) {
             return response()->json([
@@ -106,12 +105,6 @@ class UserManagementController extends Controller
                         'display_name' => $role->display_name,
                     ];
                 }),
-                'api_quota' => $user->apiQuota ? [
-                    'usage_count' => $user->apiQuota->usage_count,
-                    'monthly_limit' => $user->apiQuota->monthly_limit,
-                    'is_unlimited' => $user->apiQuota->is_unlimited,
-                    'current_month' => $user->apiQuota->current_month,
-                ] : null,
                 'identity_verification' => $user->identityVerification ? [
                     'verification_status' => $user->identityVerification->verification_status,
                     'verification_method' => $user->identityVerification->verification_method,
@@ -189,17 +182,6 @@ class UserManagementController extends Controller
                 ],
             ]
         );
-
-        // Create API quota if upgrading to premium_member
-        if ($newRole->name === 'premium_member' && !$targetUser->apiQuota) {
-            ApiQuota::create([
-                'user_id' => $targetUser->id,
-                'current_month' => now()->format('Y-m'),
-                'usage_count' => 0,
-                'monthly_limit' => 10,
-                'is_unlimited' => false,
-            ]);
-        }
 
         // Reload user with new role
         $targetUser = $targetUser->fresh(['roles']);
@@ -365,21 +347,6 @@ class UserManagementController extends Controller
         $verification->notes = $notes;
         $verification->save();
 
-        // T256-T257: Update API quota unlimited status
-        if ($action === 'approve') {
-            $apiQuota = $verification->user->apiQuota;
-            if ($apiQuota) {
-                $apiQuota->is_unlimited = true;
-                $apiQuota->save();
-            }
-        } else {
-            $apiQuota = $verification->user->apiQuota;
-            if ($apiQuota) {
-                $apiQuota->is_unlimited = false;
-                $apiQuota->save();
-            }
-        }
-
         // T280: Log identity verification review
         AuditLog::log(
             actionType: 'identity_verification_reviewed',
@@ -401,7 +368,6 @@ class UserManagementController extends Controller
                 'old_status' => 'pending',
                 'new_status' => $verification->verification_status,
                 'notes' => $notes,
-                'api_quota_unlimited' => $action === 'approve',
             ]
         );
 
