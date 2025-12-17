@@ -96,15 +96,27 @@ class UrtubeApiImportService
             $apiData = $this->urtubeapiService->fetchCommentData($videoId, $channelId);
             $metadata['channel_name'] = $apiData['channelTitle'] ?? null;
 
-            // Calculate total comment count including replies
+            // Calculate total comment count including replies and find earliest comment time
             $totalComments = 0;
+            $earliestCommentTime = null;
             foreach ($apiData['comments'] ?? [] as $comment) {
                 $totalComments++; // Count top-level comment
+
+                // Track earliest comment time for date restriction fallback
+                $commentTime = $comment['publishedAt'] ?? $comment['published_at'] ?? null;
+                if ($commentTime) {
+                    $parsedTime = \Carbon\Carbon::parse($commentTime);
+                    if ($earliestCommentTime === null || $parsedTime->lt($earliestCommentTime)) {
+                        $earliestCommentTime = $parsedTime;
+                    }
+                }
+
                 if (isset($comment['replies']) && is_array($comment['replies'])) {
                     $totalComments += count($comment['replies']); // Count replies
                 }
             }
             $metadata['comment_count'] = $totalComments;
+            $metadata['earliest_comment_at'] = $earliestCommentTime?->toIso8601String();
 
             // Check if video has any comments
             if ($metadata['comment_count'] === 0) {
