@@ -22,8 +22,8 @@ class TagSeeder extends Seeder
             [
                 'code' => 'pan-white',
                 'name' => '泛白',
-                'description' => 'Pan-White camp (Kuomintang, People First Party)',
-                'color' => 'blue-500',
+                'description' => 'Pan-White camp (Taiwan People\'s Party, Ko Wen-je supporters)',
+                'color' => 'sky-400',
             ],
             [
                 'code' => 'pan-blue',
@@ -44,6 +44,18 @@ class TagSeeder extends Seeder
                 'color' => 'rose-600',
             ],
             [
+                'code' => 'editorial',
+                'name' => '社論',
+                'description' => 'Editorial/Opinion content',
+                'color' => 'purple-600',
+            ],
+            [
+                'code' => 'control-group',
+                'name' => '對照組',
+                'description' => 'Control group for comparison',
+                'color' => 'gray-500',
+            ],
+            [
                 'code' => 'foreigner',
                 'name' => '外國人',
                 'description' => 'Foreign/International content or perspective',
@@ -52,7 +64,10 @@ class TagSeeder extends Seeder
         ];
 
         foreach ($tags as $tag) {
-            \App\Models\Tag::create($tag);
+            \App\Models\Tag::updateOrCreate(
+                ['code' => $tag['code']],
+                $tag
+            );
         }
     }
 }
