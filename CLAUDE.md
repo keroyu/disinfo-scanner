@@ -14,6 +14,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-18
 - PHP 8.2 with Laravel Framework 12.38.1 + Laravel Framework (existing), Symfony RateLimiter (Laravel built-in) (011-member-system)
 - MySQL/MariaDB (existing database) - add `csv_export_logs` table for rate limiting tracking (011-member-system)
 - PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN) (012-admin-video-management)
+- PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js (existing), Tailwind CSS (existing) (013-point-system)
+- MySQL/MariaDB (existing `forge` database) (013-point-system)
 
 - PHP 8.2 with Laravel Framework 12.38.1 (007-video-incremental-update)
 
@@ -33,9 +35,9 @@ tests/
 PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
 
 ## Recent Changes
+- 013-point-system: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js (existing), Tailwind CSS (existing)
 - 012-admin-video-management: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN)
 - 012-admin-video-management: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN)
-- 011-member-system: Added PHP 8.2 with Laravel Framework 12.38.1 + Laravel Framework (existing), Symfony RateLimiter (Laravel built-in)
   - ✅ **Core Module**: Complete authentication backend (66/66 tasks)
     - Database schema with 9 migrations
     - All models, services, controllers, and middleware
