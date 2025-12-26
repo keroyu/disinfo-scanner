@@ -149,13 +149,13 @@
                                 </div>
                             </a>
 
-                            <a href="{{ route('admin.verifications.index') }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                            <a href="{{ route('admin.points.settings') }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
                                 <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <div>
-                                    <p class="font-medium text-gray-900">身份驗證</p>
-                                    <p class="text-sm text-gray-600">審核身份驗證請求</p>
+                                    <p class="font-medium text-gray-900">積分設定</p>
+                                    <p class="text-sm text-gray-600">管理積分兌換設定</p>
                                 </div>
                             </a>
 
