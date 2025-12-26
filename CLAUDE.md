@@ -36,6 +36,7 @@ PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
 
 ## Recent Changes
 - 013-point-system: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js (existing), Tailwind CSS (existing)
+- 013-point-system: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js (existing), Tailwind CSS (existing)
   - ✅ **Points System**: Complete implementation (39/39 tasks)
     - **Phase 1**: Database schema (users.points, users.premium_expires_at, point_logs table)
     - **Phase 2**: Foundational models (User extensions, PointLog, PointRedemptionService)
@@ -45,7 +46,6 @@ PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
     - Atomic transactions with row-level locking for concurrent safety
     - Timezone handling: UTC storage, GMT+8 display
     - All tests passing (28/28 point-related tests)
-- 012-admin-video-management: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN)
 - 012-admin-video-management: Added PHP 8.2 with Laravel Framework 12.0 + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (via CDN)
   - ✅ **Core Module**: Complete authentication backend (66/66 tasks)
     - Database schema with 9 migrations
