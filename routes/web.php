@@ -110,4 +110,10 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
     Route::get('/videos', function () {
         return view('admin.videos.index');
     })->name('admin.videos.index');
+
+    // T051: Point Settings routes (013-point-system)
+    Route::get('/points/settings', [App\Http\Controllers\Admin\PointSettingsController::class, 'index'])
+        ->name('admin.points.settings');
+    Route::post('/points/settings', [App\Http\Controllers\Admin\PointSettingsController::class, 'update'])
+        ->name('admin.points.settings.update');
 });

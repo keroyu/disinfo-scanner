@@ -6,15 +6,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\PasswordChangeRequest;
 use App\Services\PointRedemptionService;
+use App\Services\SettingService;
 
 class UserSettingsController extends Controller
 {
     /**
      * Display the user settings page.
+     * T058: Pass configurable redemption days to view
      */
-    public function index()
+    public function index(SettingService $settingService)
     {
-        return view('settings.index');
+        $redemptionDays = $settingService->getPointRedemptionDays();
+
+        return view('settings.index', [
+            'redemptionDays' => $redemptionDays,
+        ]);
     }
 
     /**

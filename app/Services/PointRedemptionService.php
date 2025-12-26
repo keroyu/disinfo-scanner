@@ -10,6 +10,7 @@ use Carbon\Carbon;
 /**
  * Point Redemption Service
  * T009: Handles point redemption business logic
+ * T044: Updated to use configurable days from SettingService
  */
 class PointRedemptionService
 {
@@ -19,9 +20,24 @@ class PointRedemptionService
     public const POINTS_REQUIRED = 10;
 
     /**
-     * Days granted per redemption
+     * Default days granted per redemption (fallback if setting unavailable)
      */
-    public const DAYS_GRANTED = 3;
+    public const DEFAULT_DAYS_GRANTED = 3;
+
+    protected SettingService $settingService;
+
+    public function __construct(SettingService $settingService)
+    {
+        $this->settingService = $settingService;
+    }
+
+    /**
+     * Get the current days granted per redemption from settings.
+     */
+    public function getDaysGranted(): int
+    {
+        return $this->settingService->getPointRedemptionDays();
+    }
 
     /**
      * Redeem points to extend premium membership.
@@ -47,8 +63,11 @@ class PointRedemptionService
             ];
         }
 
+        // Get configurable days before transaction (read outside transaction for consistency)
+        $daysToAdd = $this->getDaysGranted();
+
         // Execute atomic transaction
-        return DB::transaction(function () use ($user) {
+        return DB::transaction(function () use ($user, $daysToAdd) {
             // Lock the user row for update to prevent concurrent redemption
             $lockedUser = User::where('id', $user->id)->lockForUpdate()->first();
 
@@ -70,8 +89,8 @@ class PointRedemptionService
             // Deduct points
             $lockedUser->points -= self::POINTS_REQUIRED;
 
-            // Extend premium expiration
-            $newExpiresAt = $lockedUser->premium_expires_at->addDays(self::DAYS_GRANTED);
+            // Extend premium expiration using configurable days
+            $newExpiresAt = $lockedUser->premium_expires_at->addDays($daysToAdd);
             $lockedUser->premium_expires_at = $newExpiresAt;
             $lockedUser->save();
 
@@ -84,8 +103,9 @@ class PointRedemptionService
 
             return [
                 'success' => true,
-                'message' => '兌換成功！已扣除 ' . self::POINTS_REQUIRED . ' 積分，高級會員期限延長 ' . self::DAYS_GRANTED . ' 天。',
+                'message' => '兌換成功！已扣除 ' . self::POINTS_REQUIRED . ' 積分，高級會員期限延長 ' . $daysToAdd . ' 天。',
                 'new_expires_at' => $newExpiresAt,
+                'days_granted' => $daysToAdd,
             ];
         });
     }

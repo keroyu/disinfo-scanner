@@ -399,7 +399,7 @@
             }">
                 <h3 class="text-sm font-medium text-gray-900 mb-4">兌換積分</h3>
 
-                <!-- Redemption info -->
+                <!-- T058: Redemption info with configurable days -->
                 <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -408,7 +408,7 @@
                             </svg>
                         </div>
                         <div class="ml-3 text-sm text-blue-700">
-                            <p>使用 <strong>10 積分</strong> 可兌換 <strong>3 天</strong> 的高級會員期限延長。</p>
+                            <p>使用 <strong>10 積分</strong> 可兌換 <strong>{{ $redemptionDays }} 天</strong> 的高級會員期限延長。</p>
                             <p class="mt-1">積分可透過在 threads-submit 回報貼文獲得（每筆回報 +1 積分）。</p>
                         </div>
                     </div>
@@ -447,7 +447,7 @@
                                         </h3>
                                         <div class="mt-2">
                                             <p class="text-sm text-gray-500">
-                                                您確定要使用 <strong class="text-gray-900">10 積分</strong> 兌換 <strong class="text-gray-900">3 天</strong> 的高級會員期限延長嗎？
+                                                您確定要使用 <strong class="text-gray-900">10 積分</strong> 兌換 <strong class="text-gray-900">{{ $redemptionDays }} 天</strong> 的高級會員期限延長嗎？
                                             </p>
                                             <p class="text-sm text-gray-500 mt-2">
                                                 兌換後您的積分餘額將變為 <strong class="text-gray-900">{{ auth()->user()->points - 10 }}</strong> 積分。
