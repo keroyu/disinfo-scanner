@@ -399,7 +399,7 @@
             }">
                 <h3 class="text-sm font-medium text-gray-900 mb-4">兌換積分</h3>
 
-                <!-- T058: Redemption info with configurable days -->
+                <!-- Batch redemption info (Updated 2025-12-27) -->
                 <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -408,21 +408,29 @@
                             </svg>
                         </div>
                         <div class="ml-3 text-sm text-blue-700">
-                            <p>使用 <strong>10 積分</strong> 可兌換 <strong>{{ $redemptionDays }} 天</strong> 的高級會員期限延長。</p>
-                            <p class="mt-1">積分可透過在 threads-submit 回報貼文獲得（每筆回報 +1 積分）。</p>
+                            <p>兌換規則：<strong>{{ $pointsPerDay }} 積分 = 1 天</strong> 高級會員期限延長</p>
+                            <p class="mt-1">點擊兌換後，將一次性扣除所有可兌換的積分。</p>
                         </div>
                     </div>
                 </div>
 
-                @if(auth()->user()->canRedeemPoints(10))
-                    <!-- T021: Redemption button (enabled) -->
+                @if($redeemableDays > 0)
+                    <!-- Batch redemption preview -->
+                    <div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                        <div class="text-sm text-green-700">
+                            <p>您目前有 <strong>{{ auth()->user()->points }} 積分</strong></p>
+                            <p class="mt-1">可兌換：<strong class="text-green-800 text-lg">{{ $redeemableDays }} 天</strong>（扣除 {{ $pointsToDeduct }} 積分，剩餘 {{ $remainingPoints }} 積分）</p>
+                        </div>
+                    </div>
+
+                    <!-- Batch redemption button -->
                     <button @click="showConfirm = true"
                             type="button"
                             class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        兌換 10 積分
+                        兌換全部（{{ $pointsToDeduct }} 積分 → {{ $redeemableDays }} 天）
                     </button>
 
-                    <!-- T022: Confirmation dialog (Alpine.js) -->
+                    <!-- Confirmation dialog (Alpine.js) -->
                     <div x-show="showConfirm" x-cloak
                          class="fixed inset-0 z-50 overflow-y-auto"
                          aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -447,11 +455,19 @@
                                         </h3>
                                         <div class="mt-2">
                                             <p class="text-sm text-gray-500">
-                                                您確定要使用 <strong class="text-gray-900">10 積分</strong> 兌換 <strong class="text-gray-900">{{ $redemptionDays }} 天</strong> 的高級會員期限延長嗎？
+                                                您確定要兌換嗎？
                                             </p>
-                                            <p class="text-sm text-gray-500 mt-2">
-                                                兌換後您的積分餘額將變為 <strong class="text-gray-900">{{ auth()->user()->points - 10 }}</strong> 積分。
-                                            </p>
+                                            <div class="mt-3 bg-gray-50 rounded-md p-3">
+                                                <p class="text-sm text-gray-700">
+                                                    扣除積分：<strong class="text-gray-900">{{ $pointsToDeduct }} 積分</strong>
+                                                </p>
+                                                <p class="text-sm text-gray-700 mt-1">
+                                                    延長天數：<strong class="text-green-600">{{ $redeemableDays }} 天</strong>
+                                                </p>
+                                                <p class="text-sm text-gray-700 mt-1">
+                                                    剩餘積分：<strong class="text-gray-900">{{ $remainingPoints }} 積分</strong>
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -473,15 +489,15 @@
                         </div>
                     </div>
                 @else
-                    <!-- T023: Disabled button when points < 10 -->
+                    <!-- Disabled button when points < pointsPerDay -->
                     <button type="button"
                             disabled
                             class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-400 cursor-not-allowed">
-                        兌換 10 積分
+                        積分不足
                     </button>
-                    <!-- T024: Insufficient points message -->
+                    <!-- Insufficient points message -->
                     <p class="mt-2 text-sm text-red-600">
-                        積分不足，還需要 {{ 10 - auth()->user()->points }} 積分才能兌換。
+                        積分不足，需要至少 {{ $pointsPerDay }} 積分才能兌換 1 天。目前還差 {{ $pointsPerDay - auth()->user()->points }} 積分。
                     </p>
                 @endif
 

@@ -59,19 +59,19 @@
                     <div class="bg-white rounded-lg shadow-sm">
                         <div class="px-6 py-4 border-b border-gray-200">
                             <h2 class="text-lg font-semibold text-gray-900">積分兌換設定</h2>
-                            <p class="mt-1 text-sm text-gray-500">設定用戶使用積分兌換高級會員期限時的延長天數</p>
+                            <p class="mt-1 text-sm text-gray-500">設定用戶使用多少積分可兌換 1 天高級會員期限</p>
                         </div>
 
                         <form action="{{ route('admin.points.settings.update') }}" method="POST" class="p-6">
                             @csrf
 
-                            <!-- T053: Current Value Display -->
+                            <!-- T053: Current Value Display (Updated 2025-12-27: X points = 1 day) -->
                             <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm font-medium text-gray-600">目前設定</p>
                                         <p class="mt-1 text-2xl font-bold text-gray-900">
-                                            10 積分 = {{ $currentDays }} 天
+                                            {{ $currentPoints }} 積分 = 1 天
                                         </p>
                                     </div>
                                     <div class="p-3 bg-blue-100 rounded-full">
@@ -87,29 +87,28 @@
                                 @endif
                             </div>
 
-                            <!-- T054: Form for Updating Redemption Days -->
+                            <!-- T054: Form for Updating Points Per Day (Updated 2025-12-27) -->
                             <div class="mb-6">
-                                <label for="point_redemption_days" class="block text-sm font-medium text-gray-700 mb-2">
-                                    兌換天數
+                                <label for="points_per_day" class="block text-sm font-medium text-gray-700 mb-2">
+                                    每日所需積分
                                 </label>
                                 <div class="flex items-center gap-4">
                                     <div class="flex items-center">
-                                        <span class="text-gray-600 mr-2">10 積分 =</span>
                                         <input
                                             type="number"
-                                            id="point_redemption_days"
-                                            name="point_redemption_days"
-                                            value="{{ old('point_redemption_days', $currentDays) }}"
+                                            id="points_per_day"
+                                            name="points_per_day"
+                                            value="{{ old('points_per_day', $currentPoints) }}"
                                             min="1"
-                                            max="365"
-                                            class="w-24 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('point_redemption_days') border-red-500 @enderror"
+                                            max="1000"
+                                            class="w-24 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('points_per_day') border-red-500 @enderror"
                                             required
                                         >
-                                        <span class="text-gray-600 ml-2">天</span>
+                                        <span class="text-gray-600 ml-2">積分 = 1 天</span>
                                     </div>
                                 </div>
                                 <p class="mt-2 text-xs text-gray-500">
-                                    有效範圍: 1 - 365 天
+                                    有效範圍: 1 - 1000 積分
                                 </p>
                             </div>
 

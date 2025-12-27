@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
- * T049: Unit tests for SettingService fallback behavior
+ * T049, T072: Unit tests for SettingService
+ *
+ * Updated 2025-12-27: Changed from getPointRedemptionDays to getPointsPerDay
+ * - Old: 10 points = N days (configurable days, fixed points)
+ * - New: X points = 1 day (configurable points, fixed day)
  */
 class SettingServiceTest extends TestCase
 {
@@ -24,110 +28,110 @@ class SettingServiceTest extends TestCase
         Cache::flush();
     }
 
-    public function test_get_point_redemption_days_returns_default_when_setting_missing(): void
+    public function test_get_points_per_day_returns_default_when_setting_missing(): void
     {
         // Ensure no setting exists
-        Setting::where('key', 'point_redemption_days')->delete();
+        Setting::where('key', 'points_per_day')->delete();
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(3, $days);
+        $this->assertEquals(10, $points);
     }
 
-    public function test_get_point_redemption_days_returns_stored_value(): void
+    public function test_get_points_per_day_returns_stored_value(): void
     {
-        Setting::setValue('point_redemption_days', '7');
+        Setting::setValue('points_per_day', '5');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(7, $days);
+        $this->assertEquals(5, $points);
     }
 
-    public function test_get_point_redemption_days_returns_default_for_zero(): void
+    public function test_get_points_per_day_returns_default_for_zero(): void
     {
-        Setting::setValue('point_redemption_days', '0');
+        Setting::setValue('points_per_day', '0');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(3, $days);
+        $this->assertEquals(10, $points);
     }
 
-    public function test_get_point_redemption_days_returns_default_for_negative(): void
+    public function test_get_points_per_day_returns_default_for_negative(): void
     {
-        Setting::setValue('point_redemption_days', '-5');
+        Setting::setValue('points_per_day', '-5');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(3, $days);
+        $this->assertEquals(10, $points);
     }
 
-    public function test_get_point_redemption_days_returns_default_for_over_365(): void
+    public function test_get_points_per_day_returns_default_for_over_1000(): void
     {
-        Setting::setValue('point_redemption_days', '400');
+        Setting::setValue('points_per_day', '1500');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(3, $days);
+        $this->assertEquals(10, $points);
     }
 
-    public function test_get_point_redemption_days_returns_default_for_non_numeric(): void
+    public function test_get_points_per_day_returns_default_for_non_numeric(): void
     {
-        Setting::setValue('point_redemption_days', 'invalid');
+        Setting::setValue('points_per_day', 'invalid');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(3, $days);
+        $this->assertEquals(10, $points);
     }
 
-    public function test_get_point_redemption_days_accepts_minimum_boundary(): void
+    public function test_get_points_per_day_accepts_minimum_boundary(): void
     {
-        Setting::setValue('point_redemption_days', '1');
+        Setting::setValue('points_per_day', '1');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(1, $days);
+        $this->assertEquals(1, $points);
     }
 
-    public function test_get_point_redemption_days_accepts_maximum_boundary(): void
+    public function test_get_points_per_day_accepts_maximum_boundary(): void
     {
-        Setting::setValue('point_redemption_days', '365');
+        Setting::setValue('points_per_day', '1000');
 
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(365, $days);
+        $this->assertEquals(1000, $points);
     }
 
-    public function test_set_point_redemption_days_stores_value(): void
+    public function test_set_points_per_day_stores_value(): void
     {
-        $this->service->setPointRedemptionDays(10);
+        $this->service->setPointsPerDay(15);
 
-        $this->assertEquals('10', Setting::getValue('point_redemption_days'));
+        $this->assertEquals('15', Setting::getValue('points_per_day'));
     }
 
-    public function test_set_point_redemption_days_clears_cache(): void
+    public function test_set_points_per_day_clears_cache(): void
     {
         // Pre-populate cache
-        Cache::put('setting:point_redemption_days', '3', 3600);
+        Cache::put('setting:points_per_day', '10', 3600);
 
-        $this->service->setPointRedemptionDays(10);
+        $this->service->setPointsPerDay(5);
 
-        $this->assertNull(Cache::get('setting:point_redemption_days'));
+        $this->assertNull(Cache::get('setting:points_per_day'));
     }
 
     public function test_get_uses_cache(): void
     {
-        Setting::setValue('point_redemption_days', '5');
+        Setting::setValue('points_per_day', '5');
 
         // First call should populate cache
-        $this->service->getPointRedemptionDays();
+        $this->service->getPointsPerDay();
 
         // Change database value directly
-        Setting::where('key', 'point_redemption_days')->update(['value' => '10']);
+        Setting::where('key', 'points_per_day')->update(['value' => '20']);
 
         // Second call should return cached value
-        $days = $this->service->getPointRedemptionDays();
+        $points = $this->service->getPointsPerDay();
 
-        $this->assertEquals(5, $days);
+        $this->assertEquals(5, $points);
     }
 
     public function test_generic_get_with_default(): void

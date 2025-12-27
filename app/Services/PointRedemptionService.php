@@ -8,21 +8,19 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 /**
- * Point Redemption Service
- * T009: Handles point redemption business logic
- * T044: Updated to use configurable days from SettingService
+ * T077: Point Redemption Service
+ *
+ * Updated 2025-12-27: Changed from "10 points = N days" to "X points = 1 day"
+ * Updated 2025-12-27: Batch redemption - redeems ALL available points at once
+ * - Points deducted are now configurable via getPointsPerDay()
+ * - Redeems maximum possible days based on available points
  */
 class PointRedemptionService
 {
     /**
-     * Points required for redemption
+     * Default points required per day (fallback if setting unavailable)
      */
-    public const POINTS_REQUIRED = 10;
-
-    /**
-     * Default days granted per redemption (fallback if setting unavailable)
-     */
-    public const DEFAULT_DAYS_GRANTED = 3;
+    public const DEFAULT_POINTS_REQUIRED = 10;
 
     protected SettingService $settingService;
 
@@ -32,21 +30,44 @@ class PointRedemptionService
     }
 
     /**
-     * Get the current days granted per redemption from settings.
+     * Get the current points required per day from settings.
      */
-    public function getDaysGranted(): int
+    public function getPointsPerDay(): int
     {
-        return $this->settingService->getPointRedemptionDays();
+        return $this->settingService->getPointsPerDay();
     }
 
     /**
-     * Redeem points to extend premium membership.
+     * Calculate how many days can be redeemed with given points.
+     */
+    public function calculateRedeemableDays(int $points): int
+    {
+        $pointsPerDay = $this->getPointsPerDay();
+        return intdiv($points, $pointsPerDay);
+    }
+
+    /**
+     * Calculate points that will be deducted for given points.
+     */
+    public function calculatePointsToDeduct(int $points): int
+    {
+        $pointsPerDay = $this->getPointsPerDay();
+        $days = $this->calculateRedeemableDays($points);
+        return $days * $pointsPerDay;
+    }
+
+    /**
+     * Redeem ALL available points to extend premium membership.
+     * Batch redemption: deducts maximum redeemable points at once.
      *
      * @param User $user The user redeeming points
-     * @return array{success: bool, message: string, new_expires_at?: Carbon}
+     * @return array{success: bool, message: string, new_expires_at?: Carbon, points_deducted?: int, days_granted?: int}
      */
     public function redeem(User $user): array
     {
+        // Get configurable points before transaction
+        $pointsPerDay = $this->getPointsPerDay();
+
         // Validate user is premium
         if (!$user->isPremium()) {
             return [
@@ -55,19 +76,16 @@ class PointRedemptionService
             ];
         }
 
-        // Validate sufficient points
-        if ($user->points < self::POINTS_REQUIRED) {
+        // Validate sufficient points for at least 1 day
+        if ($user->points < $pointsPerDay) {
             return [
                 'success' => false,
-                'message' => '積分不足，需要 ' . self::POINTS_REQUIRED . ' 積分才能兌換。',
+                'message' => '積分不足，需要至少 ' . $pointsPerDay . ' 積分才能兌換 1 天。',
             ];
         }
 
-        // Get configurable days before transaction (read outside transaction for consistency)
-        $daysToAdd = $this->getDaysGranted();
-
         // Execute atomic transaction
-        return DB::transaction(function () use ($user, $daysToAdd) {
+        return DB::transaction(function () use ($user, $pointsPerDay) {
             // Lock the user row for update to prevent concurrent redemption
             $lockedUser = User::where('id', $user->id)->lockForUpdate()->first();
 
@@ -79,33 +97,38 @@ class PointRedemptionService
                 ];
             }
 
-            if ($lockedUser->points < self::POINTS_REQUIRED) {
+            if ($lockedUser->points < $pointsPerDay) {
                 return [
                     'success' => false,
-                    'message' => '積分不足，需要 ' . self::POINTS_REQUIRED . ' 積分才能兌換。',
+                    'message' => '積分不足，需要至少 ' . $pointsPerDay . ' 積分才能兌換 1 天。',
                 ];
             }
 
-            // Deduct points
-            $lockedUser->points -= self::POINTS_REQUIRED;
+            // Calculate maximum redeemable days and points to deduct
+            $daysToGrant = intdiv($lockedUser->points, $pointsPerDay);
+            $pointsToDeduct = $daysToGrant * $pointsPerDay;
 
-            // Extend premium expiration using configurable days
-            $newExpiresAt = $lockedUser->premium_expires_at->addDays($daysToAdd);
+            // Deduct points
+            $lockedUser->points -= $pointsToDeduct;
+
+            // Extend premium expiration
+            $newExpiresAt = $lockedUser->premium_expires_at->addDays($daysToGrant);
             $lockedUser->premium_expires_at = $newExpiresAt;
             $lockedUser->save();
 
             // Log the transaction
             PointLog::create([
                 'user_id' => $lockedUser->id,
-                'amount' => -self::POINTS_REQUIRED,
+                'amount' => -$pointsToDeduct,
                 'action' => 'redeem',
             ]);
 
             return [
                 'success' => true,
-                'message' => '兌換成功！已扣除 ' . self::POINTS_REQUIRED . ' 積分，高級會員期限延長 ' . $daysToAdd . ' 天。',
+                'message' => '兌換成功！已扣除 ' . $pointsToDeduct . ' 積分，高級會員期限延長 ' . $daysToGrant . ' 天。',
                 'new_expires_at' => $newExpiresAt,
-                'days_granted' => $daysToAdd,
+                'points_deducted' => $pointsToDeduct,
+                'days_granted' => $daysToGrant,
             ];
         });
     }

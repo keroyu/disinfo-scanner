@@ -10,7 +10,11 @@ use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
- * T045-T048: Feature tests for Admin Point Settings
+ * T045-T048, T074: Feature tests for Admin Point Settings
+ *
+ * Updated 2025-12-27: Changed from point_redemption_days to points_per_day
+ * - Old: 10 points = N days (configurable days 1-365)
+ * - New: X points = 1 day (configurable points 1-1000)
  */
 class PointSettingsTest extends TestCase
 {
@@ -52,7 +56,7 @@ class PointSettingsTest extends TestCase
         return $user;
     }
 
-    // T045: Test for viewing admin settings page
+    // T045, T074: Test for viewing admin settings page
     public function test_admin_can_view_point_settings_page(): void
     {
         $admin = $this->createAdmin();
@@ -61,13 +65,13 @@ class PointSettingsTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('積分設定');
-        $response->assertSee('兌換天數');
+        $response->assertSee('每日所需積分');
     }
 
     public function test_admin_settings_page_shows_current_value(): void
     {
         $admin = $this->createAdmin();
-        Setting::setValue('point_redemption_days', '5');
+        Setting::setValue('points_per_day', '5');
 
         $response = $this->actingAs($admin)->get('/admin/points/settings');
 
@@ -75,69 +79,69 @@ class PointSettingsTest extends TestCase
         $response->assertSee('5');
     }
 
-    // T046: Test for updating redemption days
-    public function test_admin_can_update_redemption_days(): void
+    // T046, T074: Test for updating points per day
+    public function test_admin_can_update_points_per_day(): void
     {
         $admin = $this->createAdmin();
-        Setting::setValue('point_redemption_days', '3');
+        Setting::setValue('points_per_day', '10');
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 7,
+            'points_per_day' => 7,
         ]);
 
         $response->assertRedirect('/admin/points/settings');
         $response->assertSessionHas('success');
-        $this->assertEquals('7', Setting::getValue('point_redemption_days'));
+        $this->assertEquals('7', Setting::getValue('points_per_day'));
     }
 
     public function test_updating_settings_clears_cache(): void
     {
         $admin = $this->createAdmin();
-        Setting::setValue('point_redemption_days', '3');
+        Setting::setValue('points_per_day', '10');
 
         // Pre-populate cache
-        Cache::put('setting:point_redemption_days', '3', 3600);
+        Cache::put('setting:points_per_day', '10', 3600);
 
         $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 10,
+            'points_per_day' => 5,
         ]);
 
         // Cache should be cleared, so next get should return new value
-        $this->assertNull(Cache::get('setting:point_redemption_days'));
+        $this->assertNull(Cache::get('setting:points_per_day'));
     }
 
-    // T047: Test for validation errors
-    public function test_validation_rejects_zero_days(): void
+    // T047, T074: Test for validation errors
+    public function test_validation_rejects_zero_points(): void
     {
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 0,
+            'points_per_day' => 0,
         ]);
 
-        $response->assertSessionHasErrors('point_redemption_days');
+        $response->assertSessionHasErrors('points_per_day');
     }
 
-    public function test_validation_rejects_negative_days(): void
+    public function test_validation_rejects_negative_points(): void
     {
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => -5,
+            'points_per_day' => -5,
         ]);
 
-        $response->assertSessionHasErrors('point_redemption_days');
+        $response->assertSessionHasErrors('points_per_day');
     }
 
-    public function test_validation_rejects_days_over_365(): void
+    public function test_validation_rejects_points_over_1000(): void
     {
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 366,
+            'points_per_day' => 1001,
         ]);
 
-        $response->assertSessionHasErrors('point_redemption_days');
+        $response->assertSessionHasErrors('points_per_day');
     }
 
     public function test_validation_rejects_non_integer(): void
@@ -145,10 +149,10 @@ class PointSettingsTest extends TestCase
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 'abc',
+            'points_per_day' => 'abc',
         ]);
 
-        $response->assertSessionHasErrors('point_redemption_days');
+        $response->assertSessionHasErrors('points_per_day');
     }
 
     public function test_validation_rejects_empty_value(): void
@@ -156,10 +160,10 @@ class PointSettingsTest extends TestCase
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => '',
+            'points_per_day' => '',
         ]);
 
-        $response->assertSessionHasErrors('point_redemption_days');
+        $response->assertSessionHasErrors('points_per_day');
     }
 
     public function test_validation_accepts_minimum_value(): void
@@ -167,12 +171,12 @@ class PointSettingsTest extends TestCase
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 1,
+            'points_per_day' => 1,
         ]);
 
         $response->assertRedirect('/admin/points/settings');
         $response->assertSessionHas('success');
-        $this->assertEquals('1', Setting::getValue('point_redemption_days'));
+        $this->assertEquals('1', Setting::getValue('points_per_day'));
     }
 
     public function test_validation_accepts_maximum_value(): void
@@ -180,12 +184,12 @@ class PointSettingsTest extends TestCase
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post('/admin/points/settings', [
-            'point_redemption_days' => 365,
+            'points_per_day' => 1000,
         ]);
 
         $response->assertRedirect('/admin/points/settings');
         $response->assertSessionHas('success');
-        $this->assertEquals('365', Setting::getValue('point_redemption_days'));
+        $this->assertEquals('1000', Setting::getValue('points_per_day'));
     }
 
     // T048: Test for non-admin access rejection
@@ -210,14 +214,14 @@ class PointSettingsTest extends TestCase
     public function test_regular_user_cannot_update_settings(): void
     {
         $user = $this->createRegularUser();
-        Setting::setValue('point_redemption_days', '3');
+        Setting::setValue('points_per_day', '10');
 
         $response = $this->actingAs($user)->post('/admin/points/settings', [
-            'point_redemption_days' => 10,
+            'points_per_day' => 5,
         ]);
 
         $response->assertStatus(403);
-        $this->assertEquals('3', Setting::getValue('point_redemption_days'));
+        $this->assertEquals('10', Setting::getValue('points_per_day'));
     }
 
     public function test_unauthenticated_user_redirected_to_login(): void
@@ -230,7 +234,7 @@ class PointSettingsTest extends TestCase
     public function test_unauthenticated_user_cannot_update_settings(): void
     {
         $response = $this->post('/admin/points/settings', [
-            'point_redemption_days' => 10,
+            'points_per_day' => 5,
         ]);
 
         $response->assertRedirect('/auth/login');

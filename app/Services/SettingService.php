@@ -5,34 +5,41 @@ namespace App\Services;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * T076: SettingService
+ *
+ * Updated 2025-12-27: Changed from getPointRedemptionDays to getPointsPerDay
+ * - Old: 10 points = N days (configurable days, fixed points)
+ * - New: X points = 1 day (configurable points, fixed day)
+ */
 class SettingService
 {
     private const CACHE_PREFIX = 'setting:';
     private const CACHE_TTL = 3600; // 1 hour
 
     /**
-     * Get the point redemption days setting.
-     * Returns default of 3 if setting is missing or invalid.
+     * Get the points required per day of premium extension.
+     * Returns default of 10 if setting is missing or invalid.
      */
-    public function getPointRedemptionDays(): int
+    public function getPointsPerDay(): int
     {
-        $value = $this->get('point_redemption_days', '3');
-        $days = (int) $value;
+        $value = $this->get('points_per_day', '10');
+        $points = (int) $value;
 
-        // Fallback to default if invalid (must be 1-365)
-        if ($days < 1 || $days > 365) {
-            return 3;
+        // Fallback to default if invalid (must be 1-1000)
+        if ($points < 1 || $points > 1000) {
+            return 10;
         }
 
-        return $days;
+        return $points;
     }
 
     /**
-     * Set the point redemption days setting.
+     * Set the points per day setting.
      */
-    public function setPointRedemptionDays(int $days): void
+    public function setPointsPerDay(int $points): void
     {
-        $this->set('point_redemption_days', (string) $days);
+        $this->set('points_per_day', (string) $points);
     }
 
     /**

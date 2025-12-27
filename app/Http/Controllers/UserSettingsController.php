@@ -12,14 +12,30 @@ class UserSettingsController extends Controller
 {
     /**
      * Display the user settings page.
-     * T058: Pass configurable redemption days to view
+     * T078: Pass configurable points per day to view (Updated 2025-12-27)
+     * Updated: Pass batch redemption calculation data
      */
-    public function index(SettingService $settingService)
+    public function index(SettingService $settingService, PointRedemptionService $redemptionService)
     {
-        $redemptionDays = $settingService->getPointRedemptionDays();
+        $pointsPerDay = $settingService->getPointsPerDay();
+        $user = auth()->user();
+
+        // Calculate batch redemption preview for premium users
+        $redeemableDays = 0;
+        $pointsToDeduct = 0;
+        $remainingPoints = 0;
+
+        if ($user && $user->isPremium()) {
+            $redeemableDays = $redemptionService->calculateRedeemableDays($user->points);
+            $pointsToDeduct = $redemptionService->calculatePointsToDeduct($user->points);
+            $remainingPoints = $user->points - $pointsToDeduct;
+        }
 
         return view('settings.index', [
-            'redemptionDays' => $redemptionDays,
+            'pointsPerDay' => $pointsPerDay,
+            'redeemableDays' => $redeemableDays,
+            'pointsToDeduct' => $pointsToDeduct,
+            'remainingPoints' => $remainingPoints,
         ]);
     }
 

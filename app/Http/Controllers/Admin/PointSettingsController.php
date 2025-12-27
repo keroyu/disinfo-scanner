@@ -13,8 +13,11 @@ use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
- * T050: Admin Point Settings Controller
- * Handles configuration of point redemption settings
+ * T079: Admin Point Settings Controller
+ *
+ * Updated 2025-12-27: Changed from point_redemption_days to points_per_day
+ * - Old: 10 points = N days (configurable days 1-365)
+ * - New: X points = 1 day (configurable points 1-1000)
  */
 class PointSettingsController extends Controller
 {
@@ -28,12 +31,12 @@ class PointSettingsController extends Controller
      */
     public function index(): View
     {
-        $currentDays = $this->settingService->getPointRedemptionDays();
-        $lastUpdated = Setting::where('key', 'point_redemption_days')
+        $currentPoints = $this->settingService->getPointsPerDay();
+        $lastUpdated = Setting::where('key', 'points_per_day')
             ->value('updated_at');
 
         return view('admin.points.settings', [
-            'currentDays' => $currentDays,
+            'currentPoints' => $currentPoints,
             'lastUpdated' => $lastUpdated,
         ]);
     }
@@ -44,24 +47,24 @@ class PointSettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'point_redemption_days' => ['required', 'integer', 'min:1', 'max:365'],
+            'points_per_day' => ['required', 'integer', 'min:1', 'max:1000'],
         ], [
-            'point_redemption_days.required' => '兌換天數為必填欄位',
-            'point_redemption_days.integer' => '兌換天數必須為整數',
-            'point_redemption_days.min' => '兌換天數最少為 1 天',
-            'point_redemption_days.max' => '兌換天數最多為 365 天',
+            'points_per_day.required' => '每日所需積分為必填欄位',
+            'points_per_day.integer' => '每日所需積分必須為整數',
+            'points_per_day.min' => '每日所需積分最少為 1',
+            'points_per_day.max' => '每日所需積分最多為 1000',
         ]);
 
-        $oldValue = $this->settingService->getPointRedemptionDays();
-        $newValue = (int) $validated['point_redemption_days'];
+        $oldValue = $this->settingService->getPointsPerDay();
+        $newValue = (int) $validated['points_per_day'];
 
-        // T057: Audit logging for setting changes
+        // Audit logging for setting changes
         $this->logSettingChange($oldValue, $newValue, $request);
 
         // Update setting (this also clears cache)
-        $this->settingService->setPointRedemptionDays($newValue);
+        $this->settingService->setPointsPerDay($newValue);
 
-        Log::info('Point redemption days updated', [
+        Log::info('Points per day updated', [
             'admin_id' => auth()->id(),
             'old_value' => $oldValue,
             'new_value' => $newValue,
@@ -69,21 +72,21 @@ class PointSettingsController extends Controller
 
         return redirect()
             ->route('admin.points.settings')
-            ->with('success', "設定已更新：10 積分可兌換 {$newValue} 天高級會員期限");
+            ->with('success', "設定已更新：{$newValue} 積分可兌換 1 天高級會員期限");
     }
 
     /**
-     * T057: Log setting changes to audit_logs
+     * Log setting changes to audit_logs
      */
     protected function logSettingChange(int $oldValue, int $newValue, Request $request): void
     {
         AuditLog::log(
             actionType: 'update_setting',
-            description: "積分兌換天數從 {$oldValue} 天更改為 {$newValue} 天",
+            description: "每日所需積分從 {$oldValue} 積分更改為 {$newValue} 積分",
             adminId: auth()->id(),
             resourceType: 'setting',
             changes: [
-                'key' => 'point_redemption_days',
+                'key' => 'points_per_day',
                 'old_value' => $oldValue,
                 'new_value' => $newValue,
             ]
