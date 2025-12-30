@@ -127,6 +127,7 @@
                                                    :checked="isAllSelected"
                                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                                         </th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 60px;">ID</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 200px; min-width: 200px;">用戶</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電子郵件</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 75px; min-width: 75px;">積分</th>
@@ -140,7 +141,7 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <template x-if="loading">
                                         <tr>
-                                            <td colspan="9" class="px-6 py-12 text-center">
+                                            <td colspan="10" class="px-6 py-12 text-center">
                                                 <div class="flex justify-center items-center">
                                                     <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -171,6 +172,7 @@
                                                        @change="toggleUser(user)"
                                                        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                                             </td>
+                                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500" x-text="user.id"></td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
