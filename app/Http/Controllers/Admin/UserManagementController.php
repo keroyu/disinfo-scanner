@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\EscapesLikeQueries;
+use App\Http\Requests\Admin\BatchRoleChangeRequest;
+use App\Http\Requests\Admin\BatchEmailRequest;
+use App\Http\Requests\Admin\PremiumExpiryUpdateRequest;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AuditLog;
 use App\Services\IpGeolocationService;
+use App\Services\BatchRoleService;
+use App\Services\BatchEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -97,6 +102,8 @@ class UserManagementController extends Controller
                 'last_login_ip' => $user->last_login_ip,
                 'last_login_ip_country' => $ipLocation['country'] ?? null,
                 'last_login_ip_city' => $ipLocation['city'] ?? null,
+                'points' => $user->points ?? 0,
+                'premium_expires_at' => $user->premium_expires_at?->toIso8601String(),
                 'roles' => $user->roles->map(function ($role) {
                     return [
                         'id' => $role->id,
@@ -416,5 +423,149 @@ class UserManagementController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * T013: Batch change role for multiple users (014-users-management-enhancement)
+     *
+     * @param BatchRoleChangeRequest $request
+     * @return JsonResponse
+     */
+    public function batchChangeRole(BatchRoleChangeRequest $request): JsonResponse
+    {
+        $userIds = $request->validated()['user_ids'];
+        $roleId = $request->validated()['role_id'];
+
+        $batchRoleService = app(BatchRoleService::class);
+        $result = $batchRoleService->changeRoles($userIds, $roleId, auth()->id());
+
+        if ($result['updated_count'] === 0 && $result['skipped_self'] === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => '沒有用戶被更新',
+            ], 400);
+        }
+
+        $message = sprintf('已成功變更 %d 位用戶的角色', $result['updated_count']);
+        if ($result['skipped_self'] > 0) {
+            $message .= sprintf('（跳過 %d 位：無法更改自己的角色）', $result['skipped_self']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $result,
+        ]);
+    }
+
+    /**
+     * T021: Batch send email to multiple users (014-users-management-enhancement)
+     *
+     * @param BatchEmailRequest $request
+     * @return JsonResponse
+     */
+    public function batchSendEmail(BatchEmailRequest $request): JsonResponse
+    {
+        $userIds = $request->validated()['user_ids'];
+        $subject = $request->validated()['subject'];
+        $body = $request->validated()['body'];
+
+        $batchEmailService = app(BatchEmailService::class);
+        $result = $batchEmailService->send($userIds, $subject, $body, auth()->id());
+
+        if ($result['sent_count'] === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => '郵件發送失敗',
+                'data' => $result,
+            ], 500);
+        }
+
+        if ($result['failed_count'] > 0) {
+            $message = sprintf('已發送 %d/%d 封郵件，%d 封失敗',
+                $result['sent_count'],
+                $result['total_recipients'],
+                $result['failed_count']
+            );
+        } else {
+            $message = sprintf('已成功發送 %d 封郵件', $result['sent_count']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $result,
+        ]);
+    }
+
+    /**
+     * T026: Update premium expiry date for a user (014-users-management-enhancement)
+     *
+     * @param PremiumExpiryUpdateRequest $request
+     * @param int $userId
+     * @return JsonResponse
+     */
+    public function updatePremiumExpiry(PremiumExpiryUpdateRequest $request, int $userId): JsonResponse
+    {
+        $user = User::with('roles')->find($userId);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => '找不到指定的使用者',
+            ], 404);
+        }
+
+        // Check if user is a Premium Member
+        $isPremiumMember = $user->roles->contains(function ($role) {
+            return $role->name === 'premium_member';
+        });
+
+        if (!$isPremiumMember) {
+            return response()->json([
+                'success' => false,
+                'message' => '此用戶不是高級會員',
+            ], 400);
+        }
+
+        $oldExpiry = $user->premium_expires_at;
+        $newExpiry = \Carbon\Carbon::parse($request->validated()['premium_expires_at']);
+
+        // Update the expiry date
+        $user->premium_expires_at = $newExpiry;
+        $user->save();
+
+        // Log the change
+        AuditLog::log(
+            actionType: 'premium_expiry_extended',
+            description: sprintf(
+                'Admin %s (%s) 將用戶 %s (%s) 的高級會員到期日從 %s 延長至 %s',
+                auth()->user()->name,
+                auth()->user()->email,
+                $user->name,
+                $user->email,
+                $oldExpiry ? $oldExpiry->timezone('Asia/Taipei')->format('Y-m-d H:i') : 'N/A',
+                $newExpiry->timezone('Asia/Taipei')->format('Y-m-d H:i')
+            ),
+            userId: $user->id,
+            adminId: auth()->id(),
+            resourceType: 'user',
+            resourceId: $user->id,
+            changes: [
+                'old_premium_expires_at' => $oldExpiry?->toIso8601String(),
+                'new_premium_expires_at' => $newExpiry->toIso8601String(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => '高級會員到期日已更新',
+            'data' => [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'premium_expires_at' => $newExpiry->toIso8601String(),
+                'premium_expires_at_display' => $newExpiry->timezone('Asia/Taipei')->format('Y-m-d H:i') . ' (GMT+8)',
+            ],
+        ]);
     }
 }

@@ -157,6 +157,11 @@ Route::prefix('admin')->middleware(['web', 'auth', 'check.admin', 'check.admin.s
     Route::put('/users/{userId}/role', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateRole']);
     Route::post('/users/{userId}/verify-email', [\App\Http\Controllers\Admin\UserManagementController::class, 'verifyEmail']);
 
+    // Batch Operations (014-users-management-enhancement)
+    Route::post('/users/batch-role', [\App\Http\Controllers\Admin\UserManagementController::class, 'batchChangeRole']);
+    Route::post('/users/batch-email', [\App\Http\Controllers\Admin\UserManagementController::class, 'batchSendEmail']);
+    Route::put('/users/{userId}/premium-expiry', [\App\Http\Controllers\Admin\UserManagementController::class, 'updatePremiumExpiry']);
+
     // Analytics & Reporting (Phase 5)
     Route::get('/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getAnalytics']);
     Route::get('/reports/users/export', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportUserList']);

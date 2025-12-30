@@ -7,6 +7,9 @@
     <title>Edit User - DISINFO SCANNER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
@@ -20,7 +23,7 @@
 
             <!-- User Edit Content -->
             <main class="flex-1 p-6">
-                <div class="max-w-4xl mx-auto" x-data="userEdit" x-init="init('{{ $userId }}')">
+                <div class="max-w-4xl mx-auto" x-data="userEdit" x-init="init('{{ $userId }}')" x-cloak>
                     <!-- Back Button -->
                     <div class="mb-6">
                         <a href="{{ route('admin.users.index') }}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
@@ -101,14 +104,19 @@
                                         </template>
                                     </div>
                                 </div>
+                                <!-- T035: Points Display (US5) -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">積分</label>
+                                    <p class="text-gray-900 text-lg font-semibold" x-text="user.points ?? 0"></p>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Role Management Card (T235) -->
+                        <!-- Role Management Card (T030-T032: Inline Role Buttons) -->
                         <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                             <h2 class="text-lg font-semibold text-gray-900 mb-4">角色管理</h2>
 
-                            <!-- Warning for self-edit (T239-T241) -->
+                            <!-- Warning for self-edit (T032) -->
                             <div x-show="isSelfEdit" class="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400">
                                 <div class="flex">
                                     <svg class="w-5 h-5 text-yellow-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -123,16 +131,41 @@
 
                             <form @submit.prevent="updateRole">
                                 <div class="mb-4">
-                                    <label for="role" class="block text-sm font-medium text-gray-700 mb-2">用戶角色</label>
-                                    <select id="role"
-                                            x-model="selectedRoleId"
-                                            :disabled="isSelfEdit"
-                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
-                                        <template x-for="role in availableRoles" :key="role.id">
-                                            <option :value="role.id" x-text="role.display_name"></option>
+                                    <label class="block text-sm font-medium text-gray-700 mb-3">用戶角色</label>
+
+                                    <!-- T030: Inline Role Buttons (FR-035 order: 一般會員, 高級會員, 網站編輯, 管理員) -->
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="role in orderedRoles" :key="role.id">
+                                            <button type="button"
+                                                    @click="selectRole(role.id)"
+                                                    :disabled="isSelfEdit"
+                                                    :class="{
+                                                        'bg-blue-600 text-white border-blue-600': selectedRoleId == role.id,
+                                                        'bg-white text-gray-700 border-gray-300 hover:bg-gray-50': selectedRoleId != role.id,
+                                                        'opacity-50 cursor-not-allowed': isSelfEdit
+                                                    }"
+                                                    class="px-4 py-2 border rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                                <span x-text="role.display_name"></span>
+                                            </button>
                                         </template>
-                                    </select>
-                                    <p class="mt-2 text-sm text-gray-500">當前角色：<span class="font-medium" x-text="getCurrentRoleName()"></span></p>
+                                    </div>
+
+                                    <p class="mt-3 text-sm text-gray-500">
+                                        當前角色：<span class="font-medium" x-text="getCurrentRoleName()"></span>
+                                        <template x-if="selectedRoleId != originalRoleId">
+                                            <span class="text-blue-600"> → <span x-text="getSelectedRoleName()"></span></span>
+                                        </template>
+                                    </p>
+
+                                    <!-- T031: Premium expiry warning when selecting Premium Member for non-Premium user -->
+                                    <div x-show="showPremiumExpiryWarning" class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p class="text-sm text-blue-700">
+                                            <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                            </svg>
+                                            此用戶將被設為高級會員，到期日將自動設為 30 天後。
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div class="flex justify-end space-x-3">
@@ -141,11 +174,60 @@
                                         取消
                                     </a>
                                     <button type="submit"
-                                            :disabled="isSelfEdit || saving"
-                                            :class="isSelfEdit || saving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'"
+                                            :disabled="isSelfEdit || saving || selectedRoleId == originalRoleId"
+                                            :class="(isSelfEdit || saving || selectedRoleId == originalRoleId) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'"
                                             class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">
                                         <span x-show="!saving">保存變更</span>
                                         <span x-show="saving">保存中...</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- T027: Premium Expiry Management Card (US3) - Only show for Premium Members -->
+                        <div x-show="isPremiumMember" class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">高級會員到期日管理</h2>
+
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">當前到期日</label>
+                                <div class="flex items-center space-x-3">
+                                    <p class="text-gray-900 text-lg" x-text="formatPremiumExpiry(user.premium_expires_at)"></p>
+                                    <!-- FR-027: Expired indicator -->
+                                    <span x-show="isPremiumExpired"
+                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        已過期
+                                    </span>
+                                    <span x-show="!isPremiumExpired && user.premium_expires_at"
+                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        有效
+                                    </span>
+                                </div>
+                            </div>
+
+                            <form @submit.prevent="updatePremiumExpiry">
+                                <div class="mb-4">
+                                    <label for="new_expiry" class="block text-sm font-medium text-gray-700 mb-2">延長到期日至</label>
+                                    <input type="date"
+                                           id="new_expiry"
+                                           x-model="newPremiumExpiry"
+                                           :min="tomorrowDate"
+                                           class="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <p class="mt-1 text-sm text-gray-500">只能選擇明天或之後的日期</p>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit"
+                                            :disabled="!newPremiumExpiry || savingExpiry"
+                                            :class="(!newPremiumExpiry || savingExpiry) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
+                                            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium">
+                                        <span x-show="!savingExpiry">延長到期日</span>
+                                        <span x-show="savingExpiry">更新中...</span>
                                     </button>
                                 </div>
                             </form>
@@ -163,11 +245,49 @@
                 user: {},
                 loading: true,
                 saving: false,
+                savingExpiry: false,
                 verifyingEmail: false,
                 isSelfEdit: false,
                 selectedRoleId: null,
+                originalRoleId: null,
                 availableRoles: [],
                 currentUserId: null,
+                newPremiumExpiry: '',
+
+                // Ordered roles for inline buttons (FR-035)
+                get orderedRoles() {
+                    const order = ['regular_member', 'premium_member', 'website_editor', 'administrator'];
+                    return this.availableRoles
+                        .filter(r => order.includes(r.name))
+                        .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+                },
+
+                // Check if user is Premium Member
+                get isPremiumMember() {
+                    if (!this.user.roles || this.user.roles.length === 0) return false;
+                    return this.user.roles.some(r => r.name === 'premium_member');
+                },
+
+                // Check if premium has expired
+                get isPremiumExpired() {
+                    if (!this.user.premium_expires_at) return false;
+                    return new Date(this.user.premium_expires_at) < new Date();
+                },
+
+                // Show warning when selecting Premium Member for non-Premium user
+                get showPremiumExpiryWarning() {
+                    if (!this.selectedRoleId || !this.originalRoleId) return false;
+                    const selectedRole = this.availableRoles.find(r => r.id == this.selectedRoleId);
+                    const originalRole = this.availableRoles.find(r => r.id == this.originalRoleId);
+                    return selectedRole?.name === 'premium_member' && originalRole?.name !== 'premium_member';
+                },
+
+                // Get tomorrow's date for min date picker
+                get tomorrowDate() {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    return tomorrow.toISOString().split('T')[0];
+                },
 
                 async init(userId) {
                     await this.fetchCurrentUser();
@@ -178,6 +298,13 @@
 
                     if (this.user.roles && this.user.roles.length > 0) {
                         this.selectedRoleId = this.user.roles[0].id;
+                        this.originalRoleId = this.user.roles[0].id;
+                    }
+
+                    // Set default date picker value to current expiry date
+                    if (this.user.premium_expires_at) {
+                        const expiryDate = new Date(this.user.premium_expires_at);
+                        this.newPremiumExpiry = expiryDate.toISOString().split('T')[0];
                     }
                 },
 
@@ -188,14 +315,9 @@
                         });
                         if (response.ok) {
                             const result = await response.json();
-                            console.log('Current user response:', result);
                             if (result.success && result.data && result.data.user) {
                                 this.currentUserId = result.data.user.id;
-                            } else {
-                                console.error('Invalid /api/auth/me response format:', result);
                             }
-                        } else {
-                            console.error('Failed to fetch current user, status:', response.status);
                         }
                     } catch (error) {
                         console.error('Failed to fetch current user:', error);
@@ -233,25 +355,33 @@
                             headers: { 'Accept': 'application/json' }
                         });
                         if (response.ok) {
-                            const data = await response.json();
-                            // Extract unique roles from users
-                            const roles = [
+                            // Hardcoded roles (matching database)
+                            this.availableRoles = [
                                 { id: 1, name: 'visitor', display_name: '訪客' },
                                 { id: 2, name: 'regular_member', display_name: '一般會員' },
                                 { id: 3, name: 'premium_member', display_name: '高級會員' },
                                 { id: 4, name: 'website_editor', display_name: '網站編輯' },
                                 { id: 5, name: 'administrator', display_name: '管理員' }
                             ];
-                            this.availableRoles = roles;
                         }
                     } catch (error) {
                         console.error('Failed to fetch roles:', error);
                     }
                 },
 
+                selectRole(roleId) {
+                    if (!this.isSelfEdit) {
+                        this.selectedRoleId = roleId;
+                    }
+                },
+
                 async updateRole() {
                     if (this.isSelfEdit) {
                         alert('您不能變更自己的權限等級！');
+                        return;
+                    }
+
+                    if (this.selectedRoleId == this.originalRoleId) {
                         return;
                     }
 
@@ -271,6 +401,7 @@
                         if (response.ok) {
                             alert('角色已成功更新！');
                             await this.fetchUser(this.user.id);
+                            this.originalRoleId = this.selectedRoleId;
                         } else {
                             const error = await response.json();
                             alert(error.message || '更新角色失敗');
@@ -280,6 +411,42 @@
                         alert('更新角色時發生錯誤');
                     } finally {
                         this.saving = false;
+                    }
+                },
+
+                async updatePremiumExpiry() {
+                    if (!this.newPremiumExpiry) {
+                        alert('請選擇新的到期日');
+                        return;
+                    }
+
+                    this.savingExpiry = true;
+                    try {
+                        const response = await fetch(`/api/admin/users/${this.user.id}/premium-expiry`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                premium_expires_at: this.newPremiumExpiry
+                            })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            alert(result.message || '到期日已更新！');
+                            await this.fetchUser(this.user.id);
+                            this.newPremiumExpiry = '';
+                        } else {
+                            const error = await response.json();
+                            alert(error.message || '更新到期日失敗');
+                        }
+                    } catch (error) {
+                        console.error('Failed to update premium expiry:', error);
+                        alert('更新到期日時發生錯誤');
+                    } finally {
+                        this.savingExpiry = false;
                     }
                 },
 
@@ -320,6 +487,11 @@
                     return 'N/A';
                 },
 
+                getSelectedRoleName() {
+                    const role = this.availableRoles.find(r => r.id == this.selectedRoleId);
+                    return role ? role.display_name : 'N/A';
+                },
+
                 formatDate(dateString) {
                     if (!dateString) return 'N/A';
                     const date = new Date(dateString);
@@ -330,6 +502,20 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
+                },
+
+                formatPremiumExpiry(dateString) {
+                    if (!dateString) return '未設定';
+                    const date = new Date(dateString);
+                    // Format in GMT+8
+                    return date.toLocaleDateString('zh-TW', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'Asia/Taipei'
+                    }) + ' (GMT+8)';
                 }
             }));
         });

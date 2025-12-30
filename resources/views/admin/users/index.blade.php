@@ -7,6 +7,7 @@
     <title>Users Management - DISINFO SCANNER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
@@ -20,24 +21,60 @@
 
             <!-- User List Content -->
             <main class="flex-1 p-6">
-                <div class="max-w-7xl mx-auto">
+                <div class="max-w-7xl mx-auto" x-data="batchActions">
                     <!-- Page Title -->
-                    <div class="mb-6 flex items-center justify-between">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900">Users Management</h1>
-                            <p class="mt-1 text-sm text-gray-600">管理所有系統用戶與權限</p>
-                        </div>
-                        <div x-data="csvExport">
-                            <button @click="exportCsv"
-                                    :disabled="selectedUsers.length === 0"
-                                    :class="selectedUsers.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
-                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg transition-colors">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <div class="mb-6">
+                        <h1 class="text-3xl font-bold text-gray-900">Users Management</h1>
+                        <p class="mt-1 text-sm text-gray-600">管理所有系統用戶與權限</p>
+                    </div>
+
+                    <!-- Batch Action Toolbar (014-users-management-enhancement T015) -->
+                    <div x-show="selectedUsers.length > 0" x-cloak
+                         class="sticky top-0 z-10 bg-white shadow-sm rounded-lg p-4 mb-4 border border-blue-200">
+                        <div class="flex items-center justify-between flex-wrap gap-4">
+                            <div class="flex items-center text-sm font-medium text-blue-700">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                Export CSV
-                                <span x-show="selectedUsers.length > 0" class="ml-2 bg-green-800 px-2 py-0.5 rounded text-xs" x-text="`(${selectedUsers.length})`"></span>
-                            </button>
+                                已選擇 <span class="mx-1 font-bold" x-text="selectedUsers.length"></span> 位用戶
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <!-- Batch Change Role Button -->
+                                <button @click="showRoleModal = true"
+                                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                    批次更改角色
+                                </button>
+
+                                <!-- Batch Send Email Button -->
+                                <button @click="showEmailModal = true"
+                                        class="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                    批次發送郵件
+                                </button>
+
+                                <!-- Export CSV Button -->
+                                <button @click="exportCsv"
+                                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Export CSV
+                                </button>
+
+                                <!-- Clear Selection -->
+                                <button @click="clearSelection"
+                                        class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    取消選擇
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -92,6 +129,7 @@
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用戶</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電子郵件</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">積分</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">所在地</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
@@ -102,7 +140,7 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <template x-if="loading">
                                         <tr>
-                                            <td colspan="8" class="px-6 py-12 text-center">
+                                            <td colspan="9" class="px-6 py-12 text-center">
                                                 <div class="flex justify-center items-center">
                                                     <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -116,7 +154,7 @@
 
                                     <template x-if="!loading && users.length === 0">
                                         <tr>
-                                            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                                            <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                                                 <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                                 </svg>
@@ -145,6 +183,9 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900" x-text="user.email"></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900" x-text="user.points ?? 0"></div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900" x-text="user.location || '-'"></div>
@@ -223,6 +264,84 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Role Change Modal (T016) -->
+                    <div x-show="showRoleModal" x-cloak
+                         class="fixed inset-0 z-50 flex items-center justify-center"
+                         @keydown.escape.window="showRoleModal = false">
+                        <div class="fixed inset-0 bg-black bg-opacity-50" @click="showRoleModal = false"></div>
+                        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">批次更改角色</h3>
+                            <p class="text-sm text-gray-600 mb-4">
+                                將 <span class="font-bold text-blue-600" x-text="selectedUsers.length"></span> 位用戶的角色更改為：
+                            </p>
+                            <select x-model="selectedRoleId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                                <option value="">選擇角色...</option>
+                                <option value="2">一般會員</option>
+                                <option value="3">高級會員</option>
+                                <option value="4">網站編輯</option>
+                                <option value="5">管理員</option>
+                            </select>
+                            <div x-show="selectedRoleId == 3" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                新高級會員將自動設置 30 天的會員到期日
+                            </div>
+                            <div x-show="roleMessage" :class="roleSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'" class="mb-4 p-3 border rounded-lg text-sm" x-text="roleMessage"></div>
+                            <div class="flex justify-end gap-3">
+                                <button @click="showRoleModal = false; roleMessage = ''" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">取消</button>
+                                <button @click="batchChangeRole" :disabled="!selectedRoleId || roleChanging"
+                                        :class="!selectedRoleId || roleChanging ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'"
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                                    <span x-show="!roleChanging">確認更改</span>
+                                    <span x-show="roleChanging">處理中...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Composition Modal (T023) -->
+                    <div x-show="showEmailModal" x-cloak
+                         class="fixed inset-0 z-50 flex items-center justify-center"
+                         @keydown.escape.window="showEmailModal = false">
+                        <div class="fixed inset-0 bg-black bg-opacity-50" @click="showEmailModal = false"></div>
+                        <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">批次發送郵件</h3>
+                            <p class="text-sm text-gray-600 mb-4">
+                                收件人：<span class="font-bold text-purple-600" x-text="selectedUsers.length"></span> 位用戶
+                            </p>
+                            <div x-show="selectedUsers.length > 50 && selectedUsers.length <= 100" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                您將發送給超過 50 位用戶，請確認操作
+                            </div>
+                            <div x-show="selectedUsers.length > 100" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                                批次郵件最多只能發送給 100 位用戶
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">郵件主題</label>
+                                <input type="text" x-model="emailSubject" placeholder="請輸入郵件主題..."
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">郵件內容</label>
+                                <textarea x-model="emailBody" rows="6" placeholder="請輸入郵件內容..."
+                                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+                            </div>
+                            <div x-show="emailMessage" :class="emailSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'" class="mb-4 p-3 border rounded-lg text-sm" x-text="emailMessage"></div>
+                            <div class="flex justify-end gap-3">
+                                <button @click="showEmailModal = false; emailMessage = ''" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">取消</button>
+                                <button @click="batchSendEmail" :disabled="!emailSubject || !emailBody || emailSending || selectedUsers.length > 100"
+                                        :class="!emailSubject || !emailBody || emailSending || selectedUsers.length > 100 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'"
+                                        class="px-4 py-2 bg-purple-600 text-white rounded-lg">
+                                    <span x-show="!emailSending">發送郵件</span>
+                                    <span x-show="emailSending">發送中...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -232,16 +351,36 @@
         document.addEventListener('alpine:init', () => {
             // Shared store for selected users (must be inside alpine:init)
             window.selectedUsersStore = Alpine.reactive({ users: [] });
-            // CSV Export Component
-            Alpine.data('csvExport', () => ({
+
+            // Batch Actions Component (014-users-management-enhancement)
+            Alpine.data('batchActions', () => ({
+                showRoleModal: false,
+                showEmailModal: false,
+                selectedRoleId: '',
+                roleChanging: false,
+                roleMessage: '',
+                roleSuccess: false,
+                emailSubject: '',
+                emailBody: '',
+                emailSending: false,
+                emailMessage: '',
+                emailSuccess: false,
+
                 get selectedUsers() {
                     return window.selectedUsersStore.users;
+                },
+
+                set selectedUsers(value) {
+                    window.selectedUsersStore.users = value;
+                },
+
+                clearSelection() {
+                    window.selectedUsersStore.users = [];
                 },
 
                 exportCsv() {
                     if (this.selectedUsers.length === 0) return;
 
-                    // Create CSV content
                     const headers = ['Email'];
                     const rows = this.selectedUsers.map(user => [user.email]);
 
@@ -250,7 +389,6 @@
                         csvContent += row.map(field => `"${(field || '').replace(/"/g, '""')}"`).join(',') + '\n';
                     });
 
-                    // Download CSV
                     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement('a');
                     const url = URL.createObjectURL(blob);
@@ -260,6 +398,98 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                },
+
+                async batchChangeRole() {
+                    if (!this.selectedRoleId || this.roleChanging) return;
+
+                    this.roleChanging = true;
+                    this.roleMessage = '';
+
+                    try {
+                        const response = await fetch('/api/admin/users/batch-role', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                user_ids: this.selectedUsers.map(u => u.id),
+                                role_id: parseInt(this.selectedRoleId)
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            this.roleSuccess = true;
+                            this.roleMessage = data.message;
+                            // Refresh user list
+                            window.dispatchEvent(new CustomEvent('refresh-users'));
+                            // Clear selection after success
+                            setTimeout(() => {
+                                this.showRoleModal = false;
+                                this.roleMessage = '';
+                                this.selectedRoleId = '';
+                                this.clearSelection();
+                            }, 1500);
+                        } else {
+                            this.roleSuccess = false;
+                            this.roleMessage = data.message || '操作失敗';
+                        }
+                    } catch (error) {
+                        this.roleSuccess = false;
+                        this.roleMessage = '網路錯誤，請稍後再試';
+                    } finally {
+                        this.roleChanging = false;
+                    }
+                },
+
+                async batchSendEmail() {
+                    if (!this.emailSubject || !this.emailBody || this.emailSending) return;
+                    if (this.selectedUsers.length > 100) return;
+
+                    this.emailSending = true;
+                    this.emailMessage = '';
+
+                    try {
+                        const response = await fetch('/api/admin/users/batch-email', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                user_ids: this.selectedUsers.map(u => u.id),
+                                subject: this.emailSubject,
+                                body: this.emailBody
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            this.emailSuccess = true;
+                            this.emailMessage = data.message;
+                            setTimeout(() => {
+                                this.showEmailModal = false;
+                                this.emailMessage = '';
+                                this.emailSubject = '';
+                                this.emailBody = '';
+                                this.clearSelection();
+                            }, 2000);
+                        } else {
+                            this.emailSuccess = false;
+                            this.emailMessage = data.message || '發送失敗';
+                        }
+                    } catch (error) {
+                        this.emailSuccess = false;
+                        this.emailMessage = '網路錯誤，請稍後再試';
+                    } finally {
+                        this.emailSending = false;
+                    }
                 }
             }));
 
@@ -269,7 +499,6 @@
                 roleFilter: '',
 
                 fetchUsers() {
-                    // Trigger user list refresh
                     window.dispatchEvent(new CustomEvent('filter-changed', {
                         detail: {
                             search: this.search,
@@ -323,13 +552,11 @@
 
                 toggleSelectAll(checked) {
                     if (checked) {
-                        // Add all current page users that aren't already selected
                         const newSelections = this.users
                             .filter(user => !this.isSelected(user.id))
                             .map(user => ({ id: user.id, email: user.email }));
                         this.selectedUsers = [...this.selectedUsers, ...newSelections];
                     } else {
-                        // Remove all current page users from selection
                         const currentPageIds = this.users.map(u => u.id);
                         this.selectedUsers = this.selectedUsers.filter(u => !currentPageIds.includes(u.id));
                     }
@@ -338,10 +565,13 @@
                 init() {
                     this.fetchUsers();
 
-                    // Listen for filter changes
                     window.addEventListener('filter-changed', (e) => {
                         this.filters = e.detail;
                         this.pagination.current_page = 1;
+                        this.fetchUsers();
+                    });
+
+                    window.addEventListener('refresh-users', () => {
                         this.fetchUsers();
                     });
                 },
@@ -404,19 +634,16 @@
                     const pages = [];
 
                     if (last <= 7) {
-                        // Show all pages if total <= 7
                         for (let i = 1; i <= last; i++) {
                             pages.push(i);
                         }
                     } else {
-                        // Always show first page
                         pages.push(1);
 
                         if (current > 3) {
                             pages.push('...');
                         }
 
-                        // Show pages around current
                         const start = Math.max(2, current - 1);
                         const end = Math.min(last - 1, current + 1);
 
@@ -428,7 +655,6 @@
                             pages.push('...');
                         }
 
-                        // Always show last page
                         pages.push(last);
                     }
 
