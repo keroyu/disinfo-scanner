@@ -38,7 +38,7 @@ PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
 
 ## Recent Changes
 - 014-users-management-enhancement: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (CDN), Resend (existing email service)
-- 013-point-system: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js (existing), Tailwind CSS (existing)
+- 014-users-management-enhancement: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (CDN), Resend (existing email service)
 - 013-point-system: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js (existing), Tailwind CSS (existing)
   - ✅ **Points System**: Complete implementation (39/39 tasks)
     - **Phase 1**: Database schema (users.points, users.premium_expires_at, point_logs table)
