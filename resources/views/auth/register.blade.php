@@ -88,9 +88,9 @@
                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <label for="terms" class="ml-2 block text-sm text-gray-900">
                     我同意
-                    <a href="#" class="text-blue-600 hover:text-blue-500">服務條款</a>
+                    <a href="{{ route('legal.terms') }}" target="_blank" class="text-blue-600 hover:text-blue-500">服務條款</a>
                     和
-                    <a href="#" class="text-blue-600 hover:text-blue-500">隱私政策</a>
+                    <a href="{{ route('legal.privacy') }}" target="_blank" class="text-blue-600 hover:text-blue-500">隱私政策</a>
                 </label>
             </div>
 

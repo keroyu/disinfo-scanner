@@ -43,6 +43,15 @@ Route::get('/', function () {
     return view('import.index');
 })->name('import.index');
 
+// Legal pages (Terms of Service & Privacy Policy)
+Route::get('/terms', function () {
+    return view('legal.terms');
+})->name('legal.terms');
+
+Route::get('/privacy', function () {
+    return view('legal.privacy');
+})->name('legal.privacy');
+
 // Channel list page (T437: Apply auth middleware for Regular Members+)
 Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'index'])
     ->middleware('auth')
