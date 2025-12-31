@@ -77,6 +77,15 @@
                                         <i class="fas fa-cog mr-2"></i> 帳號設定
                                     </a>
 
+                                    @if(auth()->user()->roles->contains('name', 'premium_member') && auth()->user()->premium_expires_at)
+                                        @php
+                                            $daysRemaining = (int) now()->diffInDays(auth()->user()->premium_expires_at, false);
+                                        @endphp
+                                        <div class="px-4 py-2 text-sm text-orange-600">
+                                            <i class="fas fa-clock mr-2"></i> 會員到期還有 {{ max(0, $daysRemaining) }} 天
+                                        </div>
+                                    @endif
+
                                     @if(auth()->user()->roles->contains('name', 'administrator'))
                                         <a href="{{ route('admin.dashboard') }}"
                                            class="block px-4 py-2 text-sm text-purple-600 hover:bg-purple-50">
