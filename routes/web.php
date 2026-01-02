@@ -52,6 +52,10 @@ Route::get('/privacy', function () {
     return view('legal.privacy');
 })->name('legal.privacy');
 
+Route::get('/consumer', function () {
+    return view('legal.consumer');
+})->name('legal.consumer');
+
 // Channel list page (T437: Apply auth middleware for Regular Members+)
 Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'index'])
     ->middleware('auth')

@@ -197,7 +197,21 @@
 
     <footer class="bg-white border-t mt-12">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <p class="text-center text-gray-500 text-sm">Disinfo Scanner 留言資料分析系統 v1.0.0</p>
+            <div class="flex flex-col items-center space-y-4">
+                {{-- Legal Links --}}
+                <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+                    <a href="{{ route('legal.terms') }}" class="hover:text-gray-700 transition-colors">服務條款</a>
+                    <a href="{{ route('legal.privacy') }}" class="hover:text-gray-700 transition-colors">隱私政策</a>
+                    <a href="{{ route('legal.consumer') }}" class="hover:text-gray-700 transition-colors">消費者須知</a>
+                    <a href="https://portaly.cc/kyontw/support" target="_blank" rel="noopener noreferrer" class="hover:text-pink-500 transition-colors">
+                        <i class="fas fa-heart text-pink-400 mr-1"></i>贊助站長
+                    </a>
+                </nav>
+                {{-- Copyright --}}
+                <p class="text-center text-gray-400 text-sm">
+                    &copy; {{ date('Y') }} 投好壯壯有限公司 版權所有
+                </p>
+            </div>
         </div>
     </footer>
 
