@@ -64,7 +64,7 @@
                                  x-transition:leave="transition ease-in duration-75"
                                  x-transition:leave-start="transform opacity-100 scale-100"
                                  x-transition:leave-end="transform opacity-0 scale-95"
-                                 class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                                 class="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
                                  style="display: none;">
                                 <div class="py-1">
                                     <div class="px-4 py-2 border-b border-gray-100">
@@ -81,8 +81,14 @@
                                         @php
                                             $daysRemaining = (int) now()->diffInDays(auth()->user()->premium_expires_at, false);
                                         @endphp
-                                        <div class="px-4 py-2 text-sm text-orange-600">
-                                            <i class="fas fa-clock mr-2"></i> 會員到期還有 {{ max(0, $daysRemaining) }} 天
+                                        <div class="px-4 py-2 text-sm text-orange-600 flex items-center justify-between">
+                                            <span>
+                                                <i class="fas fa-clock mr-2"></i> 會員到期還有 {{ max(0, $daysRemaining) }} 天
+                                            </span>
+                                            <a href="{{ route('upgrade') }}"
+                                               class="ml-2 px-2 py-0.5 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded transition">
+                                                延期
+                                            </a>
                                         </div>
                                     @endif
 

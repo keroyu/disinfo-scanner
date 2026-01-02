@@ -136,4 +136,16 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
         ->names('admin.payment-products');
     Route::patch('payment-products/{payment_product}/toggle-status', [App\Http\Controllers\Admin\PaymentProductController::class, 'toggleStatus'])
         ->name('admin.payment-products.toggle-status');
+
+    // T047: Payment Settings routes (015-membership-payment)
+    Route::get('payment-settings', [App\Http\Controllers\Admin\PaymentSettingsController::class, 'index'])
+        ->name('admin.payment-settings.index');
+    Route::post('payment-settings', [App\Http\Controllers\Admin\PaymentSettingsController::class, 'update'])
+        ->name('admin.payment-settings.update');
+
+    // T055: Payment Logs routes (015-membership-payment)
+    Route::get('payment-logs', [App\Http\Controllers\Admin\PaymentLogController::class, 'index'])
+        ->name('admin.payment-logs.index');
+    Route::get('payment-logs/{paymentLog}', [App\Http\Controllers\Admin\PaymentLogController::class, 'show'])
+        ->name('admin.payment-logs.show');
 });

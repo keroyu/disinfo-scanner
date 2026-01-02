@@ -33,6 +33,7 @@ class PaymentLogFactory extends Factory
             'raw_payload' => json_encode(['test' => true]),
             'trace_id' => (string) Str::uuid(),
             'processed_at' => now(),
+            'created_at' => now(),
         ];
     }
 
