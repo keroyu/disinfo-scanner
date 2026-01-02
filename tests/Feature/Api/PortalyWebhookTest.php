@@ -290,4 +290,59 @@ class PortalyWebhookTest extends TestCase
             $response->json('trace_id')
         );
     }
+
+    /**
+     * T061: Additional refund test - verify refund creates proper log entry
+     */
+    public function test_refund_webhook_creates_log_with_correct_event_type(): void
+    {
+        $user = User::factory()->create(['email' => 'refund-test@example.com']);
+
+        $payload = $this->getValidPayload('refund-test@example.com');
+        $payload['event'] = 'refund';
+        $orderId = 'refund-order-' . uniqid();
+        $payload['data']['id'] = $orderId;
+        $signature = $this->generateSignature($payload['data'], $this->webhookSecret);
+
+        $response = $this->postJson('/api/webhooks/portaly', $payload, [
+            'X-Portaly-Signature' => $signature,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['status' => 'refund']);
+
+        // Verify log is created with correct event_type and status
+        $this->assertDatabaseHas('payment_logs', [
+            'order_id' => $orderId,
+            'event_type' => 'refund',
+            'status' => 'refund',
+            'customer_email' => 'refund-test@example.com',
+        ]);
+    }
+
+    /**
+     * T061: Refund for unknown user should still log
+     */
+    public function test_refund_webhook_for_unknown_user_still_logs(): void
+    {
+        $payload = $this->getValidPayload('unknown-refund@example.com');
+        $payload['event'] = 'refund';
+        $orderId = 'refund-unknown-order-' . uniqid();
+        $payload['data']['id'] = $orderId;
+        $signature = $this->generateSignature($payload['data'], $this->webhookSecret);
+
+        $response = $this->postJson('/api/webhooks/portaly', $payload, [
+            'X-Portaly-Signature' => $signature,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['status' => 'refund']);
+
+        // Should log even without user matching
+        $this->assertDatabaseHas('payment_logs', [
+            'order_id' => $orderId,
+            'event_type' => 'refund',
+            'status' => 'refund',
+        ]);
+    }
 }
