@@ -56,6 +56,12 @@ Route::get('/consumer', function () {
     return view('legal.consumer');
 })->name('legal.consumer');
 
+Route::get('/points-guide', function () {
+    $settingService = app(\App\Services\SettingService::class);
+    $pointsPerDay = $settingService->getPointsPerDay();
+    return view('legal.points-guide', compact('pointsPerDay'));
+})->name('legal.points-guide');
+
 // Channel list page (T437: Apply auth middleware for Regular Members+)
 Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'index'])
     ->middleware('auth')

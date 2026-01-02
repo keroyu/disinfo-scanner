@@ -66,12 +66,14 @@ class PointLog extends Model
 
     /**
      * Get action display name in Traditional Chinese.
+     * T106: Added 'uapi_import' action type for U-API video imports
      */
     public function getActionDisplayAttribute(): string
     {
         return match ($this->action) {
             'report' => '回報貼文',
             'redeem' => '兌換期限',
+            'uapi_import' => 'U-API 導入',
             default => $this->action,
         };
     }

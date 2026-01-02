@@ -154,15 +154,11 @@ class UserSettingsController extends Controller
     /**
      * Get point logs for the authenticated user.
      * T029: Add pointLogs() method to UserSettingsController
+     * T109: Updated to allow all logged-in users to view their point logs
      */
     public function pointLogs()
     {
         $user = auth()->user();
-
-        // Only premium users can view point logs
-        if (!$user->isPremium()) {
-            return response()->json(['error' => '只有有效的高級會員才能查看積分記錄。'], 403);
-        }
 
         $logs = $user->pointLogs()->get()->map(function ($log) {
             return [

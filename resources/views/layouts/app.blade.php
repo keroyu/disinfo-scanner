@@ -203,6 +203,7 @@
                     <a href="{{ route('legal.terms') }}" class="hover:text-gray-700 transition-colors">服務條款</a>
                     <a href="{{ route('legal.privacy') }}" class="hover:text-gray-700 transition-colors">隱私政策</a>
                     <a href="{{ route('legal.consumer') }}" class="hover:text-gray-700 transition-colors">消費者須知</a>
+                    <a href="{{ route('legal.points-guide') }}" class="hover:text-gray-700 transition-colors">積分系統說明</a>
                     <a href="https://portaly.cc/kyontw/support" target="_blank" rel="noopener noreferrer" class="hover:text-pink-500 transition-colors">
                         <i class="fas fa-heart text-pink-400 mr-1"></i>贊助站長
                     </a>
