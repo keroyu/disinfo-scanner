@@ -94,10 +94,10 @@
                                     @endif
 
                                     @if(auth()->user()->roles->contains('name', 'regular_member'))
-                                        <button onclick="showUpgradeModal()"
-                                                class="w-full text-left block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">
+                                        <a href="{{ route('upgrade') }}"
+                                           class="block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">
                                             <i class="fas fa-star mr-2"></i> 升級為高級會員
-                                        </button>
+                                        </a>
                                     @endif
 
                                     <div class="border-t border-gray-100"></div>

@@ -137,6 +137,31 @@ return [
         'password_confirmation' => [
             'required' => '請確認您的新密碼',
         ],
+        'name' => [
+            'required' => '商品名稱為必填',
+        ],
+        'portaly_product_id' => [
+            'required' => 'Product ID 為必填',
+            'unique' => '此 Product ID 已存在',
+        ],
+        'portaly_url' => [
+            'required' => 'Portaly 連結為必填',
+            'url' => 'Portaly 連結格式不正確',
+        ],
+        'price' => [
+            'required' => '價格為必填',
+            'min' => '價格必須大於 0',
+            'integer' => '價格必須是整數',
+        ],
+        'duration_days' => [
+            'required' => '會員天數為必填',
+            'min' => '會員天數必須大於 0',
+            'integer' => '會員天數必須是整數',
+        ],
+        'portaly_webhook_secret' => [
+            'required' => 'Webhook 金鑰為必填',
+            'min' => 'Webhook 金鑰至少需要 :min 個字元',
+        ],
     ],
 
     /*
@@ -154,5 +179,11 @@ return [
         'name' => '名稱',
         'youtube_api_key' => 'YouTube API 金鑰',
         'verification_method' => '驗證方式',
+        'portaly_product_id' => 'Product ID',
+        'portaly_url' => 'Portaly 連結',
+        'portaly_webhook_secret' => 'Webhook 金鑰',
+        'duration_days' => '會員天數',
+        'action_type' => '動作類型',
+        'status' => '狀態',
     ],
 ];

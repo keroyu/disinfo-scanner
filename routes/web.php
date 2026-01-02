@@ -65,6 +65,11 @@ Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'
 // Videos list page
 Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->name('videos.index');
 
+// Upgrade page (015-membership-payment)
+Route::get('/upgrade', [\App\Http\Controllers\UpgradeController::class, 'index'])
+    ->middleware('auth')
+    ->name('upgrade');
+
 // User settings page
 Route::middleware('auth')->group(function () {
     Route::get('/settings', [\App\Http\Controllers\UserSettingsController::class, 'index'])->name('settings.index');
@@ -125,4 +130,10 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
         ->name('admin.points.settings');
     Route::post('/points/settings', [App\Http\Controllers\Admin\PointSettingsController::class, 'update'])
         ->name('admin.points.settings.update');
+
+    // T037: Payment Products routes (015-membership-payment)
+    Route::resource('payment-products', App\Http\Controllers\Admin\PaymentProductController::class)
+        ->names('admin.payment-products');
+    Route::patch('payment-products/{payment_product}/toggle-status', [App\Http\Controllers\Admin\PaymentProductController::class, 'toggleStatus'])
+        ->name('admin.payment-products.toggle-status');
 });
