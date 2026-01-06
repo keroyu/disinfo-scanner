@@ -80,6 +80,13 @@ Route::get('/upgrade', [\App\Http\Controllers\UpgradeController::class, 'index']
     ->middleware('auth')
     ->name('upgrade');
 
+// Payment success return page (015-membership-payment US7)
+// FR-052: Success return page at /upgrade/success
+// FR-056: Requires authentication
+Route::get('/upgrade/success', [\App\Http\Controllers\UpgradeController::class, 'success'])
+    ->middleware('auth')
+    ->name('upgrade.success');
+
 // User settings page
 Route::middleware('auth')->group(function () {
     Route::get('/settings', [\App\Http\Controllers\UserSettingsController::class, 'index'])->name('settings.index');
