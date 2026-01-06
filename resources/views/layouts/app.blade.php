@@ -82,7 +82,7 @@
                                            target="_blank"
                                            rel="noopener noreferrer"
                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="fab fa-threads mr-2"></i> Threads 回報系統
+                                            <i class="fas fa-flag mr-2"></i> Threads 回報系統
                                         </a>
                                     @endif
 
