@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentService
 {
+    protected RolePermissionService $roleService;
+
+    public function __construct(RolePermissionService $roleService)
+    {
+        $this->roleService = $roleService;
+    }
+
     /**
      * Extend premium membership for a user.
      *
@@ -22,8 +29,9 @@ class PaymentService
             // Lock the user row to prevent race conditions
             $user = User::lockForUpdate()->find($user->id);
 
+            // Clone the Carbon instance to avoid mutating the original
             $startDate = $user->isPremium() && $user->premium_expires_at->isFuture()
-                ? $user->premium_expires_at
+                ? $user->premium_expires_at->copy()
                 : now();
 
             $newExpiryDate = $startDate->addDays($days);
@@ -31,9 +39,21 @@ class PaymentService
             $user->premium_expires_at = $newExpiryDate;
             $user->save();
 
-            // Ensure user has premium_member role
-            if (!$user->hasRole('premium_member')) {
-                $user->assignRole('premium_member');
+            // Ensure user has premium_member role using RolePermissionService
+            $hadRole = $this->roleService->hasRole($user, 'premium_member');
+            Log::info('Checking premium_member role before assignment', [
+                'trace_id' => $traceId,
+                'user_id' => $user->id,
+                'had_role' => $hadRole,
+            ]);
+
+            if (!$hadRole) {
+                $assigned = $this->roleService->assignRole($user, 'premium_member');
+                Log::info('Premium member role assignment result', [
+                    'trace_id' => $traceId,
+                    'user_id' => $user->id,
+                    'assigned' => $assigned,
+                ]);
             }
 
             Log::info('Premium membership extended', [

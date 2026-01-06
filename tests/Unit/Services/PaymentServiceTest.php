@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
 use App\Services\PaymentService;
+use App\Services\RolePermissionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -22,7 +23,7 @@ class PaymentServiceTest extends TestCase
     {
         parent::setUp();
         $this->seed(\Database\Seeders\RoleSeeder::class);
-        $this->service = new PaymentService();
+        $this->service = app(PaymentService::class);
     }
 
     public function test_extend_premium_for_new_member_starts_from_now(): void

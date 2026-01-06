@@ -26,7 +26,7 @@ class PortalyWebhookServiceTest extends TestCase
     {
         parent::setUp();
         $this->seed(\Database\Seeders\RoleSeeder::class);
-        $this->service = new PortalyWebhookService(new PaymentService());
+        $this->service = app(PortalyWebhookService::class);
     }
 
     protected function setWebhookSecret(string $secret): void
