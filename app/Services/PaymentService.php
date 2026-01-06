@@ -39,20 +39,22 @@ class PaymentService
             $user->premium_expires_at = $newExpiryDate;
             $user->save();
 
-            // Ensure user has premium_member role using RolePermissionService
-            $hadRole = $this->roleService->hasRole($user, 'premium_member');
-            Log::info('Checking premium_member role before assignment', [
+            // Upgrade user to premium_member role (replaces regular_member)
+            $hadPremiumRole = $this->roleService->hasRole($user, 'premium_member');
+            Log::info('Checking premium_member role before upgrade', [
                 'trace_id' => $traceId,
                 'user_id' => $user->id,
-                'had_role' => $hadRole,
+                'had_premium_role' => $hadPremiumRole,
+                'current_roles' => $user->roles->pluck('name')->toArray(),
             ]);
 
-            if (!$hadRole) {
-                $assigned = $this->roleService->assignRole($user, 'premium_member');
-                Log::info('Premium member role assignment result', [
+            if (!$hadPremiumRole) {
+                // Use syncRoles to replace all roles with premium_member only
+                $this->roleService->syncRoles($user, ['premium_member']);
+                Log::info('User upgraded to premium_member', [
                     'trace_id' => $traceId,
                     'user_id' => $user->id,
-                    'assigned' => $assigned,
+                    'new_roles' => ['premium_member'],
                 ]);
             }
 
