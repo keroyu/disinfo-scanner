@@ -77,6 +77,15 @@
                                         <i class="fas fa-cog mr-2"></i> 帳號設定
                                     </a>
 
+                                    @if(auth()->user()->roles->whereIn('name', ['premium_member', 'website_editor', 'administrator'])->isNotEmpty())
+                                        <a href="https://threads-reporter.on-forge.com/"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="fab fa-threads mr-2"></i> Threads 回報系統
+                                        </a>
+                                    @endif
+
                                     @if(auth()->user()->roles->contains('name', 'premium_member') && auth()->user()->premium_expires_at)
                                         @php
                                             $daysRemaining = (int) now()->diffInDays(auth()->user()->premium_expires_at, false);
