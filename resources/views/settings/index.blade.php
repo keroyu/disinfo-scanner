@@ -51,7 +51,7 @@
         <div class="px-6 py-4">
             <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                 <div x-data="{ editing: false, name: '{{ auth()->user()->name }}', saving: false }">
-                    <dt class="text-sm font-medium text-gray-500">姓名</dt>
+                    <dt class="text-sm font-medium text-gray-500">暱稱</dt>
                     <dd class="mt-1">
                         <template x-if="!editing">
                             <div class="flex items-center gap-2">

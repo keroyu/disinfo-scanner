@@ -47,16 +47,16 @@
             <div class="rounded-md shadow-sm space-y-4">
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                        姓名
+                        暱稱
                     </label>
                     <input id="name" name="name" type="text" required autofocus
                            value="{{ old('name') }}"
-                           aria-label="姓名"
+                           aria-label="暱稱"
                            aria-required="true"
                            aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}"
                            @error('name') aria-describedby="name-error" @enderror
                            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm @error('name') border-red-500 @enderror"
-                           placeholder="請輸入您的姓名">
+                           placeholder="請輸入您的暱稱">
                     @error('name')
                         <p id="name-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
