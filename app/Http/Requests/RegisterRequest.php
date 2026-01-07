@@ -63,8 +63,8 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => '姓名為必填欄位',
-            'name.max' => '姓名長度不得超過 255 個字元',
+            'name.required' => '暱稱為必填欄位',
+            'name.max' => '暱稱長度不得超過 255 個字元',
             'email.required' => '電子郵件為必填欄位',
             'email.email' => '請輸入有效的電子郵件格式',
             'email.unique' => '此電子郵件已被註冊',

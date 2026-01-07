@@ -47,8 +47,8 @@ class UserSettingsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
         ], [
-            'name.required' => '姓名為必填欄位',
-            'name.max' => '姓名長度不得超過 255 個字元',
+            'name.required' => '暱稱為必填欄位',
+            'name.max' => '暱稱長度不得超過 255 個字元',
         ]);
 
         $request->user()->update(['name' => $validated['name']]);
@@ -58,7 +58,7 @@ class UserSettingsController extends Controller
         }
 
         return redirect()->route('settings.index')
-            ->with('success', '✓ 姓名已成功更新');
+            ->with('success', '✓ 暱稱已成功更新');
     }
 
     /**

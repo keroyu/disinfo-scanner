@@ -29,7 +29,7 @@
                 <ul class="list-disc list-inside ml-4 space-y-1">
                     <li>電子郵件地址（用於帳號註冊及通訊）</li>
                     <li>密碼（經加密儲存，無法被任何人讀取原始內容）</li>
-                    <li>使用者姓名或暱稱</li>
+                    <li>使用者暱稱</li>
                 </ul>
 
                 <h3 class="text-lg font-medium text-gray-800 mt-4 mb-2">2.2 身分驗證資料</h3>
