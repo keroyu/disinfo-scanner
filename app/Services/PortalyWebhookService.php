@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\PaymentConfirmationMail;
 use App\Models\PaymentLog;
 use App\Models\PaymentProduct;
 use App\Models\Setting;
@@ -9,6 +10,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class PortalyWebhookService
@@ -164,6 +166,9 @@ class PortalyWebhookService
             'order_id' => $orderId,
         ]);
 
+        // Send confirmation email (non-blocking - failures are logged but don't affect payment processing)
+        $this->sendConfirmationEmail($user, $product, $traceId);
+
         return [
             'success' => true,
             'status' => PaymentLog::STATUS_SUCCESS,
@@ -259,6 +264,38 @@ class PortalyWebhookService
             } else {
                 throw $e;
             }
+        }
+    }
+
+    /**
+     * Send payment confirmation email to the user.
+     *
+     * Email failures are logged but do not block payment processing (FR-066).
+     */
+    protected function sendConfirmationEmail(User $user, PaymentProduct $product, string $traceId): void
+    {
+        try {
+            // Refresh user to get updated premium_expires_at
+            $user->refresh();
+
+            Mail::to($user->email)->send(new PaymentConfirmationMail($user, $product));
+
+            Log::info('Payment confirmation email sent', [
+                'trace_id' => $traceId,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'product_name' => $product->name,
+                'premium_expires_at' => $user->premium_expires_at?->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            // Log failure but don't throw - email failure should not block payment processing
+            Log::error('Failed to send payment confirmation email', [
+                'trace_id' => $traceId,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'product_name' => $product->name,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
