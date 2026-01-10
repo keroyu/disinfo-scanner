@@ -43,6 +43,25 @@ Route::get('/', function () {
     return view('import.index');
 })->name('import.index');
 
+// Legal pages (Terms of Service & Privacy Policy)
+Route::get('/terms', function () {
+    return view('legal.terms');
+})->name('legal.terms');
+
+Route::get('/privacy', function () {
+    return view('legal.privacy');
+})->name('legal.privacy');
+
+Route::get('/consumer', function () {
+    return view('legal.consumer');
+})->name('legal.consumer');
+
+Route::get('/points-guide', function () {
+    $settingService = app(\App\Services\SettingService::class);
+    $pointsPerDay = $settingService->getPointsPerDay();
+    return view('legal.points-guide', compact('pointsPerDay'));
+})->name('legal.points-guide');
+
 // Channel list page (T437: Apply auth middleware for Regular Members+)
 Route::get('/channels', [\App\Http\Controllers\ChannelListController::class, 'index'])
     ->middleware('auth')
@@ -55,6 +74,18 @@ Route::get('/comments', [\App\Http\Controllers\CommentController::class, 'index'
 
 // Videos list page
 Route::get('/videos', [\App\Http\Controllers\VideoController::class, 'index'])->name('videos.index');
+
+// Upgrade page (015-membership-payment)
+Route::get('/upgrade', [\App\Http\Controllers\UpgradeController::class, 'index'])
+    ->middleware('auth')
+    ->name('upgrade');
+
+// Payment success return page (015-membership-payment US7)
+// FR-052: Success return page at /upgrade/success
+// FR-056: Requires authentication
+Route::get('/upgrade/success', [\App\Http\Controllers\UpgradeController::class, 'success'])
+    ->middleware('auth')
+    ->name('upgrade.success');
 
 // User settings page
 Route::middleware('auth')->group(function () {
@@ -116,4 +147,22 @@ Route::prefix('admin')->middleware(['auth', 'check.admin', 'check.admin.session'
         ->name('admin.points.settings');
     Route::post('/points/settings', [App\Http\Controllers\Admin\PointSettingsController::class, 'update'])
         ->name('admin.points.settings.update');
+
+    // T037: Payment Products routes (015-membership-payment)
+    Route::resource('payment-products', App\Http\Controllers\Admin\PaymentProductController::class)
+        ->names('admin.payment-products');
+    Route::patch('payment-products/{payment_product}/toggle-status', [App\Http\Controllers\Admin\PaymentProductController::class, 'toggleStatus'])
+        ->name('admin.payment-products.toggle-status');
+
+    // T047: Payment Settings routes (015-membership-payment)
+    Route::get('payment-settings', [App\Http\Controllers\Admin\PaymentSettingsController::class, 'index'])
+        ->name('admin.payment-settings.index');
+    Route::post('payment-settings', [App\Http\Controllers\Admin\PaymentSettingsController::class, 'update'])
+        ->name('admin.payment-settings.update');
+
+    // T055: Payment Logs routes (015-membership-payment)
+    Route::get('payment-logs', [App\Http\Controllers\Admin\PaymentLogController::class, 'index'])
+        ->name('admin.payment-logs.index');
+    Route::get('payment-logs/{paymentLog}', [App\Http\Controllers\Admin\PaymentLogController::class, 'show'])
+        ->name('admin.payment-logs.show');
 });

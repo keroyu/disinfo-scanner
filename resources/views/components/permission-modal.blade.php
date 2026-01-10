@@ -103,7 +103,7 @@
                                 @if($feature)
                                     「{{ $feature }}」功能僅供高級會員使用。
                                 @else
-                                    ⚠️ 付費功能尚未開放！如純支持可先贊助。
+                                    您可以通過付費或身份驗證提升權限。
                                 @endif
                             </p>
                             <div class="mt-4 bg-blue-50 rounded-md p-4">
@@ -121,17 +121,27 @@
                                         </svg>
                                         所有搜尋功能
                                     </li>
+                                    <li class="flex items-start">
+                                        <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                        </svg>
+                                        取得 Threads 回報權限
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                        </svg>
+                                        查看被回報的 Threads 貼文資料庫
+                                    </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                    <a href="https://portaly.cc/kyontw/support"
-                       target="_blank"
-                       rel="noopener noreferrer"
+                    <a href="{{ route('upgrade') }}"
                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm">
-                        贊助支持本站維護
+                        升級為高級會員
                     </a>
                     <button type="button"
                             @click="open = false"

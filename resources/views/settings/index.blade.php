@@ -51,7 +51,7 @@
         <div class="px-6 py-4">
             <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                 <div x-data="{ editing: false, name: '{{ auth()->user()->name }}', saving: false }">
-                    <dt class="text-sm font-medium text-gray-500">姓名</dt>
+                    <dt class="text-sm font-medium text-gray-500">暱稱</dt>
                     <dd class="mt-1">
                         <template x-if="!editing">
                             <div class="flex items-center gap-2">
@@ -344,12 +344,12 @@
     </div>
     @endif
 
-    <!-- Points System Section (T012-T015: Premium users only) -->
-    @if(auth()->user()->isPremium())
+    <!-- Points System Section (T012-T015, T109-T113: All logged-in users) -->
+    @auth
     <div class="bg-white shadow rounded-lg mb-6">
         <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-medium text-gray-900">積分系統</h2>
-            <p class="mt-1 text-sm text-gray-500">透過回報貼文累積積分，可兌換高級會員期限延長</p>
+            <p class="mt-1 text-sm text-gray-500">透過回報貼文或 U-API 導入影片累積積分，可兌換高級會員期限延長</p>
         </div>
         <div class="px-6 py-4">
             <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
@@ -358,16 +358,18 @@
                     <dt class="text-sm font-medium text-gray-500">目前積分</dt>
                     <dd class="mt-1 text-3xl font-bold text-blue-600">{{ auth()->user()->points }}</dd>
                 </div>
-                <!-- T014: Display premium expiration date -->
+                <!-- T014: Display premium expiration date (premium only) -->
+                @if(auth()->user()->isPremium())
                 <div>
                     <dt class="text-sm font-medium text-gray-500">高級會員到期</dt>
                     <dd class="mt-1 text-sm text-gray-900">
                         {{ auth()->user()->premium_expires_at->timezone('Asia/Taipei')->format('Y-m-d H:i') }} (GMT+8)
                     </dd>
                 </div>
+                @endif
             </dl>
 
-            <!-- Redemption Section (T021-T024) -->
+            <!-- Redemption / Point Earning Section (T021-T024, T109-T113) -->
             <div class="mt-6 pt-6 border-t border-gray-200" x-data="{
                 showConfirm: false,
                 showLogs: false,
@@ -397,22 +399,24 @@
                     }
                 }
             }">
-                <h3 class="text-sm font-medium text-gray-900 mb-4">兌換積分</h3>
+                @if(auth()->user()->isPremium())
+                    <!-- Premium Member: Show Redemption Section -->
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">兌換積分</h3>
 
-                <!-- Batch redemption info (Updated 2025-12-27) -->
-                <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div class="ml-3 text-sm text-blue-700">
-                            <p>兌換規則：<strong>{{ $pointsPerDay }} 積分 = 1 天</strong> 高級會員期限延長</p>
-                            <p class="mt-1">點擊兌換後，將一次性扣除所有可兌換的積分。</p>
+                    <!-- Batch redemption info (Updated 2025-12-27) -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 text-sm text-blue-700">
+                                <p>兌換規則：<strong>{{ $pointsPerDay }} 積分 = 1 天</strong> 高級會員期限延長</p>
+                                <p class="mt-1">點擊兌換後，將一次性扣除所有可兌換的積分。</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
                 @if($redeemableDays > 0)
                     <!-- Batch redemption preview -->
@@ -501,10 +505,48 @@
                     </p>
                 @endif
 
+                @else
+                    <!-- T110-T113: Regular Member Section -->
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">獲取積分</h3>
+
+                    <!-- T111: Upgrade prompt -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 text-sm text-yellow-700">
+                                <p class="font-medium">需升級為高級會員才能兌換積分</p>
+                                <p class="mt-1">升級後即可使用積分延長會員期限。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- T112: Points earning info -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 text-sm text-blue-700">
+                                <p class="font-medium">如何獲得積分？</p>
+                                <ul class="mt-2 list-disc list-inside space-y-1">
+                                    <li>透過 U-API 導入影片可獲得積分（+1 積分/影片）</li>
+                                    <li>回報貼文可獲得積分（+1 積分/貼文）</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- T031: View point logs button -->
                 <button @click="showLogs = true"
                         type="button"
-                        class="ml-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     查看記錄
                 </button>
             </div>

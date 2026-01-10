@@ -64,7 +64,7 @@
                                  x-transition:leave="transition ease-in duration-75"
                                  x-transition:leave-start="transform opacity-100 scale-100"
                                  x-transition:leave-end="transform opacity-0 scale-95"
-                                 class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                                 class="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
                                  style="display: none;">
                                 <div class="py-1">
                                     <div class="px-4 py-2 border-b border-gray-100">
@@ -77,6 +77,30 @@
                                         <i class="fas fa-cog mr-2"></i> 帳號設定
                                     </a>
 
+                                    @if(auth()->user()->roles->whereIn('name', ['premium_member', 'website_editor', 'administrator'])->isNotEmpty())
+                                        <a href="https://threads-reporter.on-forge.com/"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="fas fa-flag mr-2"></i> Threads 回報系統
+                                        </a>
+                                    @endif
+
+                                    @if(auth()->user()->roles->contains('name', 'premium_member') && auth()->user()->premium_expires_at)
+                                        @php
+                                            $daysRemaining = (int) now()->diffInDays(auth()->user()->premium_expires_at, false);
+                                        @endphp
+                                        <div class="px-4 py-2 text-sm text-orange-600 flex items-center justify-between">
+                                            <span>
+                                                <i class="fas fa-clock mr-2"></i> 會員到期還有 {{ max(0, $daysRemaining) }} 天
+                                            </span>
+                                            <a href="{{ route('upgrade') }}"
+                                               class="ml-2 px-2 py-0.5 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded transition">
+                                                延期
+                                            </a>
+                                        </div>
+                                    @endif
+
                                     @if(auth()->user()->roles->contains('name', 'administrator'))
                                         <a href="{{ route('admin.dashboard') }}"
                                            class="block px-4 py-2 text-sm text-purple-600 hover:bg-purple-50">
@@ -85,10 +109,10 @@
                                     @endif
 
                                     @if(auth()->user()->roles->contains('name', 'regular_member'))
-                                        <button onclick="showUpgradeModal()"
-                                                class="w-full text-left block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">
+                                        <a href="{{ route('upgrade') }}"
+                                           class="block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">
                                             <i class="fas fa-star mr-2"></i> 升級為高級會員
-                                        </button>
+                                        </a>
                                     @endif
 
                                     <div class="border-t border-gray-100"></div>
@@ -182,7 +206,22 @@
 
     <footer class="bg-white border-t mt-12">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <p class="text-center text-gray-500 text-sm">Disinfo Scanner 留言資料分析系統 v1.0.0</p>
+            <div class="flex flex-col items-center space-y-4">
+                {{-- Legal Links --}}
+                <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+                    <a href="{{ route('legal.terms') }}" class="hover:text-gray-700 transition-colors">服務條款</a>
+                    <a href="{{ route('legal.privacy') }}" class="hover:text-gray-700 transition-colors">隱私政策</a>
+                    <a href="{{ route('legal.consumer') }}" class="hover:text-gray-700 transition-colors">消費者須知</a>
+                    <a href="{{ route('legal.points-guide') }}" class="hover:text-gray-700 transition-colors">積分系統說明</a>
+                    <a href="https://portaly.cc/kyontw/support" target="_blank" rel="noopener noreferrer" class="hover:text-pink-500 transition-colors">
+                        <i class="fas fa-heart text-pink-400 mr-1"></i>贊助站長
+                    </a>
+                </nav>
+                {{-- Copyright --}}
+                <p class="text-center text-gray-400 text-sm">
+                    &copy; {{ date('Y') }} 投好壯壯有限公司 版權所有
+                </p>
+            </div>
         </div>
     </footer>
 

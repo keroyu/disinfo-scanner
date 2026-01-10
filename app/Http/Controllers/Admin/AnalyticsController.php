@@ -100,7 +100,7 @@ class AnalyticsController extends Controller
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Headers
-            fputcsv($handle, ['ID', '姓名', '電子郵件', '角色', '註冊日期']);
+            fputcsv($handle, ['ID', '暱稱', '電子郵件', '角色', '註冊日期']);
 
             // Fetch users in chunks to avoid memory issues
             User::with(['roles'])
@@ -149,7 +149,7 @@ class AnalyticsController extends Controller
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Headers
-            fputcsv($handle, ['用戶 ID', '姓名', '電子郵件', '角色', '最後登入', '註冊日期']);
+            fputcsv($handle, ['用戶 ID', '暱稱', '電子郵件', '角色', '最後登入', '註冊日期']);
 
             // Fetch user activity
             User::with(['roles'])

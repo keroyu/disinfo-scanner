@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (response.ok) {
                 confirmationModal.classList.add('hidden');
-                showResults(data.data.stats);
+                showResults(data.data.stats, data.data.points_earned || 0);
                 urlInput.value = '';
             } else {
                 showError(data.message);
@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Helper functions
-    function showResults(stats) {
+    function showResults(stats, pointsEarned) {
         // Hide input section to prevent accidental operations before auto-close
         const inputSection = document.getElementById('uapi-input-section');
         if (inputSection) {
@@ -436,12 +436,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
         resultsSection.classList.remove('hidden');
         const resultsContent = document.getElementById('uapi-results-content');
+
+        // Build points earned message if applicable
+        let pointsHtml = '';
+        if (pointsEarned > 0) {
+            pointsHtml = `
+                <div class="mt-3 pt-3 border-t border-green-200">
+                    <p class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
+                            <path d="M10 5a1 1 0 011 1v3.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 10V6a1 1 0 011-1z"/>
+                        </svg>
+                        <span class="font-semibold text-green-800">積分 +${pointsEarned}</span>
+                    </p>
+                    <p class="text-sm text-green-600 mt-1">感謝您的貢獻！積分可在設定頁面查看。</p>
+                </div>
+            `;
+        }
+
         resultsContent.innerHTML = `
             <p class="font-semibold">成功匯入 ${stats.total_processed || stats.newly_added} 則留言</p>
             <ul class="text-green-700 text-sm mt-2 ml-4 list-disc">
                 <li>新增: ${stats.newly_added} 筆</li>
                 <li>跳過: ${stats.skipped || 0} 筆</li>
             </ul>
+            ${pointsHtml}
         `;
 
         // Auto close modal after 3 seconds and reload

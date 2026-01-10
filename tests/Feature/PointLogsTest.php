@@ -144,9 +144,10 @@ class PointLogsTest extends TestCase
     }
 
     /**
-     * Test non-premium user cannot view point logs.
+     * Test non-premium user CAN now view point logs (Phase 9 change).
+     * Updated: All logged-in users can view their point logs.
      */
-    public function test_non_premium_cannot_view_point_logs(): void
+    public function test_non_premium_can_view_point_logs(): void
     {
         $user = User::factory()->create([
             'points' => 10,
@@ -158,7 +159,11 @@ class PointLogsTest extends TestCase
 
         $response = $this->actingAs($user)->get('/settings/points/logs');
 
-        $response->assertStatus(403);
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data',
+            'meta' => ['total', 'current_points'],
+        ]);
     }
 
     /**

@@ -150,6 +150,11 @@ Route::prefix('videos/import')->middleware(['web', 'auth', 'check.api.quota'])->
 // T222: Add admin API routes
 // T284: Admin routes with rate limiting (60 requests per minute)
 // T286: Admin session timeout middleware
+// Portaly Webhook (015-membership-payment)
+// Rate limited to 100 requests per minute
+Route::post('/webhooks/portaly', [\App\Http\Controllers\Api\PortalyWebhookController::class, 'handle'])
+    ->middleware('throttle:100,1');
+
 Route::prefix('admin')->middleware(['web', 'auth', 'check.admin', 'check.admin.session', 'throttle:60,1'])->group(function () {
     // User Management (Phase 2)
     Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index']);

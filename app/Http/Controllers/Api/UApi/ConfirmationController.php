@@ -5,20 +5,26 @@ namespace App\Http\Controllers\Api\UApi;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\UrtubeApiImportService;
+use App\Services\PointEarningService;
 use Illuminate\Support\Facades\Log;
 
 class ConfirmationController extends Controller
 {
     protected $importService;
+    protected $pointEarningService;
 
-    public function __construct(UrtubeApiImportService $importService)
-    {
+    public function __construct(
+        UrtubeApiImportService $importService,
+        PointEarningService $pointEarningService
+    ) {
         $this->importService = $importService;
+        $this->pointEarningService = $pointEarningService;
     }
 
     /**
      * POST /api/import/confirm - Confirm and execute import
      * Writes all data atomically to database
+     * T114-T117: Grants +1 point to authenticated user on successful import
      *
      * @param Request $request {import_id, tags}
      * @return \Illuminate\Http\JsonResponse 200 on success, 422 on validation error
@@ -38,6 +44,24 @@ class ConfirmationController extends Controller
                 $request->tags
             );
 
+            // T114-T117: Grant +1 point to authenticated user for successful import
+            $pointsEarned = 0;
+            $user = auth()->user();
+            if ($user && $result->newly_added > 0) {
+                $pointResult = $this->pointEarningService->grantUapiImportPoint(
+                    $user,
+                    $request->import_id
+                );
+                $pointsEarned = $pointResult['points_earned'] ?? 0;
+
+                Log::info('Points granted for U-API import', [
+                    'user_id' => $user->id,
+                    'import_id' => $request->import_id,
+                    'points_earned' => $pointsEarned,
+                    'new_balance' => $pointResult['new_balance'] ?? null,
+                ]);
+            }
+
             // Return 200 OK with statistics
             return response()->json([
                 'success' => true,
@@ -48,7 +72,8 @@ class ConfirmationController extends Controller
                         'updated' => $result->updated,
                         'skipped' => $result->skipped,
                         'total_processed' => $result->total_processed,
-                    ]
+                    ],
+                    'points_earned' => $pointsEarned,
                 ]
             ], 200);
         } catch (\Exception $e) {

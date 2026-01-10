@@ -47,8 +47,8 @@ class UserSettingsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
         ], [
-            'name.required' => '姓名為必填欄位',
-            'name.max' => '姓名長度不得超過 255 個字元',
+            'name.required' => '暱稱為必填欄位',
+            'name.max' => '暱稱長度不得超過 255 個字元',
         ]);
 
         $request->user()->update(['name' => $validated['name']]);
@@ -58,7 +58,7 @@ class UserSettingsController extends Controller
         }
 
         return redirect()->route('settings.index')
-            ->with('success', '✓ 姓名已成功更新');
+            ->with('success', '✓ 暱稱已成功更新');
     }
 
     /**
@@ -154,15 +154,11 @@ class UserSettingsController extends Controller
     /**
      * Get point logs for the authenticated user.
      * T029: Add pointLogs() method to UserSettingsController
+     * T109: Updated to allow all logged-in users to view their point logs
      */
     public function pointLogs()
     {
         $user = auth()->user();
-
-        // Only premium users can view point logs
-        if (!$user->isPremium()) {
-            return response()->json(['error' => '只有有效的高級會員才能查看積分記錄。'], 403);
-        }
 
         $logs = $user->pointLogs()->get()->map(function ($log) {
             return [
