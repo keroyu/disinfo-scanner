@@ -124,6 +124,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is suspended.
+     * T051: isSuspended() method (014-users-management-enhancement)
+     */
+    public function isSuspended(): bool
+    {
+        return $this->hasRole('suspended');
+    }
+
+    /**
      * Helper methods
      */
 

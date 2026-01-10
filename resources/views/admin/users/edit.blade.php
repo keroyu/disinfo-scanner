@@ -133,16 +133,19 @@
                                 <div class="mb-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-3">用戶角色</label>
 
-                                    <!-- T030: Inline Role Buttons (FR-035 order: 一般會員, 高級會員, 網站編輯, 管理員) -->
+                                    <!-- T030/T053: Inline Role Buttons (FR-035 order: 一般會員, 高級會員, 網站編輯, 管理員, 停權中) -->
                                     <div class="flex flex-wrap gap-2">
                                         <template x-for="role in orderedRoles" :key="role.id">
                                             <button type="button"
-                                                    @click="selectRole(role.id)"
-                                                    :disabled="isSelfEdit"
+                                                    @click="!isSuspendedButtonDisabled(role) && selectRole(role.id)"
+                                                    :disabled="isSelfEdit || isSuspendedButtonDisabled(role)"
+                                                    :title="isSuspendedButtonDisabled(role) ? '無法停權自己的帳號' : (role.name === 'suspended' && selectedRoleId == role.id ? '此帳號已被停權' : '')"
                                                     :class="{
-                                                        'bg-blue-600 text-white border-blue-600': selectedRoleId == role.id,
-                                                        'bg-white text-gray-700 border-gray-300 hover:bg-gray-50': selectedRoleId != role.id,
-                                                        'opacity-50 cursor-not-allowed': isSelfEdit
+                                                        'bg-blue-600 text-white border-blue-600': selectedRoleId == role.id && role.name !== 'suspended',
+                                                        'bg-red-600 text-white border-red-600': selectedRoleId == role.id && role.name === 'suspended',
+                                                        'bg-white text-gray-700 border-gray-300 hover:bg-gray-50': selectedRoleId != role.id && role.name !== 'suspended',
+                                                        'bg-red-100 text-red-700 border-red-300 hover:bg-red-200': selectedRoleId != role.id && role.name === 'suspended' && !isSuspendedButtonDisabled(role),
+                                                        'opacity-50 cursor-not-allowed': isSelfEdit || isSuspendedButtonDisabled(role)
                                                     }"
                                                     class="px-4 py-2 border rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                                 <span x-text="role.display_name"></span>
@@ -254,9 +257,9 @@
                 currentUserId: null,
                 newPremiumExpiry: '',
 
-                // Ordered roles for inline buttons (FR-035)
+                // Ordered roles for inline buttons (FR-035: 一般會員, 高級會員, 網站編輯, 管理員, 停權中)
                 get orderedRoles() {
-                    const order = ['regular_member', 'premium_member', 'website_editor', 'administrator'];
+                    const order = ['regular_member', 'premium_member', 'website_editor', 'administrator', 'suspended'];
                     return this.availableRoles
                         .filter(r => order.includes(r.name))
                         .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
@@ -266,6 +269,17 @@
                 get isPremiumMember() {
                     if (!this.user.roles || this.user.roles.length === 0) return false;
                     return this.user.roles.some(r => r.name === 'premium_member');
+                },
+
+                // T053: Check if user is currently suspended
+                get isUserSuspended() {
+                    if (!this.user.roles || this.user.roles.length === 0) return false;
+                    return this.user.roles.some(r => r.name === 'suspended');
+                },
+
+                // T056: Check if suspended role button should be disabled for self
+                isSuspendedButtonDisabled(role) {
+                    return this.isSelfEdit && role.name === 'suspended';
                 },
 
                 // Check if premium has expired
@@ -355,13 +369,14 @@
                             headers: { 'Accept': 'application/json' }
                         });
                         if (response.ok) {
-                            // Hardcoded roles (matching database)
+                            // Hardcoded roles (matching database) - T053: Added suspended role
                             this.availableRoles = [
                                 { id: 1, name: 'visitor', display_name: '訪客' },
                                 { id: 2, name: 'regular_member', display_name: '一般會員' },
                                 { id: 3, name: 'premium_member', display_name: '高級會員' },
                                 { id: 4, name: 'website_editor', display_name: '網站編輯' },
-                                { id: 5, name: 'administrator', display_name: '管理員' }
+                                { id: 5, name: 'administrator', display_name: '管理員' },
+                                { id: 6, name: 'suspended', display_name: '停權中' }
                             ];
                         }
                     } catch (error) {

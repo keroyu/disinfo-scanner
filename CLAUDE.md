@@ -87,6 +87,18 @@ PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
     - Fixed missing settings routes (password, api-key, remove)
     - Removed incorrect HTTP method overrides (@method PUT/DELETE)
     - Fixed logout to redirect instead of returning JSON
+  - ✅ **User Suspension Feature** (US6): Complete implementation (14/14 tasks) - 2026-01-11
+    - **Phase 9**: User Story 6 - User Suspension
+    - Added 'suspended' role (id=6) to RoleSeeder
+    - SessionTerminationService for immediate session termination
+    - Suspended users blocked from login with message: "您的帳號已被停權，請聯繫管理員"
+    - isSuspended() method on User model
+    - BatchRoleService extended with suspension/unsuspension flow
+    - Admin UI: Suspension button in edit page, batch suspend option in user list
+    - Visual indicators: Red "停權中" badge, red row background for suspended users
+    - Self-suspension prevention (admin cannot suspend own account)
+    - Audit logging for suspension, unsuspension, and session termination
+    - All tests passing (11/11 suspension-related tests)
   - **Status**: ✅ Admin Module **DOCUMENTATION COMPLETE** - Manual testing recommended before full production
 
 

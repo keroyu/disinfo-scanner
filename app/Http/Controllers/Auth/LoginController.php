@@ -99,6 +99,24 @@ class LoginController extends Controller
         // Successful login
         $user = $result['user'];
 
+        // T052: Check if user is suspended (FR-047: 014-users-management-enhancement)
+        if ($user->isSuspended()) {
+            // Log out the user immediately
+            $this->authService->logout();
+
+            // For web requests, redirect with error
+            if (!$request->expectsJson()) {
+                return redirect()->back()
+                    ->withErrors(['email' => '您的帳號已被停權，請聯繫管理員'])
+                    ->withInput($request->except('password'));
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => '您的帳號已被停權，請聯繫管理員',
+            ], 403);
+        }
+
         // T281: Log successful admin login
         if ($user->roles->contains('name', 'administrator')) {
             AuditLog::log(

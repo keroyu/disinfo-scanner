@@ -110,6 +110,7 @@
                                     <option value="premium_member">高級會員</option>
                                     <option value="website_editor">網站編輯</option>
                                     <option value="administrator">管理員</option>
+                                    <option value="suspended">停權中</option>
                                 </select>
                             </div>
                         </div>
@@ -164,7 +165,12 @@
                                     </template>
 
                                     <template x-for="user in users" :key="user.id">
-                                        <tr class="hover:bg-gray-50" :class="isSelected(user.id) ? 'bg-blue-50' : ''">
+                                        <!-- T055: Add suspended user visual styling (FR-050) -->
+                                        <tr class="hover:bg-gray-50" :class="{
+                                            'bg-blue-50': isSelected(user.id) && user.roles[0]?.name !== 'suspended',
+                                            'bg-red-50': user.roles[0]?.name === 'suspended',
+                                            'bg-red-100': isSelected(user.id) && user.roles[0]?.name === 'suspended'
+                                        }">
                                             <td class="px-4 py-4 whitespace-nowrap">
                                                 <input type="checkbox"
                                                        :checked="isSelected(user.id)"
@@ -281,7 +287,15 @@
                                 <option value="3">高級會員</option>
                                 <option value="4">網站編輯</option>
                                 <option value="5">管理員</option>
+                                <option value="6" class="text-red-600">停權中</option>
                             </select>
+                            <!-- T054: Warning when selecting suspension -->
+                            <div x-show="selectedRoleId == 6" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                所選用戶將被停權，並立即登出所有裝置
+                            </div>
                             <div x-show="selectedRoleId == 3" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
                                 <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
@@ -667,7 +681,8 @@
                         'regular_member': 'bg-blue-100 text-blue-700 border-blue-300',
                         'premium_member': 'bg-yellow-100 text-yellow-700 border-yellow-300',
                         'website_editor': 'bg-purple-100 text-purple-700 border-purple-300',
-                        'administrator': 'bg-red-100 text-red-700 border-red-300'
+                        'administrator': 'bg-red-100 text-red-700 border-red-300',
+                        'suspended': 'bg-red-600 text-white border-red-600'  // T055: Suspended badge styling (FR-050)
                     };
                     return classes[roleName] || classes['visitor'];
                 },
@@ -678,7 +693,8 @@
                         'regular_member': '一般會員',
                         'premium_member': '高級會員',
                         'website_editor': '網站編輯',
-                        'administrator': '管理員'
+                        'administrator': '管理員',
+                        'suspended': '停權中'  // T055: Suspended display name
                     };
                     return names[roleName] || '未知';
                 },

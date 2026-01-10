@@ -161,6 +161,7 @@ Route::prefix('admin')->middleware(['web', 'auth', 'check.admin', 'check.admin.s
     Route::post('/users/batch-role', [\App\Http\Controllers\Admin\UserManagementController::class, 'batchChangeRole']);
     Route::post('/users/batch-email', [\App\Http\Controllers\Admin\UserManagementController::class, 'batchSendEmail']);
     Route::put('/users/{userId}/premium-expiry', [\App\Http\Controllers\Admin\UserManagementController::class, 'updatePremiumExpiry']);
+    Route::post('/users/batch-suspend', [\App\Http\Controllers\Admin\UserManagementController::class, 'batchSuspend']);  // T058: User suspension endpoint
 
     // Analytics & Reporting (Phase 5)
     Route::get('/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getAnalytics']);

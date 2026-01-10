@@ -568,4 +568,88 @@ class UserManagementController extends Controller
             ],
         ]);
     }
+
+    /**
+     * T058: Batch suspend multiple users (014-users-management-enhancement)
+     *
+     * This is a convenience endpoint that suspends users by changing their role to 'suspended'.
+     * It's equivalent to calling batchChangeRole with role_id=6.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function batchSuspend(Request $request): JsonResponse
+    {
+        // Validate request
+        $validated = $request->validate([
+            'user_ids' => 'required|array|min:1|max:100',
+            'user_ids.*' => 'required|integer|exists:users,id',
+        ], [
+            'user_ids.required' => '請先選擇用戶',
+            'user_ids.array' => '用戶列表格式錯誤',
+            'user_ids.min' => '請先選擇用戶',
+            'user_ids.max' => '批次操作最多只能處理 100 位用戶',
+            'user_ids.*.exists' => '部分用戶不存在',
+        ]);
+
+        $userIds = $validated['user_ids'];
+
+        // Get the suspended role ID (id=6)
+        $suspendedRole = Role::where('name', 'suspended')->first();
+        if (!$suspendedRole) {
+            return response()->json([
+                'success' => false,
+                'message' => '停權角色不存在，請聯繫系統管理員',
+            ], 500);
+        }
+
+        $batchRoleService = app(BatchRoleService::class);
+        $result = $batchRoleService->changeRoles($userIds, $suspendedRole->id, auth()->id());
+
+        // Handle case where no users were suspended
+        if ($result['updated_count'] === 0) {
+            if ($result['skipped_self'] > 0 && $result['skipped_already_suspended'] === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '無法停權自己的帳號',
+                ], 400);
+            }
+            if ($result['skipped_already_suspended'] > 0 && $result['skipped_self'] === 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '所選用戶已是停權狀態',
+                    'data' => $result,
+                ]);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => '沒有用戶被停權',
+            ], 400);
+        }
+
+        // Build success message
+        $message = sprintf('已成功停權 %d 位用戶', $result['updated_count']);
+        $skipped = [];
+        if ($result['skipped_self'] > 0) {
+            $skipped[] = sprintf('%d 位：無法停權自己的帳號', $result['skipped_self']);
+        }
+        if ($result['skipped_already_suspended'] > 0) {
+            $skipped[] = sprintf('%d 位：已是停權狀態', $result['skipped_already_suspended']);
+        }
+        if (!empty($skipped)) {
+            $message .= '（跳過 ' . implode('、', $skipped) . '）';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'total_requested' => $result['total_requested'],
+                'suspended_count' => $result['updated_count'],
+                'skipped_self' => $result['skipped_self'],
+                'skipped_already_suspended' => $result['skipped_already_suspended'],
+                'sessions_terminated' => $result['sessions_terminated'],
+            ],
+        ]);
+    }
 }
