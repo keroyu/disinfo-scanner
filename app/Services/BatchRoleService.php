@@ -5,19 +5,25 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AuditLog;
+use App\Services\Results\NotificationResult;
 use Illuminate\Support\Facades\DB;
 
 class BatchRoleService
 {
     protected SessionTerminationService $sessionService;
+    protected RoleChangeNotificationService $notificationService;
 
-    public function __construct(?SessionTerminationService $sessionService = null)
-    {
+    public function __construct(
+        ?SessionTerminationService $sessionService = null,
+        ?RoleChangeNotificationService $notificationService = null
+    ) {
         $this->sessionService = $sessionService ?? new SessionTerminationService();
+        $this->notificationService = $notificationService ?? new RoleChangeNotificationService();
     }
 
     /**
      * Result object for batch operations
+     * T067: Extended with notification counts for US7
      */
     public static function createResult(
         int $totalRequested,
@@ -28,7 +34,9 @@ class BatchRoleService
         ?array $newRole,
         int $skippedAlreadySuspended = 0,
         int $sessionsTerminated = 0,
-        int $unsuspendedCount = 0
+        int $unsuspendedCount = 0,
+        int $notificationsSent = 0,
+        int $notificationsFailed = 0
     ): array {
         return [
             'total_requested' => $totalRequested,
@@ -40,6 +48,8 @@ class BatchRoleService
             'skipped_already_suspended' => $skippedAlreadySuspended,
             'sessions_terminated' => $sessionsTerminated,
             'unsuspended_count' => $unsuspendedCount,
+            'notifications_sent' => $notificationsSent,
+            'notifications_failed' => $notificationsFailed,
         ];
     }
 
@@ -257,6 +267,40 @@ class BatchRoleService
             }
         }
 
+        // T065: Send role change notification emails (FR-055)
+        $notificationsSent = 0;
+        $notificationsFailed = 0;
+
+        if ($updatedCount > 0 && !empty($affectedUserIds)) {
+            try {
+                // Fetch affected users for notification
+                $affectedUsers = User::whereIn('id', $affectedUserIds)->get();
+
+                // Determine premium expiry date for Premium Member notifications
+                $premiumExpiresAt = $isPremiumMemberRole ? now()->addDays(30) : null;
+
+                // Send notifications
+                $notificationResult = $this->notificationService->notify(
+                    $affectedUsers,
+                    $newRole,
+                    $premiumExpiresAt,
+                    $previousRoles,
+                    $adminId
+                );
+
+                $notificationsSent = $notificationResult->sentCount;
+                $notificationsFailed = $notificationResult->failedCount;
+            } catch (\Exception $e) {
+                // FR-062: Email failure does not block role change
+                // Log the error but continue
+                \Illuminate\Support\Facades\Log::error('Batch role change notification failed', [
+                    'affected_user_ids' => $affectedUserIds,
+                    'role_id' => $roleId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return self::createResult(
             $totalRequested,
             $updatedCount,
@@ -270,7 +314,9 @@ class BatchRoleService
             ] : null,
             $skippedAlreadySuspended,
             $sessionsTerminated,
-            $unsuspendedCount
+            $unsuspendedCount,
+            $notificationsSent,
+            $notificationsFailed
         );
     }
 }

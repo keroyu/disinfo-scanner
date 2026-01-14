@@ -13,6 +13,8 @@ use App\Models\AuditLog;
 use App\Services\IpGeolocationService;
 use App\Services\BatchRoleService;
 use App\Services\BatchEmailService;
+use App\Services\RoleChangeNotificationService;
+use App\Services\SessionTerminationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -119,6 +121,7 @@ class UserManagementController extends Controller
 
     /**
      * T219: Change user role (prevents self-permission change)
+     * T066: Updated to send notification email after role change
      *
      * @param Request $request
      * @param int $userId
@@ -151,8 +154,24 @@ class UserManagementController extends Controller
         $oldRole = $targetUser->roles->first();
         $newRole = Role::find($request->role_id);
 
+        // Detect unsuspension (changing FROM suspended TO another role)
+        $wasUnsuspended = $oldRole && $oldRole->name === 'suspended' && $newRole->name !== 'suspended';
+
+        // Detect suspension (changing TO suspended role)
+        $isSuspension = $newRole->name === 'suspended';
+
         // Sync role (removes old role, adds new role)
         $targetUser->roles()->sync([$newRole->id]);
+
+        // Handle premium_expires_at for Premium Member role
+        $premiumExpiresAt = null;
+        if ($newRole->name === 'premium_member') {
+            if (is_null($targetUser->premium_expires_at)) {
+                $targetUser->premium_expires_at = now()->addDays(30);
+                $targetUser->save();
+            }
+            $premiumExpiresAt = $targetUser->premium_expires_at;
+        }
 
         // T279: Log role change
         AuditLog::log(
@@ -184,12 +203,45 @@ class UserManagementController extends Controller
             ]
         );
 
+        // Terminate sessions if user is being suspended
+        $sessionsTerminated = 0;
+        if ($isSuspension) {
+            $sessionService = app(SessionTerminationService::class);
+            $sessionsTerminated = $sessionService->terminateUserSessions($targetUser->id);
+        }
+
+        // T066: Send role change notification email (FR-056)
+        $notificationSent = false;
+        try {
+            $notificationService = app(RoleChangeNotificationService::class);
+            $notificationSent = $notificationService->notifySingle(
+                $targetUser,
+                $newRole,
+                $premiumExpiresAt,
+                $wasUnsuspended,
+                auth()->id()
+            );
+        } catch (\Exception $e) {
+            // FR-062: Email failure does not block role change
+            \Illuminate\Support\Facades\Log::error('Individual role change notification failed', [
+                'user_id' => $targetUser->id,
+                'role_id' => $newRole->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         // Reload user with new role
         $targetUser = $targetUser->fresh(['roles']);
 
+        // Build response message
+        $message = '使用者角色已更新';
+        if (!$notificationSent) {
+            $message .= '（通知郵件發送失敗）';
+        }
+
         // Return success response
         return response()->json([
-            'message' => '使用者角色已更新',
+            'message' => $message,
             'data' => [
                 'id' => $targetUser->id,
                 'name' => $targetUser->name,
@@ -201,6 +253,8 @@ class UserManagementController extends Controller
                         'display_name' => $role->display_name,
                     ];
                 }),
+                'notification_sent' => $notificationSent,
+                'sessions_terminated' => $sessionsTerminated,
             ],
         ]);
     }
@@ -427,6 +481,7 @@ class UserManagementController extends Controller
 
     /**
      * T013: Batch change role for multiple users (014-users-management-enhancement)
+     * T068: Updated to include notification status in response
      *
      * @param BatchRoleChangeRequest $request
      * @return JsonResponse
@@ -446,9 +501,18 @@ class UserManagementController extends Controller
             ], 400);
         }
 
+        // T068: Build message with notification status
         $message = sprintf('已成功變更 %d 位用戶的角色', $result['updated_count']);
         if ($result['skipped_self'] > 0) {
             $message .= sprintf('（跳過 %d 位：無法更改自己的角色）', $result['skipped_self']);
+        }
+
+        // Add notification status to message if there were failures
+        if ($result['notifications_failed'] > 0) {
+            $message .= sprintf('（通知郵件：%d 封成功，%d 封失敗）',
+                $result['notifications_sent'],
+                $result['notifications_failed']
+            );
         }
 
         return response()->json([

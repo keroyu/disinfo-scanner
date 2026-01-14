@@ -40,9 +40,9 @@ tests/
 PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
 
 ## Recent Changes
+- 014-users-management-enhancement: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js 3.x, Tailwind CSS (CDN), Resend (email)
 - 015-membership-payment: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Crypt facade (encryption), Alpine.js 3.x (admin UI), Tailwind CSS
 - 014-users-management-enhancement: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js 3.x, Tailwind CSS (CDN), Resend (email)
-- 014-users-management-enhancement: Added PHP 8.2 with Laravel Framework 12.x + Laravel Framework, Alpine.js 3.x (existing), Tailwind CSS (CDN), Resend (existing email service)
   - ✅ **Points System**: Complete implementation (39/39 tasks)
     - **Phase 1**: Database schema (users.points, users.premium_expires_at, point_logs table)
     - **Phase 2**: Foundational models (User extensions, PointLog, PointRedemptionService)
@@ -100,7 +100,20 @@ PHP 8.2 with Laravel Framework 12.38.1: Follow standard conventions
     - Self-suspension prevention (admin cannot suspend own account)
     - Audit logging for suspension, unsuspension, and session termination
     - All tests passing (11/11 suspension-related tests)
-  - **Status**: ✅ Admin Module **DOCUMENTATION COMPLETE** - Manual testing recommended before full production
+  - ✅ **Role Change Notification Feature** (US7): Complete implementation (12/12 tasks) - 2026-01-14
+    - **Phase 10**: User Story 7 - Automatic Role Change Email Notification
+    - RoleChangeNotification mailable with conditional email content
+    - Email template with Traditional Chinese localization
+    - Notifications sent for: batch role change, individual role change
+    - Content variations for: suspended, unsuspended, premium member, regular roles
+    - Links to Terms of Service and Points Guide in non-suspended emails
+    - RoleChangeNotificationService with fire-and-forget pattern
+    - NotificationResult value object for tracking send/fail counts
+    - BatchRoleService and UserManagementController extended
+    - API response includes notification_sent and notification_failed counts
+    - Audit logging for notifications (role_change_notification, role_notification_failed)
+    - All tests passing (19/19 notification-related tests)
+  - **Status**: ✅ Admin Module **COMPLETE** - US1-US7 all implemented
 
 
 <!-- MANUAL ADDITIONS START -->
