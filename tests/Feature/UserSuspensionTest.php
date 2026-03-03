@@ -25,27 +25,23 @@ class UserSuspensionTest extends TestCase
      */
     public function test_suspended_user_cannot_login(): void
     {
-        // Create a suspended user with email verified and password set
+        // Create a suspended user with email verified
         $user = User::factory()->create([
             'email' => 'suspended@example.com',
-            'password' => bcrypt('password'),
             'is_email_verified' => true,
-            'has_default_password' => false,  // Important: user has set their password
         ]);
         $suspendedRole = Role::where('name', 'suspended')->first();
         $user->roles()->attach($suspendedRole->id);
 
-        // Attempt login
-        $response = $this->postJson('/api/auth/login', [
+        // Attempt login via OTP flow (web route)
+        $response = $this->post(route('login.submit'), [
             'email' => 'suspended@example.com',
-            'password' => 'password',
         ]);
 
-        $response->assertStatus(403);
-        $response->assertJson([
-            'success' => false,
-            'message' => '您的帳號已被停權，請聯繫管理員',
-        ]);
+        // Should redirect back with suspended error
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('email');
+        $this->assertStringContainsString('停權', session('errors')->first('email'));
     }
 
     /**

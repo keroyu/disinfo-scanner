@@ -30,7 +30,6 @@ class ListUsersContractTest extends TestCase
         $admin = User::factory()->create([
             'email' => 'admin@test.com',
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $admin->roles()->attach($adminRole);
 

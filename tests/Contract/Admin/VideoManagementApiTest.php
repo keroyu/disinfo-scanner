@@ -37,7 +37,6 @@ class VideoManagementApiTest extends TestCase
             'name' => 'Test Admin',
             'email' => 'admin@test.com',
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $this->admin->roles()->attach($adminRole);
 

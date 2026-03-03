@@ -2,11 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\PasswordChangeController;
-use App\Http\Controllers\Auth\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,28 +13,12 @@ use App\Http\Controllers\Auth\PasswordResetController;
 |
 */
 
-// Authentication Routes (011-member-system)
+// Authentication Routes (OTP-based, passwordless)
 Route::prefix('auth')->group(function () {
-    // Public routes (with 'web' middleware for session support)
-    Route::middleware('web')->group(function () {
-        Route::post('/register', [RegisterController::class, 'register']);
-        Route::get('/verify-email', [EmailVerificationController::class, 'verify']); // API endpoint (no name to avoid conflict with web route)
-        Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend']);
-        Route::post('/login', [LoginController::class, 'login']);
-    });
-
-    // Password reset routes (T055: User Story 2)
-    Route::post('/password/reset/request', [PasswordResetController::class, 'sendResetLink']);
-    Route::post('/password/reset', [PasswordResetController::class, 'reset']);
-
-    // Authenticated routes (supports both web sessions and Sanctum tokens)
-    // Note: Added 'web' middleware to enable session support for these endpoints
+    // Authenticated routes
     Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/logout', [LoginController::class, 'logout']);
         Route::get('/me', [LoginController::class, 'me']);
-
-        // Password change route (T055: User Story 2)
-        Route::post('/password/change', [PasswordChangeController::class, 'change']);
     });
 });
 

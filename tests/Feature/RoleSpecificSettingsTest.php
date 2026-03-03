@@ -26,48 +26,12 @@ class RoleSpecificSettingsTest extends TestCase
     }
 
     /**
-     * T501: Test all authenticated users can change password
-     */
-    public function test_t501_all_authenticated_users_can_see_password_change_section(): void
-    {
-        $roles = ['regular_member', 'premium_member', 'website_editor', 'administrator'];
-
-        foreach ($roles as $roleName) {
-            $user = User::factory()->create([
-                'is_email_verified' => true,
-                'has_default_password' => false,
-            ]);
-            $role = Role::where('name', $roleName)->first();
-            $user->roles()->attach($role->id, ['assigned_at' => now()]);
-
-            $response = $this->actingAs($user)->get(route('settings.index'));
-
-            $response->assertStatus(200);
-            $response->assertSee('密碼設定');
-            $response->assertSee('目前密碼');
-            $response->assertSee('新密碼');
-            $response->assertSee('確認新密碼');
-
-            // Test password update endpoint is accessible
-            $response = $this->actingAs($user)->post(route('settings.password'), [
-                'current_password' => 'wrong_password',
-                'password' => 'NewPassword123!',
-                'password_confirmation' => 'NewPassword123!',
-            ]);
-
-            // Should fail validation but endpoint should be accessible
-            $response->assertSessionHasErrors('current_password');
-        }
-    }
-
-    /**
      * T502: Test Regular Member can configure YouTube API key
      */
     public function test_t502_regular_member_can_configure_youtube_api_key(): void
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
             'youtube_api_key' => null,
         ]);
         $role = Role::where('name', 'regular_member')->first();
@@ -103,7 +67,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -141,7 +104,6 @@ class RoleSpecificSettingsTest extends TestCase
         // User without API key
         $userWithoutKey = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
             'youtube_api_key' => null,
         ]);
         $role = Role::where('name', 'regular_member')->first();
@@ -152,7 +114,6 @@ class RoleSpecificSettingsTest extends TestCase
         // User with API key (39 characters)
         $userWithKey = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
             'youtube_api_key' => 'AIzaSyC12345678901234567890123456789012',
         ]);
         $userWithKey->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -167,7 +128,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -202,7 +162,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'regular_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -233,7 +192,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -258,7 +216,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -286,7 +243,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -313,7 +269,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -340,7 +295,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'website_editor')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -348,8 +302,6 @@ class RoleSpecificSettingsTest extends TestCase
         $response = $this->actingAs($user)->get(route('settings.index'));
         $response->assertStatus(200);
 
-        // Should see password change
-        $response->assertSee('密碼設定');
 
         // Should see API key configuration
         $response->assertSee('YouTube API 金鑰');
@@ -362,7 +314,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'administrator')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -370,8 +321,6 @@ class RoleSpecificSettingsTest extends TestCase
         $response = $this->actingAs($user)->get(route('settings.index'));
         $response->assertStatus(200);
 
-        // Should see password change
-        $response->assertSee('密碼設定');
 
         // Should see API key configuration
         $response->assertSee('YouTube API 金鑰');
@@ -384,7 +333,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -416,7 +364,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -452,7 +399,6 @@ class RoleSpecificSettingsTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
         $role = Role::where('name', 'premium_member')->first();
         $user->roles()->attach($role->id, ['assigned_at' => now()]);
@@ -476,7 +422,6 @@ class RoleSpecificSettingsTest extends TestCase
         foreach ($validMethods as $method) {
             $user = User::factory()->create([
                 'is_email_verified' => true,
-                'has_default_password' => false,
             ]);
             $user->roles()->attach($role->id, ['assigned_at' => now()]);
 

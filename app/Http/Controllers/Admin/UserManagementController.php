@@ -99,7 +99,6 @@ class UserManagementController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_email_verified' => $user->is_email_verified,
-                'has_default_password' => $user->has_default_password,
                 'youtube_api_key' => $user->youtube_api_key ? '已設定' : null,
                 'last_login_ip' => $user->last_login_ip,
                 'last_login_ip_country' => $ipLocation['country'] ?? null,

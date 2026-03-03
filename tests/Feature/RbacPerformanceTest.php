@@ -207,7 +207,6 @@ class RbacPerformanceTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
 
         $role = Role::where('name', $roleName)->first();

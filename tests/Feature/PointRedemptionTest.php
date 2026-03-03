@@ -241,7 +241,6 @@ class PointRedemptionTest extends TestCase
         $user = User::factory()->create([
             'points' => 30,
             'premium_expires_at' => $expiresAt,
-            'has_default_password' => false,
         ]);
 
         $premiumRole = Role::where('name', 'premium_member')->first();
@@ -278,7 +277,6 @@ class PointRedemptionTest extends TestCase
         $user = User::factory()->create([
             'points' => 12,
             'premium_expires_at' => $expiresAt,
-            'has_default_password' => false,
         ]);
 
         $premiumRole = Role::where('name', 'premium_member')->first();

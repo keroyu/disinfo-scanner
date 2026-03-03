@@ -102,22 +102,6 @@ class RolePermissionMatrixTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_t507_regular_member_can_change_password(): void
-    {
-        $user = $this->createUserWithRole('regular_member');
-        $user->password = bcrypt('OldPassword123!');
-        $user->save();
-
-        $response = $this->actingAs($user)->post(route('settings.password'), [
-            'current_password' => 'OldPassword123!',
-            'password' => 'NewPassword123!',
-            'password_confirmation' => 'NewPassword123!',
-        ]);
-
-        $response->assertRedirect(route('settings.index'));
-        $response->assertSessionHas('success');
-    }
-
     public function test_t507_regular_member_can_configure_api_key(): void
     {
         $user = $this->createUserWithRole('regular_member');
@@ -272,22 +256,6 @@ class RolePermissionMatrixTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_t509_website_editor_can_change_password(): void
-    {
-        $user = $this->createUserWithRole('website_editor');
-        $user->password = bcrypt('OldPassword123!');
-        $user->save();
-
-        $response = $this->actingAs($user)->post(route('settings.password'), [
-            'current_password' => 'OldPassword123!',
-            'password' => 'NewPassword123!',
-            'password_confirmation' => 'NewPassword123!',
-        ]);
-
-        $response->assertRedirect(route('settings.index'));
-        $response->assertSessionHas('success');
-    }
-
     /**
      * T510: Test all Administrator permissions (all features)
      */
@@ -337,22 +305,6 @@ class RolePermissionMatrixTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    public function test_t510_admin_can_change_password(): void
-    {
-        $user = $this->createUserWithRole('administrator');
-        $user->password = bcrypt('OldPassword123!');
-        $user->save();
-
-        $response = $this->actingAs($user)->post(route('settings.password'), [
-            'current_password' => 'OldPassword123!',
-            'password' => 'NewPassword123!',
-            'password_confirmation' => 'NewPassword123!',
-        ]);
-
-        $response->assertRedirect(route('settings.index'));
-        $response->assertSessionHas('success');
-    }
-
     public function test_t510_admin_has_unlimited_quota(): void
     {
         $user = $this->createUserWithRole('administrator');
@@ -368,7 +320,6 @@ class RolePermissionMatrixTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
 
         $role = Role::where('name', $roleName)->first();

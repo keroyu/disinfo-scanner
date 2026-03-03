@@ -62,7 +62,6 @@ class GetUserDetailsContractTest extends TestCase
                     'name',
                     'email',
                     'is_email_verified',
-                    'has_default_password',
                     'youtube_api_key',
                     'roles' => [
                         '*' => [

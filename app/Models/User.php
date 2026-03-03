@@ -20,10 +20,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'password',
         'is_email_verified',
-        'has_default_password',
-        'last_password_change_at',
+        'email_verified_at',
         'youtube_api_key',
         'last_login_ip',
         'location',
@@ -37,7 +35,6 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password',
         'remember_token',
         'youtube_api_key',
     ];
@@ -51,10 +48,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
             'is_email_verified' => 'boolean',
-            'has_default_password' => 'boolean',
-            'last_password_change_at' => 'datetime',
             'points' => 'integer',
             'premium_expires_at' => 'datetime',
         ];
@@ -77,28 +71,6 @@ class User extends Authenticatable
     public function pointLogs()
     {
         return $this->hasMany(PointLog::class)->orderByDesc('created_at');
-    }
-
-    /**
-     * Accessors & Mutators
-     */
-
-    /**
-     * Accessor for must_change_password (maps to has_default_password)
-     * T053: User Story 2 - Mandatory Password Change
-     */
-    public function getMustChangePasswordAttribute(): bool
-    {
-        return (bool) $this->has_default_password;
-    }
-
-    /**
-     * Mutator for must_change_password (maps to has_default_password)
-     * T053: User Story 2 - Mandatory Password Change
-     */
-    public function setMustChangePasswordAttribute(bool $value): void
-    {
-        $this->has_default_password = $value;
     }
 
     /**

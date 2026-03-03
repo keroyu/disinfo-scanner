@@ -205,7 +205,6 @@ class RbacEdgeCaseTest extends TestCase
         // Create user without any roles
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
 
         // Should be treated as a visitor (no special permissions)
@@ -245,7 +244,6 @@ class RbacEdgeCaseTest extends TestCase
     {
         $user = User::factory()->create([
             'is_email_verified' => true,
-            'has_default_password' => false,
         ]);
 
         $role = Role::where('name', $roleName)->first();

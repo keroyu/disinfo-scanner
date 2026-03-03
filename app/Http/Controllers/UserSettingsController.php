@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\Http\Requests\PasswordChangeRequest;
 use App\Services\PointRedemptionService;
 use App\Services\SettingService;
 
@@ -59,28 +57,6 @@ class UserSettingsController extends Controller
 
         return redirect()->route('settings.index')
             ->with('success', '✓ 暱稱已成功更新');
-    }
-
-    /**
-     * Update the user's password from settings page.
-     */
-    public function updatePassword(Request $request)
-    {
-        $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', 'min:8', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'],
-        ], [
-            'current_password.current_password' => __('auth.password.current_incorrect'),
-            'password.regex' => __('auth.password.weak_password'),
-            'password.min' => __('auth.password.validation.min_length'),
-        ]);
-
-        $user = auth()->user();
-        $user->password = Hash::make($request->password);
-        $user->last_password_change_at = now();
-        $user->save();
-
-        return redirect()->route('settings.index')->with('success', __('auth.password.change_success'));
     }
 
     /**

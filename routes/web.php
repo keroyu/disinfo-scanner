@@ -2,40 +2,26 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\PasswordChangeController;
-use App\Http\Controllers\Auth\PasswordResetController;
 
-// Authentication Routes (011-member-system)
+// Authentication Routes (OTP-based, passwordless)
 Route::prefix('auth')->group(function () {
-    // Public routes - GET (show forms)
+    // Registration flow
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::get('/verify-email', [EmailVerificationController::class, 'showVerificationPage'])->name('verification.notice');
-
-    // Public routes - POST (submit forms)
     Route::post('/register', [RegisterController::class, 'register'])->name('register.submit');
+    Route::get('/register/otp', [RegisterController::class, 'showOtpForm'])->name('register.otp');
+    Route::post('/register/otp', [RegisterController::class, 'verifyOtp'])->name('register.otp.verify');
+    Route::post('/register/otp/resend', [RegisterController::class, 'resendOtp'])->name('register.otp.resend');
+
+    // Login flow
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
+    Route::get('/login/otp', [LoginController::class, 'showOtpForm'])->name('login.otp');
+    Route::post('/login/otp', [LoginController::class, 'verifyOtp'])->name('login.otp.verify');
+    Route::post('/login/otp/resend', [LoginController::class, 'resendOtp'])->name('login.otp.resend');
+
+    // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-
-    // Email verification
-    Route::get('/verify-email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify');
-    Route::post('/verify-email/verify', [EmailVerificationController::class, 'completeVerification'])->name('verification.complete');
-    Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend'])->name('verification.resend');
-    Route::post('/verify-email/check-status', [EmailVerificationController::class, 'checkStatus'])->name('verification.check-status');
-
-    // Password reset routes (T054: User Story 2)
-    Route::get('/password/reset', [PasswordResetController::class, 'showRequestForm'])->name('password.request');
-    Route::post('/password/reset/request', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
-    Route::get('/password/reset/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/password/reset', [PasswordResetController::class, 'reset'])->name('password.update');
-
-    // Mandatory password change routes (T054: User Story 2)
-    Route::middleware('auth')->group(function () {
-        Route::get('/mandatory-password-change', [PasswordChangeController::class, 'showMandatoryChangeForm'])->name('password.mandatory');
-        Route::post('/mandatory-password-change', [PasswordChangeController::class, 'change'])->name('password.mandatory-change');
-    });
 });
 
 // Import page
@@ -91,7 +77,6 @@ Route::get('/upgrade/success', [\App\Http\Controllers\UpgradeController::class, 
 Route::middleware('auth')->group(function () {
     Route::get('/settings', [\App\Http\Controllers\UserSettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings/name', [\App\Http\Controllers\UserSettingsController::class, 'updateName'])->name('settings.name');
-    Route::post('/settings/password', [\App\Http\Controllers\UserSettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/api-key', [\App\Http\Controllers\UserSettingsController::class, 'updateApiKey'])->name('settings.api-key');
     Route::post('/settings/api-key/remove', [\App\Http\Controllers\UserSettingsController::class, 'removeApiKey'])->name('settings.api-key.remove');
     // T020: Point redemption route (013-point-system)

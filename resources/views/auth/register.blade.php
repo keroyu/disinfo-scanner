@@ -47,7 +47,7 @@
             <div class="rounded-md shadow-sm space-y-4">
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                        暱稱
+                        暱稱 <span class="text-red-500">*</span>
                     </label>
                     <input id="name" name="name" type="text" required autofocus
                            value="{{ old('name') }}"
@@ -78,7 +78,6 @@
                         <p id="email-error" class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
-
             </div>
 
             <div class="flex items-center">
@@ -103,13 +102,13 @@
                             <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                         </svg>
                     </span>
-                    註冊帳號
+                    發送驗證碼
                 </button>
             </div>
 
             <div class="text-sm text-center text-gray-600">
-                <p>註冊後，系統將發送驗證郵件至您的信箱</p>
-                <p class="mt-1">請於24小時內點擊驗證連結並設定密碼</p>
+                <p>填寫資料後，系統將發送 6 位數驗證碼至您的信箱</p>
+                <p class="mt-1">驗證碼有效期限為 10 分鐘</p>
             </div>
         </form>
     </div>

@@ -15,32 +15,18 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Register middleware aliases
         $middleware->alias([
-            'check.default.password' => \App\Http\Middleware\CheckDefaultPassword::class,
-            'check.email.verified' => \App\Http\Middleware\CheckEmailVerified::class,
             'check.admin' => \App\Http\Middleware\CheckAdminRole::class,
             'check.admin.session' => \App\Http\Middleware\CheckAdminSessionTimeout::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'check.api.quota' => \App\Http\Middleware\CheckApiQuota::class,
         ]);
-
-        // Apply CheckDefaultPassword middleware to web group (excluding auth routes)
-        $middleware->web(append: [
-            \App\Http\Middleware\CheckDefaultPassword::class,
-        ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
-        // Clean up expired email verification tokens (daily at 2:00 AM)
+        // Clean up expired OTP tokens (daily at 2:00 AM)
         $schedule->call(function () {
-            $service = app(\App\Services\EmailVerificationService::class);
-            $service->cleanupExpiredTokens();
-        })->daily()->at('02:00')->name('cleanup-expired-verification-tokens');
-
-        // Clean up expired password reset tokens (daily at 2:30 AM)
-        $schedule->call(function () {
-            \Illuminate\Support\Facades\DB::table('password_reset_tokens')
-                ->where('created_at', '<', now()->subDays(7))
-                ->delete();
-        })->daily()->at('02:30')->name('cleanup-expired-password-tokens');
+            $service = app(\App\Services\OtpService::class);
+            $service->cleanupExpired();
+        })->daily()->at('02:00')->name('cleanup-expired-otp-tokens');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
